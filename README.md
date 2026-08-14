@@ -87,6 +87,55 @@ docker va *antes* de levantar; el de Laravel va *después* de `composer
 install`. Y `composer install` va dentro del contenedor, después de
 levantarlo. `make env` colapsa esos dos ajustes en uno.
 
+## Modelo de datos
+
+```
+categories ──< products >── product_tag ──> tags
+                  │
+wishlists ──< wishlist_items ──< reservations ──> users
+    │                                  │
+    └──< wishlist_accesses ──> users   └─ (quién reserva: oculto al dueño)
+```
+
+| Tabla                | Para qué                                                     |
+|----------------------|--------------------------------------------------------------|
+| `categories`         | Juguetes, comida, libros. Cerradas y pocas.                  |
+| `tags`               | Pokémon, pikachu, café. Abiertos, crecen con el uso.         |
+| `products`           | Catálogo. `is_public` separa lo curado de lo que escribe un usuario a mano. |
+| `product_tag`        | Pivote. Clave primaria compuesta, sin duplicados posibles.    |
+| `wishlists`          | Las listas. `visibility` + `share_token` para el enlace.      |
+| `wishlist_items`     | Un producto dentro de una lista. `received_at` = "ya me llegó". |
+| `wishlist_accesses`  | Solicitudes de acceso a listas privadas.                      |
+| `reservations`       | Quién reservó qué. **Tabla aparte a propósito.**              |
+
+### Las tres decisiones que sostienen el dominio
+
+**1. Las reservas viven en su propia tabla.** Si el dato de quién reservó
+estuviera en `wishlist_items`, el dueño lo traería sin querer en cualquier
+consulta de su propia lista y se acabaría la sorpresa. Separado, llegar a esa
+información obliga a un join explícito, que nadie hace por accidente.
+
+**2. Un solo regalo reservado a la vez, garantizado por la base.** La columna
+`active_flag` vale `1` mientras la reserva está viva y `NULL` cuando termina.
+Como MariaDB no considera iguales dos `NULL` en un índice único, el índice
+`reservations_one_active_per_item` deja convivir todo el historial de un ítem
+con, como máximo, una reserva activa. No depende de que la aplicación se
+acuerde de validar, ni de que dos personas no hagan clic a la vez.
+
+**3. Un ítem equivale a una unidad.** Por eso `wishlist_items` no tiene índice
+único sobre `(wishlist_id, product_id)`: repetir el mismo producto es cómo se
+piden tres tazas.
+
+### Datos que siembra `make seed`
+
+Referencia (todos los entornos): 12 categorías, 36 tags, 25 productos de
+catálogo y el usuario administrador.
+
+Demo (solo en `local` y `testing`): cuatro usuarios, cinco listas cubriendo las
+tres visibilidades, ítems disponibles, reservados y ya recibidos, solicitudes
+de acceso en cada estado, un producto privado y una reserva vencida. La
+contraseña de todos es `password`.
+
 ## Credenciales por defecto
 
 Todas viven en `.env` / `laravel/.env` y conviene cambiarlas.

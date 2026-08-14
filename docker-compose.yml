@@ -48,6 +48,8 @@ services:
       # y de "no puedo borrar docker/dbdata sin sudo".
       - dbdata:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      # Solo se ejecuta al crear el volumen por primera vez.
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
     ports:
       # Sin el 127.0.0.1 delante, Docker publica en 0.0.0.0 y la base queda
       # alcanzable desde toda la red local (y ufw no lo bloquea, porque el

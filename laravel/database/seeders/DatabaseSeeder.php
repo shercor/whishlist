@@ -14,8 +14,18 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Datos de referencia: van en cualquier entorno, producción incluida.
         $this->call([
             AdminUserSeeder::class,
+            CategorySeeder::class,
+            TagSeeder::class,
+            ProductSeeder::class,
         ]);
+
+        // Datos de ejemplo: solo en desarrollo. Nunca queremos usuarios de
+        // prueba con contraseña conocida en un servidor real.
+        if (app()->environment('local', 'testing')) {
+            $this->call(DemoSeeder::class);
+        }
     }
 }

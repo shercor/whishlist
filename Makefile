@@ -20,7 +20,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 	@:
 
 .PHONY: help setup env build up down restart rebuild destroy \
-        install key migrate fresh seed admin optimize test \
+        install key migrate fresh seed admin optimize test test-db \
         sh sh-root logs logs-app ps db xdebug-on xdebug-off \
         artisan composer npm
 
@@ -149,7 +149,17 @@ composer: ## Ejecuta composer. Ej: make composer require laravel/sanctum
 npm: ## Ejecuta npm. Ej: make npm install
 	@$(EXE) npm $(ARGS)
 
-test: ## Corre la suite de tests
+test-db: ## Crea la base de datos de tests (si el volumen de db ya existía)
+	@set -a; . ./.env; set +a; \
+	 $(DC) exec -T db mariadb -u root -p"$$DB_ROOT_PASSWORD" -e \
+	   "CREATE DATABASE IF NOT EXISTS $${DB_DATABASE}_test \
+	      CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; \
+	    GRANT ALL PRIVILEGES ON $${DB_DATABASE}_test.* TO '$$DB_USERNAME'@'%'; \
+	    FLUSH PRIVILEGES;" \
+	 && echo "  → base de tests lista: $${DB_DATABASE}_test"
+
+test: ## Corre la suite de tests (contra MariaDB, no SQLite)
+	@$(MAKE) --no-print-directory test-db
 	@$(RUN) php artisan config:clear
 	@$(RUN) php artisan test
 
