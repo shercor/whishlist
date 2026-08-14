@@ -1,0 +1,164 @@
+# whishlist
+
+API / aplicación Laravel 13 dockerizada desde el primer commit.
+
+## Estructura
+
+```
+.
+├── docker/              contenedores
+│   ├── php/             Dockerfile + php.ini + config de Xdebug
+│   ├── nginx/           default.conf
+│   └── mysql/           my.cnf
+├── laravel/             el proyecto Laravel (los fuentes)
+├── docker-compose.yml
+├── Makefile             atajos: make help
+├── .env.example         config de DOCKER (puertos, credenciales)
+└── laravel/.env.example config de LARAVEL
+```
+
+Cuatro contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
+**db** (MariaDB 11.4) y **redis**.
+
+## Los dos `.env` (importante)
+
+Es la parte que más confunde. Son dos archivos con dos dueños distintos:
+
+| Archivo         | Lo lee         | Contiene                                    |
+|-----------------|----------------|---------------------------------------------|
+| `.env`          | docker compose | puertos del host, nombre de contenedores, credenciales de la BD |
+| `laravel/.env`  | Laravel        | `APP_KEY`, conexión a la BD, redis, mail, ...|
+
+Las credenciales tienen que coincidir entre los dos. Para no editarlas dos
+veces, **`make env` copia los valores de BD del `.env` de la raíz al de
+Laravel**. Tú solo tocas el de la raíz.
+
+## Puesta en marcha
+
+```bash
+git clone <repo> whishlist
+cd whishlist
+make setup
+```
+
+`make setup` deja todo andando y te imprime la URL y las credenciales.
+Si los puertos por defecto (8080, 3309, 6380, 5174) chocan con otro proyecto,
+haz `cp .env.example .env`, edítalos, y recién entonces `make setup`.
+
+### El mismo proceso a mano
+
+Por si algo falla y necesitas ver dónde. Este es el orden correcto y el porqué:
+
+```bash
+# 1. Clonar
+git clone <repo> whishlist && cd whishlist
+
+# 2. .env de la raíz. VA ANTES de levantar: docker compose lo lee para
+#    saber los puertos, el nombre de los contenedores y la password de la BD.
+cp .env.example .env
+$EDITOR .env
+
+# 3. Levantar los contenedores. Con --build la primera vez.
+#    UID/GID hacen que los archivos que cree el contenedor sean tuyos.
+UID=$(id -u) GID=$(id -g) docker compose up -d --build
+
+# 4. Dependencias. Sí, VA DESPUÉS y VA DENTRO del contenedor php:
+#    composer no está instalado en tu máquina, está en la imagen.
+docker compose exec app composer install
+
+# 5. .env de Laravel. Después del install porque el paso 6 necesita vendor/.
+#    Las credenciales de BD deben coincidir con las del paso 2.
+cp laravel/.env.example laravel/.env
+$EDITOR laravel/.env
+
+# 6. Llave de encriptación
+docker compose exec app php artisan key:generate
+
+# 7. Migraciones + seeders (el seeder crea el usuario administrador)
+docker compose exec app php artisan migrate
+docker compose exec app php artisan db:seed
+```
+
+Y listo: <http://localhost:8080> (o el `HTTP_PORT` que hayas puesto).
+
+**Resumen del orden que preguntabas:** las credenciales se ajustan **dos
+veces, en dos archivos distintos** — nunca la misma dos veces. El `.env` de
+docker va *antes* de levantar; el de Laravel va *después* de `composer
+install`. Y `composer install` va dentro del contenedor, después de
+levantarlo. `make env` colapsa esos dos ajustes en uno.
+
+## Credenciales por defecto
+
+Todas viven en `.env` / `laravel/.env` y conviene cambiarlas.
+
+- **Aplicación** — `admin@whishlist.test` / `admin1234`
+  (`ADMIN_EMAIL` y `ADMIN_PASSWORD` en `laravel/.env`).
+  Si cambias la contraseña o la olvidas: `make admin`.
+- **Base de datos** — host `localhost`, puerto `3309`, usuario `whishlist`,
+  password `secret`, base `whishlist_db`. Root: `root_secret`.
+
+## Comandos
+
+`make help` los lista todos. Los que más vas a usar:
+
+| Comando          | Qué hace                                              |
+|------------------|-------------------------------------------------------|
+| `make setup`     | instalación completa desde cero                       |
+| `make up`        | levantar contenedores                                 |
+| `make down`      | bajar contenedores (la BD se conserva)                |
+| `make sh`        | shell dentro del contenedor php                       |
+| `make artisan …` | `make artisan migrate:status`                         |
+| `make composer …`| `make composer require laravel/sanctum`               |
+| `make migrate`   | migraciones pendientes                                |
+| `make fresh`     | borrar todo, migrar y sembrar de nuevo                |
+| `make admin`     | recrear / resetear el usuario administrador           |
+| `make db`        | cliente mysql contra la base                          |
+| `make test`      | correr los tests                                      |
+| `make optimize`  | limpiar todas las cachés de Laravel                   |
+| `make destroy`   | borrar contenedores **y la base de datos** (pregunta) |
+
+Para comandos con flags, entrecomilla el argumento para que make no se los
+quede: `make artisan "make:model Wish -m"`. O usa `make sh` y trabaja dentro.
+
+## Xdebug
+
+Viene instalado pero apagado, para no penalizar el rendimiento a diario.
+
+```bash
+make xdebug-on     # activar
+make xdebug-off    # desactivar
+```
+
+Se apaga al reconstruir la imagen. En VS Code, `.vscode/launch.json`:
+
+```json
+{
+  "name": "Listen for Xdebug",
+  "type": "php",
+  "request": "launch",
+  "port": 9003,
+  "pathMappings": { "/var/www": "${workspaceFolder}/laravel" }
+}
+```
+
+## Problemas comunes
+
+**Puerto ocupado** — cambia `HTTP_PORT` / `DB_PORT` / `REDIS_PORT` /
+`VITE_PORT` en `.env` y `make up`.
+
+**Permisos en `storage/`** — no debería pasar, porque la imagen se construye
+con tu UID/GID. Si pasa (por ejemplo cambiaste de usuario):
+
+```bash
+make sh-root
+chown -R www:www /var/www/storage /var/www/bootstrap/cache
+```
+
+**"Class not found" tras crear archivos**
+
+```bash
+make composer dump-autoload
+```
+
+**Empezar la BD de cero** — `make fresh` (vacía las tablas) o `make destroy`
+seguido de `make setup` (borra el volumen entero).

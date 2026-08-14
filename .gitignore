@@ -1,0 +1,18 @@
+# .env de docker compose (el de Laravel lo ignora laravel/.gitignore)
+/.env
+
+# Editores
+/.idea/
+/.vscode/*
+!/.vscode/launch.json
+
+# Claude Code
+/CLAUDE.md
+/.claude/
+
+# SO
+.DS_Store
+Thumbs.db
+
+# Logs sueltos
+*.log

@@ -1,0 +1,71 @@
+services:
+  app:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: "${APP_NAME}_app"
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./laravel:/var/www
+    ports:
+      # Vite dev server
+      - "${VITE_PORT}:5173"
+    extra_hosts:
+      # Permite que Xdebug encuentre al IDE del host en Linux.
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  webserver:
+    image: nginx:stable-alpine
+    container_name: "${APP_NAME}_webserver"
+    restart: unless-stopped
+    volumes:
+      - ./laravel:/var/www
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "${HTTP_PORT}:80"
+    depends_on:
+      - app
+
+  db:
+    image: mariadb:11.4
+    container_name: "${APP_NAME}_db"
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: "${DB_DATABASE}"
+      MARIADB_USER: "${DB_USERNAME}"
+      MARIADB_PASSWORD: "${DB_PASSWORD}"
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD}"
+    volumes:
+      # Volumen con nombre (no bind mount): evita los problemas de permisos
+      # y de "no puedo borrar docker/dbdata sin sudo".
+      - dbdata:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "${DB_PORT}:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  redis:
+    image: redis:7-alpine
+    container_name: "${APP_NAME}_redis"
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    ports:
+      - "${REDIS_PORT}:6379"
+
+volumes:
+  dbdata:
+  redisdata:
