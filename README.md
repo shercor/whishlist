@@ -120,6 +120,29 @@ Todas viven en `.env` / `laravel/.env` y conviene cambiarlas.
 Para comandos con flags, entrecomilla el argumento para que make no se los
 quede: `make artisan "make:model Wish -m"`. O usa `make sh` y trabaja dentro.
 
+## Puertos y exposición
+
+| Servicio    | Puerto | Alcance                              |
+|-------------|--------|--------------------------------------|
+| `webserver` | 8080   | toda la red (para probar desde el celular) |
+| `app` vite  | 5174   | toda la red                          |
+| `db`        | 3309   | **solo esta máquina**                |
+| `redis`     | 6380   | **solo esta máquina**                |
+
+La base y Redis llevan `127.0.0.1:` delante del puerto en
+`docker-compose.yml`. Sin ese prefijo Docker publica en `0.0.0.0`, es decir en
+todas las interfaces, y quedarían alcanzables desde cualquier equipo de la red
+local con las credenciales del `.env`.
+
+Ojo con esto: **ufw no lo impide**. Docker mete sus propias reglas de iptables
+en la cadena `DOCKER`, colgada de `nat/PREROUTING` y `FORWARD`; las reglas de
+ufw viven en `INPUT`, que ese tráfico nunca toca. Un `ufw deny 3309` no serviría
+de nada — el prefijo `127.0.0.1:` sí.
+
+No afecta a Laravel: la app llega a `db` y `redis` por la red interna de
+Docker, resolviendo por nombre de servicio, sin pasar por los puertos
+publicados. Y desde el host te sigues conectando con `localhost:3309`.
+
 ## Xdebug
 
 Viene instalado pero apagado, para no penalizar el rendimiento a diario.

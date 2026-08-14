@@ -49,7 +49,11 @@ services:
       - dbdata:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
     ports:
-      - "${DB_PORT}:3306"
+      # Sin el 127.0.0.1 delante, Docker publica en 0.0.0.0 y la base queda
+      # alcanzable desde toda la red local (y ufw no lo bloquea, porque el
+      # tráfico va por FORWARD y no por INPUT). Te conectas igual con
+      # localhost:${DB_PORT} desde el host.
+      - "127.0.0.1:${DB_PORT}:3306"
     healthcheck:
       test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
       interval: 5s
@@ -64,7 +68,8 @@ services:
     volumes:
       - redisdata:/data
     ports:
-      - "${REDIS_PORT}:6379"
+      # Solo accesible desde esta máquina, igual que db.
+      - "127.0.0.1:${REDIS_PORT}:6379"
 
 volumes:
   dbdata:
