@@ -2,6 +2,10 @@
 
 API / aplicación Laravel 13 dockerizada desde el primer commit.
 
+> ¿Retomando el proyecto en otra máquina o después de un tiempo?
+> Parte por **[HANDOFF.md](HANDOFF.md)**: estado actual, decisiones de diseño
+> que conviene no deshacer, convenciones y qué sigue.
+
 ## Estructura
 
 ```
