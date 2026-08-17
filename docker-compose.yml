@@ -22,6 +22,28 @@ services:
       redis:
         condition: service_started
 
+  # Sin este servicio, todo lo que se programe en routes/console.php queda
+  # escrito pero nunca corre: las reservas vencidas no se liberarían jamás.
+  # schedule:work es el equivalente a la línea de cron, pero en primer plano,
+  # que es lo que un contenedor necesita.
+  scheduler:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: "${APP_NAME}_scheduler"
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan schedule:work
+    volumes:
+      - ./laravel:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   webserver:
     image: nginx:stable-alpine
     container_name: "${APP_NAME}_webserver"
