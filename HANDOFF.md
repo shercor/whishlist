@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 60 passed
+make test                                                     # 61 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -95,13 +95,14 @@ Commits en `main`:
 | `b21ec12` | Servicio `scheduler`, sin el que nada programado corría    |
 | `dbc046f` | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
 | `d6af2cd` | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
-| (el último) | Seguidores, perfil privado y reparto de acceso lista por lista |
+| `27872c0` | Seguidores, perfil privado y reparto de acceso lista por lista |
+| (el último) | «Por enlace» se fusiona en «privada»: una sola lista privada que se invita y se comparte |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext). Todo eso está automatizado en la suite, no solo probado a mano:
-`make test` → **60 passed**.
+`make test` → **61 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -175,6 +176,15 @@ comportamiento porque alguien edite el modelo después.
 
 Es la regla central del proyecto y tiene tres piezas que se combinan.
 
+**0. La lista es pública o privada, y no hay tercer caso.** Existió un nivel
+intermedio `por_enlace` y se eliminó: desde que la privada también lleva
+enlace, «por enlace» era una privada a la que su dueño nunca invitaba a nadie
+—dos nombres para lo mismo—. Hoy **una lista privada se reparte de las dos
+formas a la vez**: se invita a gente elegida *y* se pasa el enlace, sin tener
+que elegir entre ambas. La migración `merge_link_visibility_into_private`
+convirtió las que había; los enlaces que ya circulaban siguen funcionando
+porque `openByLink` busca por token sin mirar la visibilidad.
+
 **1. El perfil** es privado o público, y nace privado. Uno privado se encuentra
 por su arroba y hasta ahí: no muestra **ninguna** lista, ni siquiera las
 marcadas como públicas, hasta que su dueño acepte que lo sigan. Si mostrara las
@@ -211,15 +221,14 @@ cae ningún otro.
 el enlace es la puerta de quien no va a seguir a nadie —la tía que no usa la
 app— sin obligar al dueño a abrirle todo.
 
-**Toda lista que no sea pública lleva enlace**, la privada incluida. Y el
-enlace ya no vive solo en la sesión: al entrar queda anotada una fila con
+**El enlace ya no vive solo en la sesión**: al entrar queda anotada una fila con
 `source = enlace`, que es lo que le permite al dueño ver quién entró y echarlo
 desde «Quién la ve». Un acceso que solo existiera en la sesión del visitante
 sería invisible e irrevocable.
 
-Nota para el futuro: con esto, `por_enlace` y `privada` quedaron muy parecidas
-—las dos tienen enlace, la privada además se reparte a dedo—. Se pueden
-colapsar en una sola visibilidad, pero es un cambio de datos y no se hizo.
+**No vuelvas a agregar un nivel «por enlace».** Ya existió y se quitó por
+redundante; `EnumTest::test_a_wishlist_is_public_or_private_and_nothing_else`
+está puesto justamente para que el intento falle y obligue a leer esto.
 
 ### Las fotos van en caja cuadrada
 
@@ -256,7 +265,7 @@ Los tests que importan y qué vigilan:
 | `WishlistItemTest`                 | disponible/recibido, orden por prioridad, unidades |
 | `ProductVisibilityTest`            | catálogo público vs. producto privado ajeno        |
 | `ProductSearchTest`                | búsqueda fulltext acotada a lo visible             |
-| `WishlistVisibilityTest`           | visibilidades, token de enlace, acceso aprobado    |
+| `WishlistVisibilityTest`           | las dos visibilidades, token de enlace, acceso aprobado |
 | `EnumTest`                         | ida y vuelta de `label()` ↔ caso del enum          |
 | `FollowAccessTest`                 | **quién ve la lista de quién**: perfil privado, seguidores, invitación, enlace, y que dejar de seguir corte |
 

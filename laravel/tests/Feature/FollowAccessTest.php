@@ -152,12 +152,15 @@ class FollowAccessTest extends TestCase
         $this->assertTrue($tia->can('view', $privada));
     }
 
-    public function test_every_non_public_wishlist_has_a_link_to_share(): void
+    /**
+     * Una lista privada se reparte de las dos formas y no hay que elegir: se
+     * invita a gente *y* se pasa el enlace. Por eso siempre lleva token.
+     */
+    public function test_a_private_wishlist_always_has_a_link_to_share(): void
     {
         $duenio = User::factory()->create();
 
         $this->assertNotNull($this->lista($duenio, WishlistVisibility::PRIVATE)->share_token);
-        $this->assertNotNull($this->lista($duenio, WishlistVisibility::LINK)->share_token);
         $this->assertNull($this->lista($duenio, WishlistVisibility::PUBLIC)->share_token);
     }
 

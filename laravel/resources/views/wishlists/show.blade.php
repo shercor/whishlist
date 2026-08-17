@@ -31,7 +31,10 @@
 
     @if ($wishlist->share_token)
         <div class="campo">
-            <label for="enlace">Enlace para compartir <span class="pista">(quien lo tenga puede ver la lista)</span></label>
+            <label for="enlace">
+                Enlace para compartir
+                <span class="pista">(quien lo tenga entra aunque no te siga; queda anotado en «Quién la ve»)</span>
+            </label>
             <div class="fila-copiar">
                 <input id="enlace" class="enlace-compartir" type="text" readonly
                        onclick="this.select()" value="{{ route('shared.open', $wishlist->share_token) }}">

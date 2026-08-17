@@ -87,14 +87,25 @@ class EnumTest extends TestCase
      */
     public function test_every_non_public_wishlist_needs_a_share_token(): void
     {
-        $this->assertTrue(WishlistVisibility::LINK->needsShareToken());
         $this->assertTrue(WishlistVisibility::PRIVATE->needsShareToken());
         $this->assertFalse(WishlistVisibility::PUBLIC->needsShareToken());
 
         // Solo la privada exige que el dueño apruebe.
         $this->assertFalse(WishlistVisibility::PRIVATE->isReachableWithoutApproval());
         $this->assertTrue(WishlistVisibility::PUBLIC->isReachableWithoutApproval());
-        $this->assertTrue(WishlistVisibility::LINK->isReachableWithoutApproval());
+    }
+
+    /**
+     * Son dos y nada más. Si alguien agrega un tercer nivel «por enlace», que
+     * este test le recuerde por qué se eliminó: la privada ya se comparte por
+     * enlace, así que sería el mismo caso con otro nombre.
+     */
+    public function test_a_wishlist_is_public_or_private_and_nothing_else(): void
+    {
+        $this->assertSame(
+            ['publica', 'privada'],
+            WishlistVisibility::labels()
+        );
     }
 
     public function test_priority_weight_sorts_from_most_wanted_to_least(): void

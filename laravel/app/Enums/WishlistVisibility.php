@@ -2,10 +2,21 @@
 
 namespace App\Enums;
 
+/**
+ * Una lista es pública o privada, y no hay tercer caso.
+ *
+ * Existió un `LINK` («por enlace») como nivel intermedio, y se eliminó porque
+ * dejó de ser un nivel distinto: desde que la privada también tiene enlace, la
+ * de enlace era una privada a la que su dueño nunca invitaba a nadie. Dos
+ * nombres para lo mismo obligan a explicar una diferencia que no existe.
+ *
+ * Lo que era «por enlace» ahora es sencillamente una lista privada que se
+ * comparte con su enlace, y la misma lista admite además invitar gente. Ya no
+ * hay que elegir entre las dos formas de repartirla.
+ */
 enum WishlistVisibility
 {
     case PUBLIC;
-    case LINK;
     case PRIVATE;
 
     /**
@@ -16,7 +27,6 @@ enum WishlistVisibility
     {
         return match ($this) {
             self::PUBLIC => 'publica',
-            self::LINK => 'por_enlace',
             self::PRIVATE => 'privada',
         };
     }
@@ -28,7 +38,6 @@ enum WishlistVisibility
     {
         return match ($this) {
             self::PUBLIC => 'Pública',
-            self::LINK => 'Por enlace',
             self::PRIVATE => 'Privada',
         };
     }
@@ -39,22 +48,17 @@ enum WishlistVisibility
     public function description(): string
     {
         return match ($this) {
-            self::PUBLIC => 'Cualquiera puede encontrarla y verla.',
-            self::LINK => 'Solo quien tenga el enlace puede verla, no aparece en búsquedas.',
-            self::PRIVATE => 'Solo tú. Los demás deben pedirte acceso.',
+            self::PUBLIC => 'Cualquiera puede encontrarla, salvo que tu perfil sea privado.',
+            self::PRIVATE => 'Solo quien tú invites o quien tenga su enlace.',
         };
     }
 
     /**
      * Indica si la wishlist necesita un token de enlace para compartirse.
      *
-     * Toda lista que no sea pública lleva enlace, la privada incluida. Es la
-     * puerta para quien no está en el círculo —la tía que no usa la app y no
-     * va a seguir a nadie— sin obligar al dueño a abrir la lista entera.
-     *
-     * La diferencia que queda entre LINK y PRIVATE es qué más admiten: la
-     * privada además se reparte a dedo entre seguidores; la de enlace vive
-     * solo de su enlace.
+     * La privada lo lleva siempre: el enlace es su segunda puerta, la de quien
+     * no va a seguir a nadie —la tía que no usa la app— sin que el dueño tenga
+     * que abrirle la lista de otra forma.
      */
     public function needsShareToken(): bool
     {

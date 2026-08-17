@@ -29,11 +29,9 @@ class WishlistVisibilityTest extends TestCase
      */
     public function test_every_non_public_wishlist_gets_a_share_token(): void
     {
-        $porEnlace = Wishlist::factory()->visibility(WishlistVisibility::LINK)->create();
         $privada = Wishlist::factory()->visibility(WishlistVisibility::PRIVATE)->create();
         $publica = Wishlist::factory()->visibility(WishlistVisibility::PUBLIC)->create();
 
-        $this->assertNotNull($porEnlace->share_token);
         $this->assertNotNull($privada->share_token);
         $this->assertNull($publica->share_token);
     }
@@ -46,15 +44,14 @@ class WishlistVisibilityTest extends TestCase
         $publicaDeBruno = Wishlist::factory()->for($bruno)->visibility(WishlistVisibility::PUBLIC)->create();
         $privadaDeAna = Wishlist::factory()->for($ana)->create();
         $privadaDeBruno = Wishlist::factory()->for($bruno)->create();
-        $porEnlaceDeBruno = Wishlist::factory()->for($bruno)->visibility(WishlistVisibility::LINK)->create();
 
         $alcanzables = Wishlist::browsableBy($ana)->pluck('id');
 
         $this->assertTrue($alcanzables->contains($publicaDeBruno->id));
         $this->assertTrue($alcanzables->contains($privadaDeAna->id));
+        // La privada ajena no se navega: se llega invitado o con el enlace,
+        // nunca buscando.
         $this->assertFalse($alcanzables->contains($privadaDeBruno->id));
-        // Las de enlace no se navegan: se llega con el token, no buscando.
-        $this->assertFalse($alcanzables->contains($porEnlaceDeBruno->id));
     }
 
     public function test_deleting_the_owner_takes_their_wishlists_with_them(): void

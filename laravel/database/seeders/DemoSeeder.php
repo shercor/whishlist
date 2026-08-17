@@ -21,7 +21,7 @@ class DemoSeeder extends Seeder
 {
     /**
      * Datos de ejemplo para desarrollo. Arma un escenario que cubre los casos
-     * que hacen interesante el dominio: los tres niveles de visibilidad, una
+     * que hacen interesante el dominio: las dos visibilidades, una
      * solicitud de acceso en cada estado, un producto privado, un regalo ya
      * recibido y un ítem que se reservó, se soltó y se volvió a reservar.
      */
@@ -39,7 +39,7 @@ class DemoSeeder extends Seeder
             'event_date' => '2026-09-20',
         ]);
 
-        $navidad = $this->wishlist($ana, 'Navidad en familia', WishlistVisibility::LINK, [
+        $navidad = $this->wishlist($ana, 'Navidad en familia', WishlistVisibility::PRIVATE, [
             'description' => 'Para el amigo secreto de este año.',
             'event_date' => '2026-12-24',
         ]);
@@ -51,7 +51,7 @@ class DemoSeeder extends Seeder
         // --- Listas de otros ----------------------------------------------
 
         $brunoList = $this->wishlist($bruno, 'Lo que ando buscando', WishlistVisibility::PUBLIC);
-        $this->wishlist($camila, 'Regalos de matrimonio', WishlistVisibility::LINK, [
+        $this->wishlist($camila, 'Regalos de matrimonio', WishlistVisibility::PRIVATE, [
             'event_date' => '2026-11-08',
         ]);
 
@@ -157,7 +157,7 @@ class DemoSeeder extends Seeder
             ['user_id' => $user->id, 'name' => $name],
             array_merge([
                 'visibility' => $visibility->label(),
-                // Solo las de enlace necesitan token.
+                // Toda lista no pública lleva enlace.
                 'share_token' => $visibility->needsShareToken() ? Str::random(32) : null,
             ], $extra)
         );
