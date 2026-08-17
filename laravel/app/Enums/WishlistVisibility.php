@@ -47,10 +47,18 @@ enum WishlistVisibility
 
     /**
      * Indica si la wishlist necesita un token de enlace para compartirse.
+     *
+     * Toda lista que no sea pública lleva enlace, la privada incluida. Es la
+     * puerta para quien no está en el círculo —la tía que no usa la app y no
+     * va a seguir a nadie— sin obligar al dueño a abrir la lista entera.
+     *
+     * La diferencia que queda entre LINK y PRIVATE es qué más admiten: la
+     * privada además se reparte a dedo entre seguidores; la de enlace vive
+     * solo de su enlace.
      */
     public function needsShareToken(): bool
     {
-        return $this === self::LINK;
+        return $this !== self::PUBLIC;
     }
 
     /**

@@ -23,6 +23,7 @@ class ProfileRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'username' => User::usernameRules($this->user()),
             'show_name' => ['boolean'],
+            'is_private' => ['boolean'],
         ];
     }
 
@@ -33,6 +34,10 @@ class ProfileRequest extends FormRequest
             // Una casilla sin marcar no se envía: sin esto, desmarcarla no
             // apagaría nada porque el campo simplemente no llegaría.
             'show_name' => $this->boolean('show_name'),
+            // La casilla del formulario dice «perfil público», que es lo
+            // natural de leer, y acá se invierte: la columna guarda lo
+            // contrario. Marcarla apaga is_private.
+            'is_private' => ! $this->boolean('perfil_publico'),
         ]);
     }
 
@@ -45,6 +50,7 @@ class ProfileRequest extends FormRequest
             'name' => 'nombre',
             'username' => 'usuario',
             'show_name' => 'mostrar el nombre',
+            'is_private' => 'privacidad del perfil',
         ];
     }
 

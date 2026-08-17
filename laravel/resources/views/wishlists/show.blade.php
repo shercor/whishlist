@@ -15,6 +15,9 @@
         </div>
         <div class="fila-acciones">
             <span class="etiqueta">{{ $wishlist->visibilityEnum()->title() }}</span>
+            @unless ($wishlist->visibilityEnum() === \App\Enums\WishlistVisibility::PUBLIC)
+                <a class="boton-plano" href="{{ route('access.manage', $wishlist) }}">Quién la ve</a>
+            @endunless
             <a class="boton-plano" href="{{ route('wishlists.edit', $wishlist) }}">Editar</a>
             <a class="boton" href="{{ route('items.create', $wishlist) }}">Agregar regalo</a>
         </div>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Enums\AccessRequestStatus;
+use App\Enums\AccessSource;
+use App\Enums\FollowStatus;
 use App\Models\Wishlist;
 use App\Models\WishlistAccess;
 use Illuminate\Http\RedirectResponse;
@@ -51,11 +53,85 @@ class AccessRequestController extends Controller
         $wishlist->accesses()->create([
             'user_id' => $request->user()->id,
             'status' => AccessRequestStatus::PENDING->label(),
+            'source' => AccessSource::REQUEST->label(),
             'message' => $validated['message'] ?? null,
         ]);
 
         return redirect()->route('access.index')
             ->with('status', 'Pedido enviado. Te avisará cuando responda.');
+    }
+
+    /**
+     * Quién entra a esta lista, y a quién más se le puede dar.
+     *
+     * Los candidatos salen de los seguidores del dueño y no de todos los
+     * usuarios de la plataforma: repartir una lista privada entre desconocidos
+     * no tiene sentido, y buscar personas desde acá obligaría a decidir cuánto
+     * muestra ese buscador.
+     */
+    public function manage(Request $request, Wishlist $wishlist): View
+    {
+        $this->authorize('manageAccess', $wishlist);
+
+        $accesos = $wishlist->accesses()->with('user')->latest()->get();
+        $yaTienen = $accesos->pluck('user_id');
+
+        return view('access.manage', [
+            'wishlist' => $wishlist,
+            'accesos' => $accesos,
+            'invitables' => $request->user()->followers()
+                ->whereKeyNot($yaTienen)
+                ->orderBy('username')
+                ->get(),
+        ]);
+    }
+
+    /**
+     * El dueño le da la lista a uno de sus seguidores, sin que se la pida.
+     */
+    public function invite(Request $request, Wishlist $wishlist): RedirectResponse
+    {
+        $this->authorize('manageAccess', $wishlist);
+
+        $validated = $request->validate([
+            // La regla exists no basta: hay que exigir que sea seguidor, o
+            // bastaría con mandar cualquier id para colarse en la lista.
+            'user_id' => [
+                'required',
+                Rule::exists('follows', 'follower_id')
+                    ->where('followed_id', $request->user()->id)
+                    ->where('status', FollowStatus::ACCEPTED->label()),
+            ],
+        ], [], ['user_id' => 'persona']);
+
+        $wishlist->accesses()->updateOrCreate(
+            ['user_id' => $validated['user_id']],
+            [
+                'status' => AccessRequestStatus::APPROVED->label(),
+                'source' => AccessSource::INVITATION->label(),
+                'responded_at' => now(),
+            ]
+        );
+
+        return back()->with('status', 'Invitación hecha. Ya puede ver la lista.');
+    }
+
+    /**
+     * Echar a alguien de una lista.
+     *
+     * Se borra la fila en vez de marcarla revocada porque el único de
+     * (wishlist_id, user_id) impide volver a invitar a quien ya tuvo acceso:
+     * quedaría bloqueado para siempre por una fila vieja.
+     */
+    public function revoke(Wishlist $wishlist, WishlistAccess $access): RedirectResponse
+    {
+        $this->authorize('manageAccess', $wishlist);
+
+        abort_if($access->wishlist_id !== $wishlist->id, 404);
+
+        $access->delete();
+
+        return back()->with('status', 'Acceso quitado.');
     }
 
     /**

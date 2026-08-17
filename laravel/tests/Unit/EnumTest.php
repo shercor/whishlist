@@ -80,11 +80,16 @@ class EnumTest extends TestCase
         $this->assertFalse(AccessRequestStatus::REVOKED->isAwaitingResponse());
     }
 
-    public function test_only_a_link_wishlist_needs_a_share_token(): void
+    /**
+     * Toda lista que no sea pública lleva enlace, la privada incluida: es la
+     * puerta de quien no sigue al dueño y por tanto no puede ser invitado.
+     * La pública no lo necesita porque no hay nada que abrir.
+     */
+    public function test_every_non_public_wishlist_needs_a_share_token(): void
     {
         $this->assertTrue(WishlistVisibility::LINK->needsShareToken());
+        $this->assertTrue(WishlistVisibility::PRIVATE->needsShareToken());
         $this->assertFalse(WishlistVisibility::PUBLIC->needsShareToken());
-        $this->assertFalse(WishlistVisibility::PRIVATE->needsShareToken());
 
         // Solo la privada exige que el dueño apruebe.
         $this->assertFalse(WishlistVisibility::PRIVATE->isReachableWithoutApproval());

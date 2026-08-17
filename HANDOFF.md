@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 49 passed
+make test                                                     # 60 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -94,26 +94,29 @@ Commits en `main`:
 | `476cc54` | Capa de aplicación: policies, controladores, rutas, vistas |
 | `b21ec12` | Servicio `scheduler`, sin el que nada programado corría    |
 | `dbc046f` | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
-| (el último) | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
+| `d6af2cd` | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
+| (el último) | Seguidores, perfil privado y reparto de acceso lista por lista |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext). Todo eso está automatizado en la suite, no solo probado a mano:
-`make test` → **49 passed**.
+`make test` → **60 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
 entrar con otra cuenta, reservarlo, y verlo en «mis reservas» — mientras el
-dueño de la lista no ve ni rastro de esa reserva. Registrarse pide solo nombre,
-correo y contraseña (mínimo 8, repetida); **no hay verificación de correo**,
-y al enviar el formulario quedas dentro.
+dueño de la lista no ve ni rastro de esa reserva. Registrarse pide nombre,
+arroba, correo y contraseña (mínimo 8, repetida); **no hay verificación de
+correo**, y al enviar el formulario quedas dentro.
 
 Lo que trae la capa de aplicación:
 
 | Pieza                          | Qué resuelve                                       |
 |--------------------------------|----------------------------------------------------|
-| `WishlistPolicy`               | los cuatro caminos para abrir una lista: dueño, pública, acceso aprobado, enlace secreto |
+| `WishlistPolicy`               | los cuatro caminos para abrir una lista (ver «Quién ve la lista de quién») |
+| `Follow` + `FollowController`  | seguir gente; el perfil privado aprueba, el público acepta solo |
+| `AccessSource`                 | por dónde entró cada quien, que es lo que decide cuánto dura su acceso |
 | `ReservationPolicy`            | la regla que la base no puede: el dueño jamás reserva en su propia lista |
 | `WishlistItemPolicy`           | solo el dueño agrega, edita o marca recibido       |
 | `ReservationService`           | traduce el choque de dos reservas simultáneas a un mensaje |
@@ -157,16 +160,66 @@ Ese método es el único punto por donde un nombre sale hacia la interfaz, y es
 lo que respeta la decisión de cada persona. `handle()` devuelve el arroba
 siempre, para cuando se quiere el identificador y no el nombre.
 
-El perfil público vive en `/u/{username}` y muestra **solo** las listas
-públicas de esa persona. Las privadas y las de enlace no se cuentan ni se
-insinúan: decir «tiene 2 listas más que no puedes ver» ya es contar algo de
-alguien que eligió no contarlo.
+El perfil vive en `/u/{username}` y muestra **solo** las listas públicas de esa
+persona —y ninguna, si el perfil es privado y no lo sigues—. Las privadas y las
+de enlace no se cuentan ni se insinúan: decir «tiene 2 listas más que no puedes
+ver» ya es contar algo de alguien que eligió no contarlo.
 
 Hay una lista de `USERNAMES_RESERVADOS` en el modelo, porque el usuario aparece
 en una URL y porque nadie debe poder hacerse pasar por el sistema. La migración
 que rellena los usuarios de las cuentas viejas repite esa lista a mano en vez
 de leer la constante: una migración ya ejecutada no puede cambiar de
 comportamiento porque alguien edite el modelo después.
+
+### Quién ve la lista de quién
+
+Es la regla central del proyecto y tiene tres piezas que se combinan.
+
+**1. El perfil** es privado o público, y nace privado. Uno privado se encuentra
+por su arroba y hasta ahí: no muestra **ninguna** lista, ni siquiera las
+marcadas como públicas, hasta que su dueño acepte que lo sigan. Si mostrara las
+públicas igual, «perfil privado» no querría decir nada. Sus listas tampoco
+salen en `/discover`.
+
+**2. Los seguidores.** Un perfil público acepta al instante; uno privado deja
+la solicitud pendiente. Seguir existe para acotar a quién se le puede dar una
+lista privada: sin esto, el dueño tendría que elegir entre *todos* los usuarios
+de la plataforma.
+
+**3. El acceso a cada lista privada, una por una.** Los permisos son por lista,
+no por persona: que alguien te siga no le abre tus tres listas privadas.
+
+Los cuatro caminos para abrir una lista, y ninguno más:
+
+| Camino | Requisito | Cuánto dura |
+|--------|-----------|-------------|
+| Ser el dueño | — | siempre |
+| El enlace secreto | conocer el enlace | hasta que el dueño lo quite a mano |
+| Invitación o solicitud aprobada | seguir al dueño **ahora** | se cae al dejar de seguir |
+| Lista pública | perfil del dueño alcanzable | mientras siga siéndolo |
+
+**Lo que hay que entender del tercero:** el acceso no se guarda como «tiene
+permiso para siempre». La policy vuelve a preguntar por el seguimiento cada vez
+que se abre la lista, así que dejar de seguir corta el acceso en ese instante y
+**no hay ninguna tarea que limpie nada**. Está verificado por mutación: si se
+quita esa segunda pregunta y se confía solo en la fila aprobada, cae
+`FollowAccessTest::test_unfollowing_closes_a_private_wishlist_immediately` y no
+cae ningún otro.
+
+`AccessSource` es lo que distingue cuánto dura cada acceso: `invitacion` y
+`solicitud` exigen seguir; `enlace` no, porque se sostiene en el enlace. Por eso
+el enlace es la puerta de quien no va a seguir a nadie —la tía que no usa la
+app— sin obligar al dueño a abrirle todo.
+
+**Toda lista que no sea pública lleva enlace**, la privada incluida. Y el
+enlace ya no vive solo en la sesión: al entrar queda anotada una fila con
+`source = enlace`, que es lo que le permite al dueño ver quién entró y echarlo
+desde «Quién la ve». Un acceso que solo existiera en la sesión del visitante
+sería invisible e irrevocable.
+
+Nota para el futuro: con esto, `por_enlace` y `privada` quedaron muy parecidas
+—las dos tienen enlace, la privada además se reparte a dedo—. Se pueden
+colapsar en una sola visibilidad, pero es un cambio de datos y no se hizo.
 
 ### Las fotos van en caja cuadrada
 
@@ -205,18 +258,18 @@ Los tests que importan y qué vigilan:
 | `ProductSearchTest`                | búsqueda fulltext acotada a lo visible             |
 | `WishlistVisibilityTest`           | visibilidades, token de enlace, acceso aprobado    |
 | `EnumTest`                         | ida y vuelta de `label()` ↔ caso del enum          |
+| `FollowAccessTest`                 | **quién ve la lista de quién**: perfil privado, seguidores, invitación, enlace, y que dejar de seguir corte |
 
 Los dos invariantes garantizados por la base se verificaron por mutación:
 quitando el índice único, el test falla. No son verdes por casualidad.
 
-**El agujero que queda:** los 49 tests cubren el dominio —modelos, scopes,
-invariantes, enums— y **ni uno solo toca la capa de aplicación**. Policies,
-controladores y vistas se verificaron a mano, por HTTP, una vez. Nada impide
-que el próximo cambio rompa una policy en silencio. Ese es el trabajo número
-uno de la próxima sesión.
+**El agujero que queda, ya más chico:** `FollowAccessTest` cubre las once
+reglas de quién ve la lista de quién, que era lo más delicado. Pero el resto de
+la capa de aplicación —controladores, formularios, subida de imagen, «me
+gusta»— sigue sin un solo test y se verificó a mano, por HTTP, una vez.
 
 **No hecho todavía:** API (todo es Blade con formularios), notificaciones,
-y los tests recién mencionados.
+y los tests de todo lo que no sea el acceso.
 
 ---
 
@@ -367,18 +420,23 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
 
 ## 6. Decisiones pendientes
 
-**Pedir acceso a una lista privada que no sabes que existe.** Encontrar a la
-persona ya está resuelto —se busca por su arroba en `/usuarios`—, pero su
-perfil solo muestra las listas públicas. Si @ana tiene una lista privada, no
-hay forma de pedirle acceso salvo que ella te pase la URL, porque la solicitud
-se guarda por lista (`wishlist_accesses` es `(wishlist_id, user_id)`) y para
-crearla hace falta un `wishlist_id` que no puedes conocer.
+**Resuelto:** cómo se encuentra a alguien y cómo se le da una lista privada.
+Se busca por arroba, se le sigue, y el dueño reparte lista por lista desde
+«Quién la ve». Lo que queda de ese hilo:
 
-Las salidas son dos y hay que elegir: **(a)** mostrar en el perfil que existen
-listas privadas y ofrecer el botón —cómodo, pero revela que las tiene—, o
-**(b)** una solicitud a nivel de persona, «@fulano quiere ver tus listas», que
-el dueño responde eligiendo cuáles. La (b) no filtra nada pero cambia el modelo
-de datos.
+**Sigue sin haber forma de pedir una lista privada que no sabes que existe.**
+El dueño puede *dártela* sin que la pidas, y ese es el camino previsto. Pero si
+sospechas que @ana tiene una lista de cumpleaños y quieres pedírsela, no
+puedes: la solicitud se guarda por lista y para crearla hace falta un
+`wishlist_id` que no conoces. Mostrarlo en el perfil revelaría que la tiene, y
+se decidió no hacerlo.
+
+**Reservas huérfanas.** Si reservas un regalo y después el dueño te quita de
+sus seguidores, pierdes la lista de vista pero la reserva sigue viva y el
+regalo bloqueado para los demás. No se puede avisar al dueño —le arruinaría la
+sorpresa— así que el ítem queda tomado hasta que el job de reservas vencidas lo
+suelte, a los 14 días. Es tolerable, pero está sin decidir si debería soltarse
+en el acto.
 
 **Visibilidad del catálogo.** Hoy cualquier producto `is_public = true` es
 visible para todos, y los seeders son la única forma de crear uno. Falta

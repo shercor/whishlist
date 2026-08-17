@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\AccessRequestStatus;
+use App\Enums\AccessSource;
 use App\Enums\WishlistVisibility;
 use App\Http\Requests\WishlistRequest;
+use App\Models\User;
 use App\Models\Wishlist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -98,9 +101,14 @@ class WishlistController extends Controller
      */
     public function discover(Request $request): View
     {
+        // Las listas públicas de un perfil privado no salen acá: solo las ven
+        // sus seguidores, y «descubrir» es justo la pantalla de quien todavía
+        // no sigue a nadie. Sin este filtro, marcar el perfil como privado no
+        // serviría de nada.
         $wishlists = Wishlist::query()
             ->public()
             ->whereNot('user_id', $request->user()->id)
+            ->whereHas('user', fn ($query) => $query->where('is_private', false))
             ->with('user')
             ->withCount('items')
             ->orderBy('event_date')
@@ -112,14 +120,42 @@ class WishlistController extends Controller
     /**
      * Entrada por el enlace secreto: conocer el token es el permiso.
      */
-    public function openByLink(string $token): RedirectResponse
+    public function openByLink(Request $request, string $token): RedirectResponse
     {
-        $wishlist = Wishlist::where('share_token', $token)
-            ->where('visibility', WishlistVisibility::LINK->label())
-            ->firstOrFail();
+        // Ya no se acota a las listas «por enlace»: la privada también tiene
+        // enlace, y es la puerta de quien no sigue al dueño.
+        $wishlist = Wishlist::where('share_token', $token)->firstOrFail();
 
         $wishlist->unlockByLink();
 
+        if ($wishlist->user_id !== $request->user()->id) {
+            $this->recordLinkAccess($wishlist, $request->user());
+        }
+
         return redirect()->route('gifts.show', $wishlist);
+    }
+
+    /**
+     * Deja anotado que esta persona entró con el enlace.
+     *
+     * Antes el enlace solo desbloqueaba la sesión, y eso lo hacía invisible e
+     * irrevocable: el dueño no tenía forma de saber quién había entrado ni de
+     * echarlo. Anotado, aparece en la pantalla de accesos de la lista y se le
+     * puede quitar.
+     *
+     * No pisa un acceso que ya exista: si a alguien lo invitaron y además abre
+     * el enlace, el origen sigue siendo la invitación, que es la que manda
+     * sobre cuánto dura.
+     */
+    private function recordLinkAccess(Wishlist $wishlist, User $user): void
+    {
+        $wishlist->accesses()->firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'status' => AccessRequestStatus::APPROVED->label(),
+                'source' => AccessSource::LINK->label(),
+                'responded_at' => now(),
+            ]
+        );
     }
 }

@@ -20,15 +20,21 @@ class WishlistVisibilityTest extends TestCase
         $wishlist = Wishlist::factory()->create();
 
         $this->assertSame(WishlistVisibility::PRIVATE, $wishlist->visibilityEnum());
-        $this->assertNull($wishlist->share_token);
     }
 
-    public function test_only_link_wishlists_get_a_share_token(): void
+    /**
+     * Toda lista que no sea pública lleva enlace, la privada incluida: es la
+     * puerta para quien no sigue al dueño. La pública no lo necesita porque no
+     * hay nada que abrir.
+     */
+    public function test_every_non_public_wishlist_gets_a_share_token(): void
     {
         $porEnlace = Wishlist::factory()->visibility(WishlistVisibility::LINK)->create();
+        $privada = Wishlist::factory()->visibility(WishlistVisibility::PRIVATE)->create();
         $publica = Wishlist::factory()->visibility(WishlistVisibility::PUBLIC)->create();
 
         $this->assertNotNull($porEnlace->share_token);
+        $this->assertNotNull($privada->share_token);
         $this->assertNull($publica->share_token);
     }
 

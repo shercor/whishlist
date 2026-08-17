@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AccessRequestStatus;
+use App\Enums\AccessSource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +19,7 @@ class WishlistAccess extends Model
         'wishlist_id',
         'user_id',
         'status',
+        'source',
         'message',
         'responded_at',
     ];
@@ -45,6 +47,11 @@ class WishlistAccess extends Model
     public function statusEnum(): AccessRequestStatus
     {
         return AccessRequestStatus::fromLabel($this->status);
+    }
+
+    public function sourceEnum(): AccessSource
+    {
+        return AccessSource::fromLabel($this->source);
     }
 
     public function scopeApproved(Builder $query): Builder

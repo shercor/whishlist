@@ -26,7 +26,10 @@ class WishlistFactory extends Factory
             'name' => ucfirst(fake()->words(3, true)),
             'description' => fake()->sentence(),
             'visibility' => WishlistVisibility::PRIVATE->label(),
-            'share_token' => null,
+            // Lo decide el enum, igual que en el state de visibilidad: si se
+            // dejara fijo en null, la privada por defecto y la privada creada
+            // con ->visibility(PRIVATE) saldrían distintas.
+            'share_token' => WishlistVisibility::PRIVATE->needsShareToken() ? Str::random(32) : null,
             'event_date' => null,
         ];
     }

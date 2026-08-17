@@ -3,6 +3,7 @@
 use App\Http\Controllers\AccessRequestController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GiftController;
 use App\Http\Controllers\ProductLikeController;
 use App\Http\Controllers\ProfileController;
@@ -68,8 +69,19 @@ Route::middleware('auth')->group(function () {
     Route::post('/items/{item}/reservation', [ReservationController::class, 'store'])->name('reservations.store');
     Route::delete('/items/{item}/reservation', [ReservationController::class, 'destroy'])->name('reservations.destroy');
 
-    // --- Solicitudes de acceso a listas privadas ----------------------------
+    // --- Seguidores ---------------------------------------------------------
+    Route::get('/seguidores', [FollowController::class, 'index'])->name('follows.index');
+    Route::post('/u/{user:username}/seguir', [FollowController::class, 'store'])->name('follows.store');
+    Route::delete('/u/{user:username}/seguir', [FollowController::class, 'destroy'])->name('follows.destroy');
+    Route::delete('/u/{user:username}/seguidor', [FollowController::class, 'remove'])->name('follows.remove');
+    Route::patch('/seguidores/{follow}', [FollowController::class, 'update'])->name('follows.update');
+
+    // --- Solicitudes y reparto de acceso a listas privadas -------------------
     Route::get('/access', [AccessRequestController::class, 'index'])->name('access.index');
     Route::post('/wishlists/{wishlist}/access', [AccessRequestController::class, 'store'])->name('access.store');
     Route::patch('/access/{access}', [AccessRequestController::class, 'update'])->name('access.update');
+
+    Route::get('/wishlists/{wishlist}/accesos', [AccessRequestController::class, 'manage'])->name('access.manage');
+    Route::post('/wishlists/{wishlist}/accesos', [AccessRequestController::class, 'invite'])->name('access.invite');
+    Route::delete('/wishlists/{wishlist}/accesos/{access}', [AccessRequestController::class, 'revoke'])->name('access.revoke');
 });

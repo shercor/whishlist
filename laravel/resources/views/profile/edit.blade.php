@@ -32,6 +32,22 @@
             </div>
 
             <div class="campo">
+                <label class="opcion" for="perfil_publico">
+                    <input id="perfil_publico" type="checkbox" name="perfil_publico" value="1"
+                           @checked(old('perfil_publico', ! $usuario->is_private))>
+                    <span>
+                        <strong>Perfil público</strong>
+                        <span>
+                            Con el perfil público, cualquiera puede ver tus listas públicas
+                            y seguirte sin pedirte permiso. Con el perfil privado —lo normal—
+                            no se ve <em>ninguna</em> lista tuya hasta que aceptes a esa persona
+                            como seguidora, y tus listas dejan de aparecer en «Descubrir».
+                        </span>
+                    </span>
+                </label>
+            </div>
+
+            <div class="campo">
                 <label class="opcion" for="show_name">
                     <input id="show_name" type="checkbox" name="show_name" value="1"
                            @checked(old('show_name', $usuario->show_name))>

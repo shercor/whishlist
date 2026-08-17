@@ -42,15 +42,22 @@ class UserSearchController extends Controller
      */
     public function show(Request $request, User $user): View
     {
-        $wishlists = $user->visibleWishlistsFor($request->user())
-            ->withCount('items')
-            ->latest()
-            ->get();
+        $yo = $request->user();
+        $esMiPerfil = $user->id === $yo->id;
+
+        // Un perfil privado no muestra nada a quien no lo sigue. Se llega a la
+        // página y se ve el arroba y el botón de seguir: ni una lista, ni
+        // cuántas hay. Saber cuántas listas tiene alguien ya es saber algo.
+        $puedeVer = $esMiPerfil || ! $user->is_private || $user->isFollowedBy($yo);
 
         return view('users.show', [
             'usuario' => $user,
-            'wishlists' => $wishlists,
-            'esMiPerfil' => $user->id === $request->user()->id,
+            'wishlists' => $puedeVer
+                ? $user->visibleWishlistsFor($yo)->withCount('items')->latest()->get()
+                : collect(),
+            'esMiPerfil' => $esMiPerfil,
+            'puedeVer' => $puedeVer,
+            'seguimiento' => $esMiPerfil ? null : $yo->followTo($user),
         ]);
     }
 }

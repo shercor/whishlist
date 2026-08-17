@@ -3,18 +3,20 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\FollowStatus;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-#[Fillable(['name', 'username', 'show_name', 'email', 'password'])]
+#[Fillable(['name', 'username', 'show_name', 'is_private', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -32,6 +34,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'show_name' => 'boolean',
+            'is_private' => 'boolean',
         ];
     }
 
@@ -82,13 +85,94 @@ class User extends Authenticatable
     /**
      * Las listas de esta persona que el que mira puede alcanzar sin pedir
      * permiso. Nunca revela que existen las privadas.
+     *
+     * Un perfil privado no muestra ninguna a quien no lo sigue, ni siquiera
+     * las marcadas como públicas: si las mostrara, «perfil privado» no querría
+     * decir nada.
      */
     public function visibleWishlistsFor(User $viewer): HasMany
     {
-        return $this->wishlists()->when(
-            $viewer->id !== $this->id,
-            fn (Builder $query) => $query->public(),
-        );
+        if ($viewer->id === $this->id) {
+            return $this->wishlists();
+        }
+
+        if ($this->is_private && ! $this->isFollowedBy($viewer)) {
+            return $this->wishlists()->whereRaw('1 = 0');
+        }
+
+        return $this->wishlists()->public();
+    }
+
+    // --- Seguidores -------------------------------------------------------
+
+    /**
+     * Las filas donde esta persona es la seguida: su gente.
+     */
+    public function followerLinks(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'followed_id');
+    }
+
+    /**
+     * Las filas donde esta persona es la que sigue.
+     */
+    public function followingLinks(): HasMany
+    {
+        return $this->hasMany(Follow::class, 'follower_id');
+    }
+
+    /**
+     * Las personas que siguen a esta, ya aceptadas.
+     *
+     * Es de donde salen los candidatos a los que se le puede dar una lista
+     * privada: el dueño reparte entre gente que ya reconoció.
+     */
+    public function followers(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'follows', 'followed_id', 'follower_id')
+            ->withPivot('status', 'responded_at')
+            ->withTimestamps()
+            ->wherePivot('status', FollowStatus::ACCEPTED->label());
+    }
+
+    /**
+     * A quiénes sigue esta persona, ya aceptadas.
+     */
+    public function following(): BelongsToMany
+    {
+        return $this->belongsToMany(self::class, 'follows', 'follower_id', 'followed_id')
+            ->withPivot('status', 'responded_at')
+            ->withTimestamps()
+            ->wherePivot('status', FollowStatus::ACCEPTED->label());
+    }
+
+    /**
+     * ¿Esta persona es seguida por $otro, con el seguimiento ya aceptado?
+     */
+    public function isFollowedBy(User $otro): bool
+    {
+        return $this->followerLinks()
+            ->accepted()
+            ->where('follower_id', $otro->id)
+            ->exists();
+    }
+
+    /**
+     * La fila de seguimiento de esta persona hacia $otro, en cualquier estado.
+     * Sirve para saber si el botón dice «Seguir», «Pendiente» o «Dejar de
+     * seguir» sin adivinar.
+     */
+    public function followTo(User $otro): ?Follow
+    {
+        return $this->followingLinks()->where('followed_id', $otro->id)->first();
+    }
+
+    /**
+     * Un perfil público acepta al instante; uno privado deja pendiente.
+     */
+    public function followsAreAutoAccepted(): bool
+    {
+        return ! $this->is_private;
     }
 
     /**

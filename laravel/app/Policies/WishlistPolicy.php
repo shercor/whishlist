@@ -9,9 +9,18 @@ use App\Models\Wishlist;
 class WishlistPolicy
 {
     /**
-     * Quién puede abrir la lista. Son cuatro caminos y ninguno más: ser el
-     * dueño, que sea pública, tener el acceso aprobado, o haber llegado con el
-     * enlace secreto.
+     * Quién puede abrir la lista. Cuatro caminos y ninguno más:
+     *
+     * 1. Ser el dueño.
+     * 2. Haber llegado con el enlace secreto. Conocer el enlace es el permiso,
+     *    y no exige seguir a nadie: es la puerta para la tía que no usa la app.
+     * 3. Tener un acceso vivo anotado —te invitaron, lo pediste, o entraste
+     *    con el enlace—. Los dos primeros se caen si dejas de seguir al dueño.
+     * 4. Que la lista sea pública *y* el perfil del dueño sea alcanzable.
+     *
+     * El cuarto es el que cambió: una lista pública de un perfil privado ya no
+     * la ve cualquiera, solo sus seguidores. Si no fuera así, marcar el perfil
+     * como privado no serviría de nada.
      */
     public function view(User $user, Wishlist $wishlist): bool
     {
@@ -19,15 +28,47 @@ class WishlistPolicy
             return true;
         }
 
-        if ($wishlist->visibilityEnum() === WishlistVisibility::PUBLIC) {
-            return true;
-        }
-
         if ($wishlist->isUnlockedByLink()) {
             return true;
         }
 
-        return $wishlist->accesses()->approved()->where('user_id', $user->id)->exists();
+        if ($this->hasLiveAccess($user, $wishlist)) {
+            return true;
+        }
+
+        return $wishlist->visibilityEnum() === WishlistVisibility::PUBLIC
+            && $this->canReachProfile($user, $wishlist->user);
+    }
+
+    /**
+     * Un acceso anotado que todavía está en pie.
+     *
+     * «Aprobado» no basta: el acceso que nació de una invitación o de una
+     * solicitud exige que la persona siga al dueño *ahora*, no solo el día que
+     * se lo dieron. Sin esta segunda pregunta, dejar de seguir a alguien no le
+     * quitaría nada y quedarían accesos sobreviviendo a la relación.
+     */
+    private function hasLiveAccess(User $user, Wishlist $wishlist): bool
+    {
+        $acceso = $wishlist->accesses()->approved()->where('user_id', $user->id)->first();
+
+        if (! $acceso) {
+            return false;
+        }
+
+        if (! $acceso->sourceEnum()->requiresFollow()) {
+            return true;
+        }
+
+        return $wishlist->user->isFollowedBy($user);
+    }
+
+    /**
+     * Si el perfil del dueño se deja mirar por esta persona.
+     */
+    private function canReachProfile(User $user, User $owner): bool
+    {
+        return ! $owner->is_private || $owner->isFollowedBy($user);
     }
 
     public function update(User $user, Wishlist $wishlist): bool
@@ -59,6 +100,11 @@ class WishlistPolicy
     /**
      * Pedir acceso solo tiene sentido sobre la lista privada de otro, y una
      * sola vez: la tabla tiene único (wishlist_id, user_id).
+     *
+     * Además hay que seguir al dueño. No es un trámite de más: es lo que
+     * convierte «cualquiera puede pedirme acceso» en «me lo pide gente a la
+     * que ya le abrí la puerta». Y como el dueño acepta o rechaza el
+     * seguimiento, controla desde antes quién puede siquiera pedirle algo.
      */
     public function requestAccess(User $user, Wishlist $wishlist): bool
     {
@@ -70,7 +116,19 @@ class WishlistPolicy
             return false;
         }
 
+        if (! $wishlist->user->isFollowedBy($user)) {
+            return false;
+        }
+
         return ! $wishlist->accesses()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * Ver quién entró a la lista y echar a alguien. Solo el dueño.
+     */
+    public function manageAccess(User $user, Wishlist $wishlist): bool
+    {
+        return $this->owns($user, $wishlist);
     }
 
     private function owns(User $user, Wishlist $wishlist): bool

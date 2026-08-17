@@ -33,6 +33,7 @@
                 <a href="{{ route('wishlists.index') }}" @class(['activo' => request()->routeIs('wishlists.*')])>Mis listas</a>
                 <a href="{{ route('discover') }}" @class(['activo' => request()->routeIs('discover')])>Descubrir</a>
                 <a href="{{ route('users.search') }}" @class(['activo' => request()->routeIs('users.*')])>Personas</a>
+                <a href="{{ route('follows.index') }}" @class(['activo' => request()->routeIs('follows.*')])>Mi gente</a>
                 <a href="{{ route('reservations.index') }}" @class(['activo' => request()->routeIs('reservations.*')])>Voy a regalar</a>
                 <a href="{{ route('access.index') }}" @class(['activo' => request()->routeIs('access.*')])>Solicitudes</a>
             </nav>
