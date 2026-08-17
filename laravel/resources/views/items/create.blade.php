@@ -38,7 +38,7 @@
                         <select name="priority" aria-label="Prioridad">
                             @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
                                 <option value="{{ $prioridad->label() }}" @selected($prioridad === \App\Enums\ItemPriority::MEDIUM)>
-                                    {{ ucfirst($prioridad->label()) }}
+                                    {{ $prioridad->title() }}
                                 </option>
                             @endforeach
                         </select>
@@ -107,7 +107,7 @@
             <select id="priority" name="priority">
                 @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
                     <option value="{{ $prioridad->label() }}" @selected(old('priority', \App\Enums\ItemPriority::MEDIUM->label()) === $prioridad->label())>
-                        {{ ucfirst($prioridad->label()) }} — {{ $prioridad->hint() }}
+                        {{ $prioridad->title() }} — {{ $prioridad->hint() }}
                     </option>
                 @endforeach
             </select>

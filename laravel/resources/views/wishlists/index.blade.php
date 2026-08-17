@@ -25,7 +25,7 @@
                         @endif
                     </p>
                 </div>
-                <span class="etiqueta">{{ $wishlist->visibilityEnum()->label() }}</span>
+                <span class="etiqueta">{{ $wishlist->visibilityEnum()->title() }}</span>
             </div>
         </article>
     @empty

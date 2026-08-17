@@ -28,7 +28,7 @@
                 <input type="radio" name="visibility" value="{{ $visibilidad->label() }}"
                        @checked($actual === $visibilidad->label())>
                 <span>
-                    <strong>{{ ucfirst($visibilidad->label()) }}</strong>
+                    <strong>{{ $visibilidad->title() }}</strong>
                     <span>{{ $visibilidad->description() }}</span>
                 </span>
             </label>

@@ -14,7 +14,7 @@
             </p>
         </div>
         <div class="fila-acciones">
-            <span class="etiqueta">{{ $wishlist->visibilityEnum()->label() }}</span>
+            <span class="etiqueta">{{ $wishlist->visibilityEnum()->title() }}</span>
             <a class="boton-plano" href="{{ route('wishlists.edit', $wishlist) }}">Editar</a>
             <a class="boton" href="{{ route('items.create', $wishlist) }}">Agregar regalo</a>
         </div>
@@ -47,7 +47,7 @@
                 </div>
                 <div class="fila-acciones">
                     <span @class(['etiqueta', 'etiqueta-alta' => $item->priorityEnum() === \App\Enums\ItemPriority::HIGH])>
-                        {{ $item->priorityEnum()->label() }}
+                        {{ $item->priorityEnum()->title() }}
                     </span>
                     <form method="POST" action="{{ route('items.received', $item) }}">
                         @csrf
@@ -80,7 +80,7 @@
                         <select id="priority-{{ $item->id }}" name="priority">
                             @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
                                 <option value="{{ $prioridad->label() }}" @selected($item->priority === $prioridad->label())>
-                                    {{ ucfirst($prioridad->label()) }} — {{ $prioridad->hint() }}
+                                    {{ $prioridad->title() }} — {{ $prioridad->hint() }}
                                 </option>
                             @endforeach
                         </select>

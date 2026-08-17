@@ -18,7 +18,7 @@
                         @if ($reservation->expires_at)
                             <br>Se suelta sola el {{ $reservation->expires_at->translatedFormat('d \d\e F') }}
                             @if ($reservation->expires_at->isPast())
-                                <span class="etiqueta etiqueta-espera">plazo vencido</span>
+                                <span class="etiqueta etiqueta-espera">Plazo vencido</span>
                             @endif
                         @endif
                     </p>

@@ -9,6 +9,9 @@ enum AccessRequestStatus
     case REJECTED;
     case REVOKED;
 
+    /**
+     * Valor que se guarda en la base. Para mostrar en pantalla, title().
+     */
     public function label(): string
     {
         return match ($this) {
@@ -16,6 +19,20 @@ enum AccessRequestStatus
             self::APPROVED => 'aprobado',
             self::REJECTED => 'rechazado',
             self::REVOKED => 'revocado',
+        };
+    }
+
+    /**
+     * Cómo se escribe de cara al usuario. En femenino: concuerda con
+     * «solicitud», que es lo que se está describiendo.
+     */
+    public function title(): string
+    {
+        return match ($this) {
+            self::PENDING => 'Pendiente',
+            self::APPROVED => 'Aprobada',
+            self::REJECTED => 'Rechazada',
+            self::REVOKED => 'Revocada',
         };
     }
 

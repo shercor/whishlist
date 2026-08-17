@@ -21,8 +21,7 @@
 
     @forelse ($items as $item)
         @php
-            $reservado = $item->reserved_count > 0;
-            $esMio = $item->mine_count > 0;
+            $estado = \App\Enums\GiftState::forViewer($item);
         @endphp
 
         <article @class(['tarjeta', 'recibido' => $item->isReceived()])>
@@ -43,26 +42,25 @@
 
                 <div class="fila-acciones">
                     <span @class(['etiqueta', 'etiqueta-alta' => $item->priorityEnum() === \App\Enums\ItemPriority::HIGH])>
-                        {{ $item->priorityEnum()->label() }}
+                        {{ $item->priorityEnum()->title() }}
                     </span>
 
-                    @if ($item->isReceived())
-                        <span class="etiqueta">ya lo tiene</span>
-                    @elseif ($esMio)
-                        {{-- Solo a quien reservó se le dice que fue él. --}}
-                        <span class="etiqueta etiqueta-ok">lo reservaste tú</span>
+                    {{-- El texto y el color los decide el enum; la vista solo
+                         decide qué botón acompaña a cada estado. --}}
+                    @if ($estado->isOfferable())
+                        <form method="POST" action="{{ route('reservations.store', $item) }}">
+                            @csrf
+                            <button type="submit" class="boton">Lo regalo yo</button>
+                        </form>
+                    @else
+                        <span class="{{ $estado->badge() }}">{{ $estado->title() }}</span>
+                    @endif
+
+                    @if ($estado === \App\Enums\GiftState::RESERVED_BY_ME)
                         <form method="POST" action="{{ route('reservations.destroy', $item) }}">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="boton-plano">Soltar</button>
-                        </form>
-                    @elseif ($reservado)
-                        {{-- Tomado, y hasta ahí. Quién lo tomó no se dice nunca. --}}
-                        <span class="etiqueta etiqueta-espera">ya lo reservaron</span>
-                    @else
-                        <form method="POST" action="{{ route('reservations.store', $item) }}">
-                            @csrf
-                            <button type="submit" class="boton">Lo regalo yo</button>
                         </form>
                     @endif
                 </div>

@@ -8,12 +8,28 @@ enum WishlistVisibility
     case LINK;
     case PRIVATE;
 
+    /**
+     * Valor que se guarda en la base: sin tildes y en snake_case a propósito.
+     * Lo que se muestra en pantalla es title().
+     */
     public function label(): string
     {
         return match ($this) {
             self::PUBLIC => 'publica',
             self::LINK => 'por_enlace',
             self::PRIVATE => 'privada',
+        };
+    }
+
+    /**
+     * Cómo se escribe de cara al usuario, con tilde y todo.
+     */
+    public function title(): string
+    {
+        return match ($this) {
+            self::PUBLIC => 'Pública',
+            self::LINK => 'Por enlace',
+            self::PRIVATE => 'Privada',
         };
     }
 

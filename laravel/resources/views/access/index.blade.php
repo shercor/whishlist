@@ -33,7 +33,7 @@
                         <span @class([
                             'etiqueta',
                             'etiqueta-ok' => $solicitud->statusEnum()->grantsAccess(),
-                        ])>{{ $solicitud->statusEnum()->label() }}</span>
+                        ])>{{ $solicitud->statusEnum()->title() }}</span>
 
                         @if ($solicitud->statusEnum()->grantsAccess())
                             <form method="POST" action="{{ route('access.update', $solicitud) }}">
@@ -71,7 +71,7 @@
                         'etiqueta',
                         'etiqueta-ok' => $solicitud->statusEnum()->grantsAccess(),
                         'etiqueta-espera' => $solicitud->statusEnum()->isAwaitingResponse(),
-                    ])>{{ $solicitud->statusEnum()->label() }}</span>
+                    ])>{{ $solicitud->statusEnum()->title() }}</span>
 
                     @if ($solicitud->statusEnum()->grantsAccess())
                         <a class="boton-plano" href="{{ route('gifts.show', $solicitud->wishlist) }}">Ver la lista</a>

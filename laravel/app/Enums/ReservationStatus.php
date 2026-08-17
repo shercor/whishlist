@@ -9,6 +9,9 @@ enum ReservationStatus
     case CANCELLED;
     case EXPIRED;
 
+    /**
+     * Valor que se guarda en la base. Para mostrar en pantalla, title().
+     */
     public function label(): string
     {
         return match ($this) {
@@ -16,6 +19,19 @@ enum ReservationStatus
             self::FULFILLED => 'cumplida',
             self::CANCELLED => 'cancelada',
             self::EXPIRED => 'expirada',
+        };
+    }
+
+    /**
+     * Cómo se le anuncia a quien reservó.
+     */
+    public function title(): string
+    {
+        return match ($this) {
+            self::ACTIVE => 'Activa',
+            self::FULFILLED => 'Cumplida',
+            self::CANCELLED => 'Cancelada',
+            self::EXPIRED => 'Vencida',
         };
     }
 

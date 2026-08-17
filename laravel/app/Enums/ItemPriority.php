@@ -8,12 +8,28 @@ enum ItemPriority
     case MEDIUM;
     case HIGH;
 
+    /**
+     * Valor que se guarda en la base. No se muestra en pantalla: para eso
+     * está title(). Cambiar estas cadenas invalida las filas ya guardadas.
+     */
     public function label(): string
     {
         return match ($this) {
             self::LOW => 'baja',
             self::MEDIUM => 'media',
             self::HIGH => 'alta',
+        };
+    }
+
+    /**
+     * Cómo se escribe de cara al usuario.
+     */
+    public function title(): string
+    {
+        return match ($this) {
+            self::LOW => 'Baja',
+            self::MEDIUM => 'Media',
+            self::HIGH => 'Alta',
         };
     }
 
