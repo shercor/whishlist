@@ -12,7 +12,7 @@
         <article class="tarjeta">
             <div class="fila">
                 <div>
-                    <p class="tarjeta-titulo">{{ $solicitud->user->name }} · «{{ $solicitud->wishlist->name }}»</p>
+                    <p class="tarjeta-titulo">{{ $solicitud->user->publicName() }} · «{{ $solicitud->wishlist->name }}»</p>
                     <p class="tarjeta-meta">{{ $solicitud->message ?: 'Sin mensaje.' }}</p>
                 </div>
                 <div class="fila-acciones">
@@ -57,7 +57,7 @@
         <article class="tarjeta">
             <div class="fila">
                 <div>
-                    <p class="tarjeta-titulo">Lista de {{ $solicitud->wishlist->user->name }}</p>
+                    <p class="tarjeta-titulo">Lista de {{ $solicitud->wishlist->user->publicName() }}</p>
                     <p class="tarjeta-meta">
                         @if ($solicitud->responded_at)
                             Respondió el {{ $solicitud->responded_at->translatedFormat('d \d\e F') }}.

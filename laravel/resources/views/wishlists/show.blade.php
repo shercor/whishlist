@@ -29,8 +29,17 @@
     @if ($wishlist->share_token)
         <div class="campo">
             <label for="enlace">Enlace para compartir <span class="pista">(quien lo tenga puede ver la lista)</span></label>
-            <input id="enlace" class="enlace-compartir" type="text" readonly
-                   onclick="this.select()" value="{{ route('shared.open', $wishlist->share_token) }}">
+            <div class="fila-copiar">
+                <input id="enlace" class="enlace-compartir" type="text" readonly
+                       onclick="this.select()" value="{{ route('shared.open', $wishlist->share_token) }}">
+                <button type="button" class="boton-plano" data-copiar="#enlace"
+                        data-copiado="¡Copiado!" title="Copiar el enlace al portapapeles">
+                    Copiar
+                </button>
+            </div>
+            {{-- aria-live: el cambio de texto del botón lo ve quien mira, pero
+                 sin esto un lector de pantalla no anunciaría nada. --}}
+            <p class="tarjeta-meta" data-aviso-copiado aria-live="polite"></p>
         </div>
     @endif
 
@@ -39,7 +48,9 @@
             <div class="fila">
                 <div class="con-miniatura">
                     @if ($item->product->imageSrc())
-                        <img class="miniatura" src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
+                        <div class="marco-foto miniatura">
+                            <img src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
+                        </div>
                     @endif
 
                     <div>

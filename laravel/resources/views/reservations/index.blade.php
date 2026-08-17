@@ -14,7 +14,7 @@
                 <div>
                     <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
                     <p class="tarjeta-meta">
-                        Para {{ $item->wishlist->user->name }} · «{{ $item->wishlist->name }}»
+                        Para {{ $item->wishlist->user->publicName() }} · «{{ $item->wishlist->name }}»
                         @if ($reservation->expires_at)
                             <br>Se suelta sola el {{ $reservation->expires_at->translatedFormat('d \d\e F') }}
                             @if ($reservation->expires_at->isPast())

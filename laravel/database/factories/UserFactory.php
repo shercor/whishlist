@@ -26,6 +26,15 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            // No se usa fake()->userName() porque genera puntos y mayúsculas,
+            // que el formato no admite: la factory quedaría produciendo
+            // usuarios que la aplicación real rechazaría. El número lo hace
+            // único sin depender de la suerte.
+            'username' => Str::of(fake()->firstName())->ascii()->lower()
+                ->replaceMatches('/[^a-z]/', '')->limit(15, '')
+                ->append('_', (string) fake()->unique()->numberBetween(1000, 999999))
+                ->toString(),
+            'show_name' => false,
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),

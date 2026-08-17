@@ -23,7 +23,7 @@
             <article class="tarjeta">
                 <div class="fila">
                     <div>
-                        <p class="tarjeta-titulo">{{ $solicitud->user->name }}</p>
+                        <p class="tarjeta-titulo">{{ $solicitud->user->publicName() }}</p>
                         <p class="tarjeta-meta">{{ $solicitud->message ?: 'Sin mensaje.' }}</p>
                     </div>
                     <div class="fila-acciones">

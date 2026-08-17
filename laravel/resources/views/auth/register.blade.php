@@ -16,6 +16,17 @@
             </div>
 
             <div class="campo">
+                <label for="username">Tu usuario <span class="pista">(así te encuentran los demás)</span></label>
+                <div class="campo-arroba">
+                    <span class="arroba" aria-hidden="true">@</span>
+                    <input id="username" type="text" name="username" value="{{ old('username') }}"
+                           maxlength="30" required autocapitalize="none" autocorrect="off" spellcheck="false"
+                           placeholder="ana_perez">
+                </div>
+                <p class="tarjeta-meta">Letras, números y guion bajo. Es lo único por lo que se te puede buscar: tu nombre queda privado salvo que tú lo cambies.</p>
+            </div>
+
+            <div class="campo">
                 <label for="email">Correo</label>
                 <input id="email" type="email" name="email" value="{{ old('email') }}" required>
             </div>

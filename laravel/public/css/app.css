@@ -235,36 +235,57 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
    horizontal: 240px es un mínimo deseable, no una imposición. */
 .rejilla { display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
 
-/* --- Imagen del producto ------------------------------------------------- */
+/* --- Imagen del producto ------------------------------------------------- *
+ *
+ * La caja es siempre cuadrada y la foto entra entera dentro, sin recortarse.
+ *
+ * Es lo que permite no exigirle nada a quien sube: casi ninguna foto de
+ * celular ni de tienda es cuadrada, y rechazarlas sería quedarse sin fotos.
+ * Con `object-fit: contain` una foto vertical se ve completa con fondo a los
+ * lados, y una cuadrada llena el espacio; en los dos casos la tarjeta mide lo
+ * mismo y la lista no queda desparejada.
+ *
+ * `cover` haría lo contrario —llenar recortando— y a una foto vertical de un
+ * polerón le cortaría la mitad de la prenda, que es justo lo que hay que ver.
+ */
 
+.marco-foto {
+    aspect-ratio: 1;
+    background: var(--papel);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tinta-suave);
+}
+
+.marco-foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* La miniatura de las tarjetas: la misma caja, en chico. */
 .miniatura {
     width: 72px;
     height: 72px;
     flex: none;
-    object-fit: cover;
-    border-radius: 8px;
-    border: 1px solid var(--borde);
-    background: var(--papel);
+    /* Un respiro para que la foto contenida no toque el borde. */
+    padding: 3px;
 }
 
 .con-miniatura { display: flex; gap: 0.9rem; align-items: flex-start; min-width: 0; }
 .con-miniatura > div { min-width: 0; }
 
-.miniatura-vacia {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--tinta-suave);
-    font-size: 1.4rem;
-}
+.miniatura-vacia { font-size: 1.4rem; }
 
-.previsualizacion {
-    display: block;
-    max-width: 220px;
-    border-radius: var(--radio);
-    border: 1px solid var(--borde);
-    margin-bottom: 0.5rem;
-}
+/* La previsualización al subir: mismo trato que tendrá después, para que lo
+   que se ve antes de guardar sea lo que va a quedar. */
+.previsualizacion { max-width: 220px; margin-bottom: 0.5rem; }
+.previsualizacion[hidden] { display: none; }
 
 /* --- Etiquetas ---------------------------------------------------------- */
 
@@ -410,6 +431,38 @@ ul.aviso { padding-left: 2rem; }
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.82rem;
     background: var(--papel);
+}
+
+.fila-copiar { display: flex; gap: 0.5rem; align-items: stretch; }
+.fila-copiar .enlace-compartir { min-width: 0; }
+.fila-copiar .boton-plano { flex: none; white-space: nowrap; }
+
+/* Confirmación de copiado: verde un par de segundos y vuelve sola. */
+.boton-plano.copiado {
+    color: var(--ok);
+    border-color: var(--ok);
+    background: var(--ok-suave);
+}
+
+/* --- Campo de usuario ---------------------------------------------------- */
+
+.campo-arroba { display: flex; align-items: stretch; }
+
+.campo-arroba .arroba {
+    display: flex;
+    align-items: center;
+    padding: 0 0.6rem;
+    border: 1px solid var(--borde);
+    border-right: 0;
+    border-radius: 8px 0 0 8px;
+    background: var(--papel);
+    color: var(--tinta-suave);
+    font-weight: 600;
+}
+
+.campo-arroba input {
+    border-radius: 0 8px 8px 0;
+    min-width: 0;
 }
 
 /* --- Pantallas angostas -------------------------------------------------- *

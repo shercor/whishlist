@@ -13,7 +13,7 @@
                     <a href="{{ route('gifts.show', $wishlist) }}">{{ $wishlist->name }}</a>
                 </p>
                 <p class="tarjeta-meta">
-                    {{ $wishlist->user->name }} ·
+                    {{ $wishlist->user->publicName() }} ·
                     {{ $wishlist->items_count }} {{ Str::plural('regalo', $wishlist->items_count) }}
                     @if ($wishlist->event_date)
                         <br>{{ $wishlist->event_date->translatedFormat('d \d\e F Y') }}

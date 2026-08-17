@@ -32,13 +32,16 @@
             <nav>
                 <a href="{{ route('wishlists.index') }}" @class(['activo' => request()->routeIs('wishlists.*')])>Mis listas</a>
                 <a href="{{ route('discover') }}" @class(['activo' => request()->routeIs('discover')])>Descubrir</a>
+                <a href="{{ route('users.search') }}" @class(['activo' => request()->routeIs('users.*')])>Personas</a>
                 <a href="{{ route('reservations.index') }}" @class(['activo' => request()->routeIs('reservations.*')])>Voy a regalar</a>
                 <a href="{{ route('access.index') }}" @class(['activo' => request()->routeIs('access.*')])>Solicitudes</a>
             </nav>
             @include('layouts.tema')
             <form method="POST" action="{{ route('logout') }}" class="salir">
                 @csrf
-                <span class="quien">{{ auth()->user()->name }}</span>
+                {{-- Tu propio arroba a la vista: es lo que le tienes que dictar
+                     a alguien para que te encuentre. --}}
+                <a class="quien" href="{{ route('profile.edit') }}">{{ auth()->user()->handle() }}</a>
                 <button type="submit" class="boton-plano">Salir</button>
             </form>
         </header>
@@ -86,6 +89,90 @@
                 } catch (e) {
                     /* Sin dónde guardarlo: el cambio vale para esta página. */
                 }
+            });
+        });
+
+        // Copiar al portapapeles con confirmación visible.
+        document.querySelectorAll('[data-copiar]').forEach(function (boton) {
+            var original = boton.textContent.trim();
+
+            boton.addEventListener('click', function () {
+                var campo = document.querySelector(boton.dataset.copiar);
+                if (!campo) return;
+
+                copiar(campo).then(function (copiado) {
+                    boton.textContent = copiado ? boton.dataset.copiado : 'Copia tú el enlace';
+                    boton.classList.toggle('copiado', copiado);
+
+                    var aviso = document.querySelector('[data-aviso-copiado]');
+                    if (aviso) {
+                        aviso.textContent = copiado
+                            ? 'Enlace copiado. Pégalo donde quieras compartirlo.'
+                            : 'No se pudo copiar solo. El enlace quedó seleccionado.';
+                    }
+
+                    setTimeout(function () {
+                        boton.textContent = original;
+                        boton.classList.remove('copiado');
+                        if (aviso) aviso.textContent = '';
+                    }, 2500);
+                });
+            });
+        });
+
+        function copiar(campo) {
+            // navigator.clipboard solo existe en contexto seguro: https, o
+            // localhost. Probando desde el celular en la misma wifi la URL es
+            // http://192.168.x.x y no está, así que el respaldo no es
+            // decorativo: es el camino real en ese caso.
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(campo.value)
+                    .then(function () { return true; })
+                    .catch(function () { return seleccionar(campo); });
+            }
+
+            return Promise.resolve(seleccionar(campo));
+        }
+
+        function seleccionar(campo) {
+            campo.removeAttribute('disabled');
+            campo.select();
+            campo.setSelectionRange(0, campo.value.length);
+
+            try {
+                // Obsoleto pero es lo único que funciona sin contexto seguro.
+                return document.execCommand('copy');
+            } catch (e) {
+                // Ni eso: al menos queda seleccionado para copiarlo a mano.
+                return false;
+            }
+        }
+
+        // Previsualización de la foto antes de guardar.
+        document.querySelectorAll('[data-previsualiza]').forEach(function (input) {
+            var caja = document.querySelector(input.dataset.previsualiza);
+            if (!caja) return;
+
+            var img = caja.querySelector('img');
+
+            input.addEventListener('change', function () {
+                var archivo = input.files && input.files[0];
+
+                // Se libera la anterior: sin esto cada foto elegida deja un
+                // blob retenido en memoria hasta que se recarga la página.
+                if (img.dataset.blob) {
+                    URL.revokeObjectURL(img.src);
+                    delete img.dataset.blob;
+                }
+
+                if (!archivo) {
+                    caja.hidden = true;
+                    return;
+                }
+
+                img.src = URL.createObjectURL(archivo);
+                img.dataset.blob = '1';
+                caja.hidden = false;
             });
         });
     </script>

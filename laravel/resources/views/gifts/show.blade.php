@@ -1,13 +1,13 @@
 @extends('layouts.app')
 
-@section('title', 'Regalarle a '.$wishlist->user->name.' · whishlist')
+@section('title', 'Regalarle a '.$wishlist->user->publicName().' · whishlist')
 
 @section('contenido')
     <div class="encabezado">
         <div>
             <h1>{{ $wishlist->name }}</h1>
             <p class="bajada">
-                La lista de {{ $wishlist->user->name }}.
+                La lista de {{ $wishlist->user->publicName() }}.
                 @if ($wishlist->event_date)
                     Para el {{ $wishlist->event_date->translatedFormat('d \d\e F \d\e Y') }}.
                 @endif
@@ -16,7 +16,7 @@
     </div>
 
     <p class="aviso aviso-ok">
-        {{ $wishlist->user->name }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
+        {{ $wishlist->user->publicName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
     </p>
 
     @forelse ($items as $item)
@@ -28,7 +28,9 @@
             <div class="fila">
                 <div class="con-miniatura">
                     @if ($item->product->imageSrc())
-                        <img class="miniatura" src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
+                        <div class="marco-foto miniatura">
+                            <img src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
+                        </div>
                     @endif
 
                     <div>
@@ -74,7 +76,7 @@
         </article>
     @empty
         <div class="vacio">
-            <p>{{ $wishlist->user->name }} todavía no ha puesto nada en esta lista.</p>
+            <p>{{ $wishlist->user->publicName() }} todavía no ha puesto nada en esta lista.</p>
         </div>
     @endforelse
 @endsection

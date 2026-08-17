@@ -5,7 +5,9 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\GiftController;
 use App\Http\Controllers\ProductLikeController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
+use App\Http\Controllers\UserSearchController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\WishlistItemController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +42,15 @@ Route::middleware('auth')->group(function () {
     Route::patch('/items/{item}', [WishlistItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{item}', [WishlistItemController::class, 'destroy'])->name('items.destroy');
     Route::post('/items/{item}/received', [WishlistItemController::class, 'markReceived'])->name('items.received');
+
+    // --- Perfil propio y búsqueda de personas -------------------------------
+    Route::get('/perfil', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/perfil', [ProfileController::class, 'update'])->name('profile.update');
+
+    Route::get('/usuarios', [UserSearchController::class, 'index'])->name('users.search');
+    // El perfil público cuelga de /u/ y no de la raíz: así un usuario nuevo
+    // nunca puede chocar con una ruta de la aplicación.
+    Route::get('/u/{user:username}', [UserSearchController::class, 'show'])->name('users.show');
 
     // --- Catálogo: votar las fichas bien hechas -----------------------------
     Route::post('/products/{product}/like', [ProductLikeController::class, 'store'])->name('products.like');

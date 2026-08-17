@@ -6,7 +6,7 @@
     {{-- A propósito no se nombra la lista: si no, probando ids cualquiera
          averiguaría qué listas privadas tiene una persona. --}}
     <h1>Esta lista es privada</h1>
-    <p class="bajada">{{ $wishlist->user->name }} decide quién la ve.</p>
+    <p class="bajada">{{ $wishlist->user->publicName() }} decide quién la ve.</p>
 
     @if ($yaPidio)
         <div class="vacio">
@@ -14,7 +14,7 @@
         </div>
     @elseif (! $puedePedir)
         <div class="vacio">
-            <p>Esta lista se comparte solo por enlace. Pídeselo a {{ $wishlist->user->name }}.</p>
+            <p>Esta lista se comparte solo por enlace. Pídeselo a {{ $wishlist->user->publicName() }}.</p>
             <a class="boton-plano" href="{{ route('discover') }}">Volver</a>
         </div>
     @else

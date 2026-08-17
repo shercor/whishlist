@@ -73,8 +73,9 @@ make test                                                     # 49 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
-en `/register` —pide nombre, correo y contraseña, nada más— o entrar con un
-usuario de demo: `ana@whishlist.test`,
+en `/register` —pide nombre, arroba, correo y contraseña— o entrar con un
+usuario de demo, cuyo arroba es la parte del correo antes de la @ (`@ana`,
+`@bruno`…): `ana@whishlist.test`,
 `bruno@whishlist.test`, `camila@whishlist.test`, `diego@whishlist.test`, todos
 con contraseña `password`. Administrador: `admin@whishlist.test` / `admin1234`.
 
@@ -92,7 +93,8 @@ Commits en `main`:
 | `830d138` | Factories de los 7 modelos y 49 tests del dominio          |
 | `476cc54` | Capa de aplicación: policies, controladores, rutas, vistas |
 | `b21ec12` | Servicio `scheduler`, sin el que nada programado corría    |
-| (el último) | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
+| `dbc046f` | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
+| (el último) | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -136,6 +138,50 @@ Las fotos van al disco `public` con nombre aleatorio de 40 caracteres. Eso las
 deja servidas por nginx sin pasar por PHP, y su privacidad descansa en que la
 URL es inadivinable: el mismo trato que ya se le da al enlace secreto de una
 lista.
+
+### Cómo se nombra a una persona
+
+Cada cuenta tiene un `username` único —el arroba— que es **lo único por lo que
+se puede buscar**. `User::scopeSearchByUsername()` mira esa columna y ninguna
+otra: si buscara por `name`, la opción de ocultar el nombre no serviría de
+nada, y si mirara el correo bastaría con probar direcciones para saber quién
+está registrado. Sin término de búsqueda no devuelve a nadie, a propósito: el
+directorio completo de la plataforma no debe poder recorrerse.
+
+El nombre real es privado por defecto (`show_name` nace en `false`) y cada
+persona decide en `/perfil` si quiere mostrarlo. La regla operativa:
+
+> **Nunca `$user->name` en una vista. Siempre `$user->publicName()`.**
+
+Ese método es el único punto por donde un nombre sale hacia la interfaz, y es
+lo que respeta la decisión de cada persona. `handle()` devuelve el arroba
+siempre, para cuando se quiere el identificador y no el nombre.
+
+El perfil público vive en `/u/{username}` y muestra **solo** las listas
+públicas de esa persona. Las privadas y las de enlace no se cuentan ni se
+insinúan: decir «tiene 2 listas más que no puedes ver» ya es contar algo de
+alguien que eligió no contarlo.
+
+Hay una lista de `USERNAMES_RESERVADOS` en el modelo, porque el usuario aparece
+en una URL y porque nadie debe poder hacerse pasar por el sistema. La migración
+que rellena los usuarios de las cuentas viejas repite esa lista a mano en vez
+de leer la constante: una migración ya ejecutada no puede cambiar de
+comportamiento porque alguien edite el modelo después.
+
+### Las fotos van en caja cuadrada
+
+La caja es siempre cuadrada (`aspect-ratio: 1`) y la foto entra entera dentro
+(`object-fit: contain`), con fondo neutro rellenando lo que sobra. Es lo que
+permite no exigirle nada a quien sube: casi ninguna foto de celular o de tienda
+es cuadrada, y rechazarlas sería quedarse sin fotos.
+
+**No usar `cover`**: llenaría el cuadrado recortando, y a la foto vertical de
+un polerón le cortaría media prenda, que es justo lo que hay que ver. Se probó
+con una imagen de 200×400 y una de 300×300: las dos tarjetas miden lo mismo y
+ninguna imagen se recorta.
+
+La previsualización al subir usa la misma clase `.marco-foto`, para que lo que
+se ve antes de guardar sea exactamente lo que va a quedar.
 
 ### Modo claro y oscuro
 
@@ -298,8 +344,10 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    dueño no pueda reservar en su propia lista, que un extraño reciba 403 al
    abrir una lista privada, que el enlace secreto sí la abra, que la vista del
    dueño no traiga jamás el `user_id` de una reserva, que la segunda reserva
-   simultánea muestre el mensaje en vez de reventar, y que no se pueda votar un
-   producto privado. Todo eso hoy lo sostiene código sin red.
+   simultánea muestre el mensaje en vez de reventar, que no se pueda votar un
+   producto privado, y —el más importante de los nuevos— que buscar el nombre
+   real de alguien no lo encuentre nunca. Todo eso hoy lo sostiene código sin
+   red.
 2. **Achicar las fotos al subirlas.** Hoy se guarda el archivo tal cual, hasta
    4 MB, y se muestra en una miniatura de 72px. Una lista con veinte regalos
    son veinte fotos de celular completas viajando por la red. `intervention/
@@ -319,13 +367,18 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
 
 ## 6. Decisiones pendientes
 
-**Cómo un usuario encuentra a otro** para pedirle acceso a su lista privada.
-Sigue sin resolverse. Hoy hay dos puertas y ninguna sirve para *buscar a una
-persona*: `/discover` lista las públicas, y a una privada se llega por su URL
-—que alguien te tuvo que pasar—, donde el 403 ofrece el botón de pedir acceso.
-`users` solo tiene `name` y `email`. Buscar por email es incómodo y expone
-datos. Alternativas: agregar un `username` público, o un enlace de invitación
-que cree la solicitud ya aprobada.
+**Pedir acceso a una lista privada que no sabes que existe.** Encontrar a la
+persona ya está resuelto —se busca por su arroba en `/usuarios`—, pero su
+perfil solo muestra las listas públicas. Si @ana tiene una lista privada, no
+hay forma de pedirle acceso salvo que ella te pase la URL, porque la solicitud
+se guarda por lista (`wishlist_accesses` es `(wishlist_id, user_id)`) y para
+crearla hace falta un `wishlist_id` que no puedes conocer.
+
+Las salidas son dos y hay que elegir: **(a)** mostrar en el perfil que existen
+listas privadas y ofrecer el botón —cómodo, pero revela que las tiene—, o
+**(b)** una solicitud a nivel de persona, «@fulano quiere ver tus listas», que
+el dueño responde eligiendo cuáles. La (b) no filtra nada pero cambia el modelo
+de datos.
 
 **Visibilidad del catálogo.** Hoy cualquier producto `is_public = true` es
 visible para todos, y los seeders son la única forma de crear uno. Falta

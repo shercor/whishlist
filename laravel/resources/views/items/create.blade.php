@@ -23,9 +23,11 @@
             <div class="fila">
                 <div class="con-miniatura">
                     @if ($producto->imageSrc())
-                        <img class="miniatura" src="{{ $producto->imageSrc() }}" alt="" loading="lazy">
+                        <div class="marco-foto miniatura">
+                            <img src="{{ $producto->imageSrc() }}" alt="" loading="lazy">
+                        </div>
                     @else
-                        <div class="miniatura miniatura-vacia" aria-hidden="true">🎁</div>
+                        <div class="marco-foto miniatura miniatura-vacia" aria-hidden="true">🎁</div>
                     @endif
 
                     <div>
@@ -122,8 +124,20 @@
 
         <div class="campo">
             <label for="image">Una foto <span class="pista">(opcional, jpg/png/webp hasta 4 MB)</span></label>
-            <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp">
-            <p class="tarjeta-meta">Una foto decente es lo que hace que quien te regale sepa que acertó.</p>
+
+            {{-- La previsualización usa la misma caja cuadrada que la vista
+                 final, así lo que se ve acá es exactamente lo que va a quedar
+                 y no hay sorpresa al guardar. --}}
+            <div class="marco-foto previsualizacion" id="vista-previa" hidden>
+                <img src="" alt="Vista previa de la foto que elegiste">
+            </div>
+
+            <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp"
+                   data-previsualiza="#vista-previa">
+            <p class="tarjeta-meta">
+                No hace falta que sea cuadrada: se muestra entera dentro de un recuadro,
+                sin recortarse. Una foto decente es lo que hace que quien te regale sepa que acertó.
+            </p>
         </div>
 
         <div class="campo">

@@ -19,7 +19,7 @@ class RegisteredUserController extends Controller
 
     public function store(RegisterRequest $request): RedirectResponse
     {
-        $user = User::create($request->only('name', 'email', 'password'));
+        $user = User::create($request->only('name', 'username', 'email', 'password'));
 
         event(new Registered($user));
 

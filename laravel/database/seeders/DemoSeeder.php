@@ -142,6 +142,9 @@ class DemoSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => $name,
+                // El usuario sale del correo de demo (ana@whishlist.test →
+                // @ana), que es justo lo que uno teclearía para buscarlos.
+                'username' => Str::before($email, '@'),
                 'password' => Hash::make('password'),
                 'email_verified_at' => now(),
             ]

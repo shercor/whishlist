@@ -22,6 +22,10 @@ class AdminUserSeeder extends Seeder
             ['email' => $email],
             [
                 'name' => config('admin.name'),
+                // 'admin' está en la lista de reservados a propósito, así que
+                // el administrador tampoco lo usa: nadie debe poder hacerse
+                // pasar por el sistema, ni siquiera él.
+                'username' => 'equipo_whishlist',
                 'password' => Hash::make(config('admin.password')),
                 'email_verified_at' => now(),
             ]

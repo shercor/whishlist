@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Requests\Auth;
+namespace App\Http\Requests;
 
 use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rules\Password;
 
-class RegisterRequest extends FormRequest
+class ProfileRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Solo se edita el perfil propio: no hay ruta que reciba otro usuario.
         return true;
     }
 
@@ -21,23 +21,19 @@ class RegisterRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'username' => User::usernameRules(),
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'username' => User::usernameRules($this->user()),
+            'show_name' => ['boolean'],
         ];
     }
 
-    /**
-     * Escribir «@Ana» o «Ana» en el campo es lo natural, y las dos cosas
-     * significan lo mismo. Se normaliza antes de validar en vez de rechazarlo.
-     */
     protected function prepareForValidation(): void
     {
-        if ($this->has('username')) {
-            $this->merge([
-                'username' => Str::of($this->input('username'))->trim()->ltrim('@')->lower()->toString(),
-            ]);
-        }
+        $this->merge([
+            'username' => Str::of($this->input('username'))->trim()->ltrim('@')->lower()->toString(),
+            // Una casilla sin marcar no se envía: sin esto, desmarcarla no
+            // apagaría nada porque el campo simplemente no llegaría.
+            'show_name' => $this->boolean('show_name'),
+        ]);
     }
 
     /**
@@ -48,8 +44,7 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'nombre',
             'username' => 'usuario',
-            'email' => 'correo',
-            'password' => 'contraseña',
+            'show_name' => 'mostrar el nombre',
         ];
     }
 
