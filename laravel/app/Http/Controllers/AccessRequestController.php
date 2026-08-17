@@ -37,7 +37,16 @@ class AccessRequestController extends Controller
             ->latest()
             ->get();
 
-        return view('access.index', compact('recibidas', 'enviadas'));
+        // Las de seguimiento también se responden desde acá. Son solicitudes
+        // igual que las otras, y separarlas hacía que quien entraba a
+        // «Solicitudes» buscando una petición para seguirlo no encontrara nada.
+        $porResponder = $request->user()->followerLinks()
+            ->pending()
+            ->with('follower')
+            ->latest()
+            ->get();
+
+        return view('access.index', compact('recibidas', 'enviadas', 'porResponder'));
     }
 
     public function store(Request $request, Wishlist $wishlist): RedirectResponse

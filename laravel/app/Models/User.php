@@ -215,6 +215,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Cuántas cosas esperan mi respuesta: seguimientos y accesos a listas.
+     *
+     * Lo pinta la barra en todas las páginas. Sin este número, una solicitud
+     * pendiente solo se descubre entrando a la pantalla a propósito, que es
+     * justo lo que no pasa cuando uno no sabe que hay algo esperando.
+     */
+    public function pendingRequestsCount(): int
+    {
+        return $this->followerLinks()->pending()->count()
+            + WishlistAccess::query()
+                ->whereIn('wishlist_id', $this->wishlists()->select('id'))
+                ->pending()
+                ->count();
+    }
+
+    /**
      * Palabras que no pueden ser un usuario porque chocarían con una ruta:
      * el perfil vive en /u/{username}, pero estas aparecen sueltas en la raíz
      * o son las que usaría alguien para hacerse pasar por el sistema.

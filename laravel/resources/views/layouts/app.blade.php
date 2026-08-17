@@ -35,7 +35,13 @@
                 <a href="{{ route('users.search') }}" @class(['activo' => request()->routeIs('users.*')])>Personas</a>
                 <a href="{{ route('follows.index') }}" @class(['activo' => request()->routeIs('follows.*')])>Mi gente</a>
                 <a href="{{ route('reservations.index') }}" @class(['activo' => request()->routeIs('reservations.*')])>Voy a regalar</a>
-                <a href="{{ route('access.index') }}" @class(['activo' => request()->routeIs('access.*')])>Solicitudes</a>
+                @php($pendientes = auth()->user()->pendingRequestsCount())
+                <a href="{{ route('access.index') }}" @class(['activo' => request()->routeIs('access.*')])>
+                    Solicitudes
+                    @if ($pendientes > 0)
+                        <span class="contador" aria-label="{{ $pendientes }} sin responder">{{ $pendientes }}</span>
+                    @endif
+                </a>
             </nav>
             @include('layouts.tema')
             <form method="POST" action="{{ route('logout') }}" class="salir">

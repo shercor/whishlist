@@ -125,6 +125,25 @@ img { max-width: 100%; height: auto; }
 .barra nav a:hover { color: var(--tinta); }
 .barra nav a.activo { color: var(--tinta); border-bottom-color: var(--acento); }
 
+/* Cuántas cosas esperan respuesta. Va en la propia pestaña porque, si no, una
+   solicitud pendiente solo se descubre entrando a la pantalla a propósito. */
+.contador {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.35rem;
+    margin-left: 0.25rem;
+    border-radius: 999px;
+    background: var(--acento);
+    color: var(--acento-texto);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1;
+    vertical-align: middle;
+}
+
 .salir { display: flex; align-items: center; gap: 0.75rem; margin: 0; }
 
 .quien {

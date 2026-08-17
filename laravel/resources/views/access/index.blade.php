@@ -3,10 +3,21 @@
 @section('title', 'Solicitudes · whishlist')
 
 @section('contenido')
-    <h1>Solicitudes de acceso</h1>
-    <p class="bajada">Quién quiere ver tus listas privadas, y qué pasó con lo que pediste tú.</p>
+    <h1>Solicitudes</h1>
+    <p class="bajada">
+        Todo lo que espera tu respuesta: quién quiere seguirte, quién quiere ver
+        tus listas privadas, y qué pasó con lo que pediste tú.
+    </p>
 
-    <h2>Te pidieron</h2>
+    @if ($porResponder->isNotEmpty())
+        <h2>Quieren seguirte ({{ $porResponder->count() }})</h2>
+        <p class="bajada">
+            Aceptarlos les deja ver tus listas públicas, y recién ahí puedes darles una privada.
+        </p>
+        @include('follows.partials.por-responder')
+    @endif
+
+    <h2>Te pidieron una lista</h2>
 
     @forelse ($recibidas as $solicitud)
         <article class="tarjeta">
