@@ -4,6 +4,7 @@ use App\Http\Controllers\AccessRequestController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\GiftController;
+use App\Http\Controllers\ProductLikeController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\WishlistItemController;
@@ -39,6 +40,10 @@ Route::middleware('auth')->group(function () {
     Route::patch('/items/{item}', [WishlistItemController::class, 'update'])->name('items.update');
     Route::delete('/items/{item}', [WishlistItemController::class, 'destroy'])->name('items.destroy');
     Route::post('/items/{item}/received', [WishlistItemController::class, 'markReceived'])->name('items.received');
+
+    // --- Catálogo: votar las fichas bien hechas -----------------------------
+    Route::post('/products/{product}/like', [ProductLikeController::class, 'store'])->name('products.like');
+    Route::delete('/products/{product}/like', [ProductLikeController::class, 'destroy'])->name('products.unlike');
 
     // --- Listas de otros, para regalarles ----------------------------------
     Route::get('/discover', [WishlistController::class, 'discover'])->name('discover');

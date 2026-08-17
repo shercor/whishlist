@@ -37,13 +37,19 @@
     @forelse ($items as $item)
         <article @class(['tarjeta', 'recibido' => $item->isReceived()])>
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
-                    <p class="tarjeta-meta">
-                        {{ $item->product->category?->name }}
-                        @if ($item->notes) · {{ $item->notes }} @endif
-                        @if ($item->isReceived()) · recibido el {{ $item->received_at->translatedFormat('d \d\e F') }} @endif
-                    </p>
+                <div class="con-miniatura">
+                    @if ($item->product->imageSrc())
+                        <img class="miniatura" src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
+                    @endif
+
+                    <div>
+                        <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
+                        <p class="tarjeta-meta">
+                            {{ $item->product->category?->name }}
+                            @if ($item->notes) · {{ $item->notes }} @endif
+                            @if ($item->isReceived()) · recibido el {{ $item->received_at->translatedFormat('d \d\e F') }} @endif
+                        </p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     <span @class(['etiqueta', 'etiqueta-alta' => $item->priorityEnum() === \App\Enums\ItemPriority::HIGH])>

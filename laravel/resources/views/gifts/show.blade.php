@@ -26,18 +26,24 @@
 
         <article @class(['tarjeta', 'recibido' => $item->isReceived()])>
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
-                    <p class="tarjeta-meta">
-                        {{ $item->product->category?->name }}
-                        @if ($item->product->reference_price)
-                            · ${{ number_format($item->product->reference_price, 0, ',', '.') }}
-                        @endif
-                        @if ($item->notes) · {{ $item->notes }} @endif
-                    </p>
-                    @if ($item->product->url)
-                        <p class="tarjeta-meta"><a href="{{ $item->product->url }}" rel="noopener" target="_blank">Dónde se consigue</a></p>
+                <div class="con-miniatura">
+                    @if ($item->product->imageSrc())
+                        <img class="miniatura" src="{{ $item->product->imageSrc() }}" alt="" loading="lazy">
                     @endif
+
+                    <div>
+                        <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
+                        <p class="tarjeta-meta">
+                            {{ $item->product->category?->name }}
+                            @if ($item->product->reference_price)
+                                · ${{ number_format($item->product->reference_price, 0, ',', '.') }} aprox.
+                            @endif
+                            @if ($item->notes) · {{ $item->notes }} @endif
+                        </p>
+                        @if ($item->product->url)
+                            <p class="tarjeta-meta"><a href="{{ $item->product->url }}" rel="noopener" target="_blank">Dónde se consigue</a></p>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="fila-acciones">

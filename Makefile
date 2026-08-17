@@ -41,6 +41,7 @@ setup: ## Instalación completa desde cero (el único comando que necesitas)
 	@$(MAKE) --no-print-directory up
 	@$(MAKE) --no-print-directory install
 	@$(MAKE) --no-print-directory key
+	@$(MAKE) --no-print-directory storage
 	@$(MAKE) --no-print-directory migrate
 	@$(MAKE) --no-print-directory seed
 	@set -a; . ./.env; set +a; \
@@ -76,6 +77,9 @@ key: ## Genera APP_KEY si aún no existe (no rota una llave ya generada)
 	@grep -qE '^APP_KEY=.+' laravel/.env \
 	  && echo "  → APP_KEY ya existe, se conserva" \
 	  || $(RUN) php artisan key:generate
+
+storage: ## Enlaza public/storage (imágenes que suben los usuarios)
+	@$(RUN) php artisan storage:link
 
 ## --------------------------------------------------------------------------
 ## Contenedores

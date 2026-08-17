@@ -14,12 +14,20 @@
     </form>
 
     @forelse ($resultados as $producto)
-        <article class="tarjeta">
-            <form method="POST" action="{{ route('items.store', $wishlist) }}">
-                @csrf
-                <input type="hidden" name="product_id" value="{{ $producto->id }}">
+        @php $leGusta = $producto->isLikedBy(auth()->user()); @endphp
 
-                <div class="fila">
+        <article class="tarjeta">
+            {{-- El formulario de agregar y el de «me gusta» son hermanos, no
+                 anidados: un form dentro de otro no es HTML válido y el
+                 navegador se come el de adentro. --}}
+            <div class="fila">
+                <div class="con-miniatura">
+                    @if ($producto->imageSrc())
+                        <img class="miniatura" src="{{ $producto->imageSrc() }}" alt="" loading="lazy">
+                    @else
+                        <div class="miniatura miniatura-vacia" aria-hidden="true">🎁</div>
+                    @endif
+
                     <div>
                         <p class="tarjeta-titulo">
                             {{ $producto->name }}
@@ -30,22 +38,41 @@
                         <p class="tarjeta-meta">
                             {{ $producto->category?->name }}
                             @if ($producto->reference_price)
-                                · ${{ number_format($producto->reference_price, 0, ',', '.') }}
+                                · ${{ number_format($producto->reference_price, 0, ',', '.') }} aprox.
                             @endif
                         </p>
-                    </div>
-                    <div class="fila-acciones">
-                        <select name="priority" aria-label="Prioridad">
-                            @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
-                                <option value="{{ $prioridad->label() }}" @selected($prioridad === \App\Enums\ItemPriority::MEDIUM)>
-                                    {{ $prioridad->title() }}
-                                </option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="boton">Agregar</button>
+
+                        @if ($producto->is_public)
+                            <form method="POST" style="margin-top:0.55rem"
+                                  action="{{ $leGusta ? route('products.unlike', $producto) : route('products.like', $producto) }}">
+                                @csrf
+                                @if ($leGusta) @method('DELETE') @endif
+                                <button type="submit" @class(['megusta', 'marcado' => $leGusta])
+                                        title="{{ $leGusta ? 'Quitar tu voto' : 'Esta ficha está bien hecha' }}">
+                                    <span class="corazon" aria-hidden="true">{{ $leGusta ? '♥' : '♡' }}</span>
+                                    {{ $producto->likes_count }}
+                                    <span class="visualmente-oculto">
+                                        {{ $leGusta ? 'Quitar tu voto a esta ficha' : 'Votar esta ficha como bien hecha' }}
+                                    </span>
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
-            </form>
+
+                <form method="POST" action="{{ route('items.store', $wishlist) }}" class="fila-acciones">
+                    @csrf
+                    <input type="hidden" name="product_id" value="{{ $producto->id }}">
+                    <select name="priority" aria-label="Prioridad">
+                        @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
+                            <option value="{{ $prioridad->label() }}" @selected($prioridad === \App\Enums\ItemPriority::MEDIUM)>
+                                {{ $prioridad->title() }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <button type="submit" class="boton">Agregar</button>
+                </form>
+            </div>
         </article>
     @empty
         <div class="vacio">
@@ -61,7 +88,9 @@
     <h2>O escríbelo tú</h2>
     <p class="bajada">Queda como producto privado: solo lo ves tú y quien mire esta lista.</p>
 
-    <form method="POST" action="{{ route('items.store', $wishlist) }}">
+    {{-- enctype: sin esto el navegador manda solo el nombre del archivo y la
+         imagen nunca llega. --}}
+    <form method="POST" action="{{ route('items.store', $wishlist) }}" enctype="multipart/form-data">
         @csrf
 
         <div class="campo">
@@ -92,8 +121,15 @@
         </div>
 
         <div class="campo">
+            <label for="image">Una foto <span class="pista">(opcional, jpg/png/webp hasta 4 MB)</span></label>
+            <input id="image" type="file" name="image" accept="image/jpeg,image/png,image/webp">
+            <p class="tarjeta-meta">Una foto decente es lo que hace que quien te regale sepa que acertó.</p>
+        </div>
+
+        <div class="campo">
             <label for="reference_price">Precio de referencia <span class="pista">(opcional)</span></label>
             <input id="reference_price" type="number" name="reference_price" min="0" step="1" value="{{ old('reference_price') }}">
+            <p class="tarjeta-meta">Solo para orientar a quien vaya a comprarlo; no tiene que ser exacto.</p>
         </div>
 
         <div class="campo">

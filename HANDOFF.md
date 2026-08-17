@@ -90,7 +90,9 @@ Commits en `main`:
 | `a1b918e` | `db` y `redis` publicados solo en `127.0.0.1`             |
 | `0a60c3d` | Modelo de datos: 4 enums, 8 migraciones, 7 modelos, 5 seeders |
 | `830d138` | Factories de los 7 modelos y 49 tests del dominio          |
-| (el último) | Capa de aplicación: policies, controladores, rutas, vistas |
+| `476cc54` | Capa de aplicación: policies, controladores, rutas, vistas |
+| `b21ec12` | Servicio `scheduler`, sin el que nada programado corría    |
+| (el último) | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -115,7 +117,36 @@ Lo que trae la capa de aplicación:
 | `ReservationService`           | traduce el choque de dos reservas simultáneas a un mensaje |
 | `ReleaseExpiredReservations`   | comando programado cada hora en `routes/console.php` |
 | `Product::scopeSearchPrefix()` | buscador del catálogo: «pelu» encuentra «Peluche»  |
+| `Product::scopeBestFirst()`    | entre fichas repetidas del mismo producto, primero la más votada |
 | `Wishlist::unlockByLink()`     | el enlace secreto se anota en la sesión, para no arrastrar el token por cada URL |
+| `GiftState`                    | los cuatro estados con que un tercero ve un regalo |
+| `ProductPolicy`                | solo se vota el catálogo público                   |
+
+### El catálogo se cura solo
+
+Un producto puede tener foto subida por quien lo creó (`image_path`, disco
+`public`) además de la del sitio de la tienda (`image_url`); manda la subida.
+Y cualquiera puede darle «me gusta» a una ficha del catálogo público, que es
+lo que decide el orden en que se muestran: `bestFirst()` ordena por votos y,
+entre las que empatan en cero —el estado inicial de todo—, adelanta a las que
+al menos tienen foto. Así, de tres fichas del mismo producto, la bien hecha es
+la que la gente ve.
+
+Las fotos van al disco `public` con nombre aleatorio de 40 caracteres. Eso las
+deja servidas por nginx sin pasar por PHP, y su privacidad descansa en que la
+URL es inadivinable: el mismo trato que ya se le da al enlace secreto de una
+lista.
+
+### Modo claro y oscuro
+
+Todo el color vive en variables CSS y el tema solo cambia sus valores, así que
+un componente nuevo queda oscuro con solo usar los tokens. Hay **tres** estados,
+no dos: claro, oscuro y «lo que diga el sistema», que es el de fábrica. La
+elección se guarda en `localStorage` y se aplica en un script del `<head>` —a
+propósito bloqueante, para que no se vea el destello del tema contrario.
+
+Los estilos de celular cortan en 640px. Están comprobados a 390px de ancho
+real, sin desbordes horizontales.
 
 Los tests que importan y qué vigilan:
 
@@ -211,17 +242,30 @@ referencia.
 `Co-Authored-By`.** Ejemplo: `Agrega el modelo de datos de wishlists con
 migraciones y seeders`.
 
-**Enums:** enum puro (no backed), con `label()` que devuelve un string en
-español en snake_case. Ese label es lo que se guarda en la base, como
-`varchar`, no como enum nativo de MySQL.
+**Enums:** enum puro (no backed), con dos métodos de texto que **no** hay que
+confundir:
+
+- `label()` es el valor que se guarda en la base: minúscula, sin tildes,
+  snake_case. Cambiarlo invalida las filas ya guardadas.
+- `title()` es lo que se muestra en pantalla: con mayúscula inicial y tildes.
+
+Vinieron separados después de que la interfaz mostrara «alta» y «por_enlace» en
+las etiquetas: se estaba usando el valor de la base como texto de la interfaz.
+En las vistas nunca va `label()` salvo dentro de un `value=""`.
 
 ```php
 enum ReservationStatus
 {
     case ACTIVE;
     public function label(): string { return match($this) { self::ACTIVE => 'activa' }; }
+    public function title(): string { return match($this) { self::ACTIVE => 'Activa' }; }
 }
 ```
+
+Hay además un enum que no se guarda en ninguna columna, `GiftState`, y que no
+debe guardarse: describe cómo ve un regalo **quien pregunta**, y el mismo ítem
+es `RESERVED_BY_ME` para uno y `RESERVED` para el resto. Se deduce con
+`GiftState::forViewer($item)`.
 
 **Migraciones:** clase anónima, `foreignId()->constrained()->cascadeOnDelete()`,
 defaults tomados del enum (`->default(ItemPriority::MEDIUM->label())`), índices
@@ -253,15 +297,21 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
 1. **Tests de la capa de aplicación.** Lo único urgente. Como mínimo: que el
    dueño no pueda reservar en su propia lista, que un extraño reciba 403 al
    abrir una lista privada, que el enlace secreto sí la abra, que la vista del
-   dueño no traiga jamás el `user_id` de una reserva, y que la segunda reserva
-   simultánea muestre el mensaje en vez de reventar. Todo eso hoy lo sostiene
-   código sin red.
-2. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
+   dueño no traiga jamás el `user_id` de una reserva, que la segunda reserva
+   simultánea muestre el mensaje en vez de reventar, y que no se pueda votar un
+   producto privado. Todo eso hoy lo sostiene código sin red.
+2. **Achicar las fotos al subirlas.** Hoy se guarda el archivo tal cual, hasta
+   4 MB, y se muestra en una miniatura de 72px. Una lista con veinte regalos
+   son veinte fotos de celular completas viajando por la red. `intervention/
+   image` y un `Job` en la cola resuelven esto; la cola ya está en redis, lo
+   que falta es el worker.
+3. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
    redirige a `/login` o a `/wishlists` y nadie la renderiza.
-3. **Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
+4. **Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
    que su plazo de 14 días está por vencer. Sin esto, el job que libera reservas
-   vencidas sorprende al que iba a comprar.
-4. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
+   vencidas sorprende al que iba a comprar. Necesita worker de cola: no hay
+   servicio que corra `queue:work`, igual que pasaba con el scheduler.
+5. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
    entran los `Resource`: exponer `is_reserved` como booleano para quien mira,
    **nunca** el `user_id` de la reserva, y para el dueño ni siquiera el booleano.
 
@@ -296,6 +346,7 @@ requiere moderación.
 | `make artisan …`  | `make artisan migrate:status`                         |
 | `make composer …` | `make composer require laravel/sanctum`               |
 | `make fresh`      | borrar tablas, migrar y sembrar de nuevo              |
+| `make storage`    | enlaza `public/storage` (las fotos que suben)         |
 | `make test`       | tests contra MariaDB                                  |
 | `make db`         | cliente mysql contra la base                          |
 | `make xdebug-on`  | activar Xdebug (se apaga al reconstruir la imagen)    |
@@ -336,6 +387,18 @@ NTP— ese certificado queda fechado en el futuro y el cliente lo rechaza.
 Se arregla con `docker compose restart db`. Pista para reconocerlo:
 `docker compose ps` muestra todos los contenedores «Up Less than a second»
 aunque lleven días arriba.
+
+**Las fotos no se ven y el enlace `public/storage` parece roto.** Desde el host
+lo está: apunta a `/var/www/storage/app/public`, que es la ruta *dentro* del
+contenedor. Es lo correcto —nginx sirve desde ahí— y por eso `public/storage`
+está en `.gitignore` y lo crea `make storage`, que ya corre dentro de
+`make setup`. Si las fotos dan 404 en un clon nuevo, es que faltó ese paso.
+
+**Lo que se programe en el scheduler necesita su contenedor.** El servicio
+`scheduler` corre `schedule:work`; sin él, `routes/console.php` queda escrito
+pero no se ejecuta nunca. Ya pasó una vez con las reservas vencidas. Lo mismo
+va a pasar con la cola: `QUEUE_CONNECTION=redis` pero **no hay** servicio que
+corra `queue:work`.
 
 **Hay dos `.env`.** El de la raíz lo lee docker compose; el de `laravel/` lo
 lee Laravel. `make env` sincroniza las credenciales de BD del primero al

@@ -24,9 +24,12 @@ class WishlistItemController extends Controller
 
         $termino = trim($request->string('q')->toString());
 
+        // bestFirst() es lo que hace que, entre tres fichas del mismo producto,
+        // la más votada sea la que la gente ve primero.
         $resultados = $termino === ''
-            ? Product::public()->latest()->limit(12)->get()
-            : Product::visibleTo($request->user())->searchPrefix($termino)->limit(24)->get();
+            ? Product::public()->withMyLike($request->user())->bestFirst()->limit(12)->get()
+            : Product::visibleTo($request->user())->searchPrefix($termino)
+                ->withMyLike($request->user())->bestFirst()->limit(24)->get();
 
         $categories = Category::active()->orderBy('name')->get();
 
@@ -98,8 +101,28 @@ class WishlistItemController extends Controller
             'name' => $request->string('name')->toString(),
             'description' => $request->input('description'),
             'url' => $request->input('url'),
+            'image_path' => $this->storeImage($request),
             'reference_price' => $request->input('reference_price'),
             'is_public' => false,
         ]);
+    }
+
+    /**
+     * Guarda la foto que subió el usuario y devuelve su ruta, o null si no
+     * subió ninguna.
+     *
+     * El nombre lo inventa Laravel: 40 caracteres al azar. Importa porque el
+     * disco es público y la URL queda adivinable solo para quien la tiene, que
+     * es el mismo trato que ya se le da al enlace secreto de una lista. De
+     * paso evita que el nombre original del archivo —que puede traer el nombre
+     * de la persona— termine a la vista en la URL.
+     */
+    private function storeImage(StoreWishlistItemRequest $request): ?string
+    {
+        if (! $request->hasFile('image')) {
+            return null;
+        }
+
+        return $request->file('image')->store('productos', 'public');
     }
 }

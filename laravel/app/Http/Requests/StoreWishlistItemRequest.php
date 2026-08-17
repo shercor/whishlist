@@ -46,6 +46,13 @@ class StoreWishlistItemRequest extends FormRequest
             'url' => ['nullable', 'url', 'max:2048'],
             'reference_price' => ['nullable', 'numeric', 'min:0', 'max:99999999'],
 
+            // 'image' valida que sea una imagen de verdad y no un ejecutable
+            // renombrado: mira el contenido, no la extensión. Se acota a los
+            // tres formatos que todo navegador muestra —nada de svg, que es
+            // xml y puede traer scripts dentro—. 4 MB es lo que pesa una foto
+            // de celular sin tocar.
+            'image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
+
             'alias' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:500'],
             'priority' => ['required', Rule::in(ItemPriority::labels())],
@@ -64,6 +71,7 @@ class StoreWishlistItemRequest extends FormRequest
             'reference_price' => 'precio de referencia',
             'priority' => 'prioridad',
             'notes' => 'notas',
+            'image' => 'imagen',
         ];
     }
 

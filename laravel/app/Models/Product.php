@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -21,6 +22,7 @@ class Product extends Model
         'description',
         'url',
         'image_url',
+        'image_path',
         'reference_price',
         'currency',
         'is_public',
@@ -52,6 +54,43 @@ class Product extends Model
     public function wishlistItems(): HasMany
     {
         return $this->hasMany(WishlistItem::class);
+    }
+
+    public function likes(): HasMany
+    {
+        return $this->hasMany(ProductLike::class);
+    }
+
+    /**
+     * Si a este usuario ya le gustaba, para pintar el botón marcado.
+     */
+    public function isLikedBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        // Si el contador ya viene cargado con withCount, se usa y no se
+        // consulta de nuevo: esta pregunta se hace una vez por resultado de
+        // búsqueda y son hasta 24 por pantalla.
+        if (isset($this->attributes['mine_likes_count'])) {
+            return $this->attributes['mine_likes_count'] > 0;
+        }
+
+        return $this->likes()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * De dónde sale la foto: primero la que alguien subió, y si no hay, la del
+     * sitio de la tienda. Devuelve null si el producto no tiene ninguna.
+     */
+    public function imageSrc(): ?string
+    {
+        if ($this->image_path) {
+            return Storage::disk('public')->url($this->image_path);
+        }
+
+        return $this->image_url;
     }
 
     /**
@@ -101,5 +140,37 @@ class Product extends Model
         }
 
         return $query->whereFullText(['name', 'description'], $palabras->implode(' '), ['mode' => 'boolean']);
+    }
+
+    /**
+     * El orden con que se le muestra el catálogo a la gente.
+     *
+     * El catálogo tiene fichas repetidas del mismo producto —las va creando
+     * quien no encuentra la suya— y no todas están igual de cuidadas. Manda el
+     * voto de los usuarios; entre las que empatan en cero, que es el estado
+     * inicial de todo, gana la que al menos tiene foto, porque una ficha sin
+     * imagen no le sirve a nadie para decidir.
+     */
+    public function scopeBestFirst(Builder $query): Builder
+    {
+        return $query->withCount('likes')
+            ->orderByDesc('likes_count')
+            ->orderByRaw('(image_path IS NOT NULL OR image_url IS NOT NULL) DESC')
+            ->orderBy('name');
+    }
+
+    /**
+     * Marca, de una sola consulta, cuáles de los productos traídos ya tienen
+     * el «me gusta» de este usuario.
+     */
+    public function scopeWithMyLike(Builder $query, ?User $user): Builder
+    {
+        if (! $user) {
+            return $query;
+        }
+
+        return $query->withCount([
+            'likes as mine_likes_count' => fn (Builder $query) => $query->where('user_id', $user->id),
+        ]);
     }
 }
