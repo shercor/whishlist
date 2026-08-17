@@ -24,6 +24,10 @@ class RegisterRequest extends FormRequest
             'username' => User::usernameRules(),
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
+            // Mismo criterio que la foto de un producto: se valida por
+            // contenido y no por extensión, y sin svg, que es xml y puede
+            // traer scripts dentro.
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
         ];
     }
 
@@ -50,6 +54,7 @@ class RegisterRequest extends FormRequest
             'username' => 'usuario',
             'email' => 'correo',
             'password' => 'contraseña',
+            'avatar' => 'foto de perfil',
         ];
     }
 

@@ -49,6 +49,9 @@ Route::middleware('auth')->group(function () {
     Route::patch('/perfil', [ProfileController::class, 'update'])->name('profile.update');
 
     Route::get('/usuarios', [UserSearchController::class, 'index'])->name('users.search');
+    // Las coincidencias mientras se escribe. Va antes de /u/{user} solo por
+    // orden de lectura: no chocan, cuelgan de prefijos distintos.
+    Route::get('/usuarios/sugerencias', [UserSearchController::class, 'suggest'])->name('users.suggest');
     // El perfil público cuelga de /u/ y no de la raíz: así un usuario nuevo
     // nunca puede chocar con una ruta de la aplicación.
     Route::get('/u/{user:username}', [UserSearchController::class, 'show'])->name('users.show');

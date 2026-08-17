@@ -97,7 +97,8 @@ Commits en `main`:
 | `d6af2cd` | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
 | `27872c0` | Seguidores, perfil privado y reparto de acceso lista por lista |
 | `873d2c5` | «Por enlace» se fusiona en «privada»: una sola lista privada que se invita y se comparte |
-| (el último) | Modal de detalle del regalo, copiar con ícono dentro del campo y avisos flotantes |
+| `b51c639` | Modal de detalle del regalo, copiar con ícono dentro del campo y avisos flotantes |
+| (el último) | Foto de perfil en todas las vistas y buscador de personas con sugerencias |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -152,6 +153,23 @@ otra: si buscara por `name`, la opción de ocultar el nombre no serviría de
 nada, y si mirara el correo bastaría con probar direcciones para saber quién
 está registrado. Sin término de búsqueda no devuelve a nadie, a propósito: el
 directorio completo de la plataforma no debe poder recorrerse.
+
+Cada cuenta puede tener **foto de perfil** (`avatar_path`, disco `public`,
+opcional siempre). Cuando no hay, no se deja el hueco ni un icono genérico: se
+dibujan sus iniciales sobre un color sacado de su arroba, así el mismo usuario
+tiene siempre el mismo círculo y se reconoce de una lista a otra. Todo eso vive
+en el componente `<x-avatar>`, con tres tamaños fijos —`chico`, `normal`,
+`grande`—. **Los tamaños son fijos a propósito:** en una lista donde unos
+tienen foto y otros no, cualquier variación desalinea todas las filas.
+
+Ojo con las iniciales: salen de `publicName()`, no de `name`. Si la persona
+oculta su nombre, sus iniciales reales tampoco deben asomar; en ese caso salen
+del arroba.
+
+`AvatarService` es el único lugar donde se guarda y se borra una foto. Existe
+para que el borrado de la anterior no se olvide: repartido entre el registro y
+el perfil, es justo lo que se escapa y el disco se llena de fotos que ya nadie
+muestra.
 
 El nombre real es privado por defecto (`show_name` nace en `false`) y cada
 persona decide en `/perfil` si quiere mostrarlo. La regla operativa:
@@ -250,6 +268,23 @@ se ve antes de guardar sea exactamente lo que va a quedar.
 caja es cuadrada porque van varias una debajo de otra y deben medir lo mismo,
 pero en el detalle hay una sola foto y nada que alinear, así que forzarlo solo
 agregaría franjas vacías a una imagen apaisada.
+
+### El buscador de personas sugiere mientras escribes
+
+`/usuarios` trae un menú que carga coincidencias desde tres letras, con
+`fetch` contra `users.suggest`. Detalles que importan:
+
+- **El formulario sigue funcionando sin javascript.** El menú se monta encima y
+  solo adelanta el resultado; enviar sigue pintando la página en el servidor.
+- El endpoint aplica **las mismas reglas** que la búsqueda de siempre —solo
+  `username`, nunca `name` ni el correo—: no es una puerta de atrás.
+- Devuelve iniciales y tono además de la foto, para que quien no tiene avatar
+  se dibuje igual que en el resto de la aplicación sin que el javascript tenga
+  que recalcular nada.
+- Cancela la petición anterior con `AbortController`: escribiendo rápido salen
+  varias en camino y **la última en llegar no es siempre la de lo último que se
+  escribió**.
+- Espera 250 ms desde la última tecla; sin eso sale una petición por pulsación.
 
 ### El detalle de un regalo
 

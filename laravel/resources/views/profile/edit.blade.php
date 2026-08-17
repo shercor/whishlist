@@ -7,9 +7,31 @@
         <h1>Mi perfil</h1>
         <p class="bajada">Con qué te encuentran los demás, y cuánto de ti ven.</p>
 
-        <form method="POST" action="{{ route('profile.update') }}">
+        <form method="POST" action="{{ route('profile.update') }}" enctype="multipart/form-data">
             @csrf
             @method('PATCH')
+
+            <div class="campo">
+                <label for="avatar">Foto de perfil</label>
+                <div class="avatar-elegir">
+                    {{-- La actual, o el placeholder que se está usando hoy. --}}
+                    <x-avatar :usuario="$usuario" tamano="grande" id="avatar-actual" />
+                    <img class="avatar avatar-grande" id="vista-avatar" src="" alt="" hidden>
+
+                    <div>
+                        <input id="avatar" type="file" name="avatar"
+                               accept="image/jpeg,image/png,image/webp"
+                               data-previsualiza-avatar="#vista-avatar" data-oculta="#avatar-actual">
+
+                        @if ($usuario->avatarSrc())
+                            <label class="tarjeta-meta" for="quitar_avatar" style="display:block;margin-top:0.5rem">
+                                <input id="quitar_avatar" type="checkbox" name="quitar_avatar" value="1">
+                                Quitar mi foto y volver a las iniciales
+                            </label>
+                        @endif
+                    </div>
+                </div>
+            </div>
 
             <div class="campo">
                 <label for="username">Tu usuario</label>

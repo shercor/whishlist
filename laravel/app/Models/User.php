@@ -13,10 +13,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
-#[Fillable(['name', 'username', 'show_name', 'is_private', 'email', 'password'])]
+#[Fillable(['name', 'username', 'show_name', 'is_private', 'avatar_path', 'email', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -58,6 +59,44 @@ class User extends Authenticatable
     public function handle(): string
     {
         return '@'.$this->username;
+    }
+
+    /**
+     * La foto de perfil, o null si no puso ninguna.
+     */
+    public function avatarSrc(): ?string
+    {
+        return $this->avatar_path
+            ? Storage::disk('public')->url($this->avatar_path)
+            : null;
+    }
+
+    /**
+     * Las letras del placeholder cuando no hay foto.
+     *
+     * Salen de publicName() y no de `name`: si la persona oculta su nombre, sus
+     * iniciales reales tampoco deben asomar. En ese caso salen del arroba.
+     */
+    public function initials(): string
+    {
+        $base = ltrim($this->publicName(), '@');
+
+        $palabras = preg_split('/[\s_.\-]+/', $base, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $letras = array_map(fn (string $p) => mb_strtoupper(mb_substr($p, 0, 1)), array_slice($palabras, 0, 2));
+
+        return implode('', $letras) ?: '?';
+    }
+
+    /**
+     * Un tono estable para el placeholder, sacado del usuario.
+     *
+     * Con el mismo arroba sale siempre el mismo color, así una cara sin foto
+     * igual se reconoce de una lista a otra. Es decorativo: el contraste del
+     * texto no depende de esto.
+     */
+    public function avatarHue(): int
+    {
+        return crc32((string) $this->username) % 360;
     }
 
     /**

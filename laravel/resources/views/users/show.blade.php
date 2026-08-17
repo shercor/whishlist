@@ -4,7 +4,9 @@
 
 @section('contenido')
     <div class="encabezado">
-        <div>
+        <div class="persona">
+            <x-avatar :usuario="$usuario" tamano="grande" />
+            <div>
             <h1>{{ $usuario->handle() }}</h1>
             <p class="bajada">
                 @if ($usuario->show_name)
@@ -18,6 +20,7 @@
                     Perfil público.
                 @endif
             </p>
+            </div>
         </div>
 
         <div class="fila-acciones">

@@ -23,7 +23,12 @@
             <article class="tarjeta">
                 <div class="fila">
                     <div>
-                        <p class="tarjeta-titulo">{{ $solicitud->user->publicName() }}</p>
+                        <p class="tarjeta-titulo">
+                            <span class="persona">
+                                <x-avatar :usuario="$solicitud->user" tamano="chico" />
+                                <span>{{ $solicitud->user->publicName() }}</span>
+                            </span>
+                        </p>
                         <p class="tarjeta-meta">{{ $solicitud->message ?: 'Sin mensaje.' }}</p>
                     </div>
                     <div class="fila-acciones">

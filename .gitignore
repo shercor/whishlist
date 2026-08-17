@@ -16,3 +16,7 @@ Thumbs.db
 
 # Logs sueltos
 *.log
+
+# Credenciales de los usuarios de prueba locales. Se generan sembrando la base
+# y no describen nada del proyecto: no tienen por qué viajar en el repositorio.
+usuarios-de-prueba.md

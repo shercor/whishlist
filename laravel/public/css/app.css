@@ -126,7 +126,19 @@ img { max-width: 100%; height: auto; }
 .barra nav a.activo { color: var(--tinta); border-bottom-color: var(--acento); }
 
 .salir { display: flex; align-items: center; gap: 0.75rem; margin: 0; }
-.quien { color: var(--tinta-suave); font-size: 0.9rem; }
+
+.quien {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--tinta-suave);
+    font-size: 0.9rem;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.quien:hover { color: var(--tinta); }
+.quien span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* --- Interruptor de tema ------------------------------------------------- */
 
@@ -364,6 +376,63 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
 
 .abre-detalle:hover { text-decoration-color: var(--acento); }
 
+/* --- Foto de perfil ------------------------------------------------------ *
+ *
+ * Los tamaños son fijos y con nombre a propósito: en una lista donde unos
+ * tienen foto y otros no, cualquier variación de tamaño desalinea todas las
+ * filas. `flex: none` evita que el avatar se encoja cuando el nombre de al
+ * lado es largo.
+ */
+
+.avatar {
+    flex: none;
+    border-radius: 999px;
+    object-fit: cover;
+    background: var(--papel);
+    border: 1px solid var(--borde);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    /* Las iniciales nunca se seleccionan al arrastrar sobre una lista. */
+    user-select: none;
+}
+
+.avatar-chico { width: 2rem; height: 2rem; font-size: 0.72rem; }
+.avatar-normal { width: 2.75rem; height: 2.75rem; font-size: 0.9rem; }
+.avatar-grande { width: 5rem; height: 5rem; font-size: 1.6rem; }
+
+/* El color sale del arroba, así que el mismo usuario tiene siempre el mismo
+   círculo. Se usa hsl para que baste un número como variable. */
+.avatar-vacio {
+    background: hsl(var(--tono) 45% 88%);
+    color: hsl(var(--tono) 55% 25%);
+    border-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) .avatar-vacio {
+        background: hsl(var(--tono) 30% 26%);
+        color: hsl(var(--tono) 60% 85%);
+    }
+}
+
+:root[data-tema="oscuro"] .avatar-vacio {
+    background: hsl(var(--tono) 30% 26%);
+    color: hsl(var(--tono) 60% 85%);
+}
+
+/* Fila de «avatar + texto», que es como aparece una persona en casi todos
+   lados. min-width: 0 para que un nombre largo se recorte en vez de estirar. */
+.persona { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.persona > div { min-width: 0; }
+
+.avatar-elegir { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.avatar-elegir input[type="file"] { max-width: 22rem; }
+.avatar-elegir [hidden] { display: none; }
+
 /* --- Etiquetas ---------------------------------------------------------- */
 
 .etiqueta {
@@ -486,6 +555,60 @@ textarea { min-height: 4.5rem; resize: vertical; }
 .acciones { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
 
 .buscador { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+
+/* --- Sugerencias del buscador de personas -------------------------------- */
+
+/* El contenedor es relative y crece: el menú se ancla a él y no al formulario,
+   así queda exactamente bajo el campo y del mismo ancho. */
+.sugerible { position: relative; flex: 1 1 auto; min-width: 0; }
+
+.sugerencias {
+    position: absolute;
+    top: calc(100% + 0.25rem);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    margin: 0;
+    padding: 0.25rem;
+    list-style: none;
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    max-height: 22rem;
+    overflow-y: auto;
+}
+
+.sugerencias[hidden] { display: none; }
+
+.sugerencias a {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    color: var(--tinta);
+    text-decoration: none;
+    min-width: 0;
+}
+
+/* El resaltado es el mismo con el ratón que con las flechas del teclado: si
+   fueran distintos, navegar con teclado se sentiría como otra interfaz. */
+.sugerencias a:hover,
+.sugerencias li.activa a { background: var(--papel); }
+
+.sugerencias .arroba { font-weight: 600; }
+
+.sugerencias .detalle {
+    display: block;
+    color: var(--tinta-suave);
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sugerencias .vacio-menu { padding: 0.75rem 0.5rem; color: var(--tinta-suave); font-size: 0.9rem; }
 
 /* --- Avisos ------------------------------------------------------------- */
 

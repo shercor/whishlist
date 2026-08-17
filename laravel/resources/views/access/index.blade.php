@@ -11,9 +11,12 @@
     @forelse ($recibidas as $solicitud)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">{{ $solicitud->user->publicName() }} · «{{ $solicitud->wishlist->name }}»</p>
-                    <p class="tarjeta-meta">{{ $solicitud->message ?: 'Sin mensaje.' }}</p>
+                <div class="persona">
+                    <x-avatar :usuario="$solicitud->user" />
+                    <div>
+                        <p class="tarjeta-titulo">{{ $solicitud->user->publicName() }} · «{{ $solicitud->wishlist->name }}»</p>
+                        <p class="tarjeta-meta">{{ $solicitud->message ?: 'Sin mensaje.' }}</p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     @if ($solicitud->statusEnum()->isAwaitingResponse())
@@ -56,7 +59,9 @@
     @forelse ($enviadas as $solicitud)
         <article class="tarjeta">
             <div class="fila">
-                <div>
+                <div class="persona">
+                    <x-avatar :usuario="$solicitud->wishlist->user" />
+                    <div>
                     <p class="tarjeta-titulo">Lista de {{ $solicitud->wishlist->user->publicName() }}</p>
                     <p class="tarjeta-meta">
                         @if ($solicitud->responded_at)
@@ -65,6 +70,7 @@
                             Todavía sin respuesta.
                         @endif
                     </p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     <span @class([

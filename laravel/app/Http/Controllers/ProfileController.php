@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileRequest;
+use App\Services\AvatarService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,9 +19,17 @@ class ProfileController extends Controller
         return view('profile.edit', ['usuario' => $request->user()]);
     }
 
-    public function update(ProfileRequest $request): RedirectResponse
+    public function update(ProfileRequest $request, AvatarService $avatares): RedirectResponse
     {
-        $request->user()->update($request->validated());
+        $usuario = $request->user();
+
+        $usuario->update($request->safe()->only(['name', 'username', 'show_name', 'is_private']));
+
+        if ($request->boolean('quitar_avatar')) {
+            $avatares->remove($usuario);
+        } else {
+            $avatares->update($usuario, $request->file('avatar'));
+        }
 
         return redirect()->route('profile.edit')
             ->with('status', 'Perfil actualizado.');

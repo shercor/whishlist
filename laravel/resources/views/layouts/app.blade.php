@@ -42,7 +42,10 @@
                 @csrf
                 {{-- Tu propio arroba a la vista: es lo que le tienes que dictar
                      a alguien para que te encuentre. --}}
-                <a class="quien" href="{{ route('profile.edit') }}">{{ auth()->user()->handle() }}</a>
+                <a class="quien" href="{{ route('profile.edit') }}">
+                    <x-avatar :usuario="auth()->user()" tamano="chico" />
+                    <span>{{ auth()->user()->handle() }}</span>
+                </a>
                 <button type="submit" class="boton-plano">Salir</button>
             </form>
         </header>
@@ -204,6 +207,187 @@
                 img.dataset.blob = '1';
                 caja.hidden = false;
             });
+        });
+
+        // Previsualización de la foto de perfil. Es la misma idea que la del
+        // producto, pero acá se reemplaza el avatar actual en vez de aparecer
+        // debajo: dos caras a la vez confunden sobre cuál va a quedar.
+        document.querySelectorAll('[data-previsualiza-avatar]').forEach(function (input) {
+            var vista = document.querySelector(input.dataset.previsualizaAvatar);
+            var actual = input.dataset.oculta ? document.querySelector(input.dataset.oculta) : null;
+            if (!vista) return;
+
+            input.addEventListener('change', function () {
+                var archivo = input.files && input.files[0];
+
+                if (vista.dataset.blob) {
+                    URL.revokeObjectURL(vista.src);
+                    delete vista.dataset.blob;
+                }
+
+                if (!archivo) {
+                    vista.hidden = true;
+                    if (actual) actual.hidden = false;
+                    return;
+                }
+
+                vista.src = URL.createObjectURL(archivo);
+                vista.dataset.blob = '1';
+                vista.hidden = false;
+                if (actual) actual.hidden = true;
+            });
+        });
+
+        // Buscador de personas con sugerencias mientras se escribe.
+        document.querySelectorAll('[data-buscador-personas]').forEach(function (campo) {
+            var menu = document.getElementById(campo.getAttribute('aria-controls'));
+            if (!menu) return;
+
+            var MINIMO = 3;
+            var espera = null;
+            var enCurso = null;
+            var activo = -1;
+
+            function cerrar() {
+                menu.hidden = true;
+                menu.innerHTML = '';
+                campo.setAttribute('aria-expanded', 'false');
+                activo = -1;
+            }
+
+            function marcar(indice) {
+                var filas = menu.querySelectorAll('li[role="option"]');
+                if (!filas.length) return;
+
+                // Da la vuelta en los extremos, que es lo que se espera de un
+                // menú: desde el último, abajo vuelve al primero.
+                activo = (indice + filas.length) % filas.length;
+
+                filas.forEach(function (fila, i) {
+                    fila.classList.toggle('activa', i === activo);
+                    fila.setAttribute('aria-selected', i === activo ? 'true' : 'false');
+                });
+
+                filas[activo].scrollIntoView({ block: 'nearest' });
+            }
+
+            function pintar(usuarios) {
+                menu.innerHTML = '';
+
+                if (!usuarios.length) {
+                    var vacio = document.createElement('li');
+                    vacio.className = 'vacio-menu';
+                    vacio.textContent = 'Nadie con ese usuario.';
+                    menu.appendChild(vacio);
+                } else {
+                    usuarios.forEach(function (persona) {
+                        menu.appendChild(fila(persona));
+                    });
+                }
+
+                menu.hidden = false;
+                campo.setAttribute('aria-expanded', 'true');
+                activo = -1;
+            }
+
+            function fila(persona) {
+                var li = document.createElement('li');
+                li.setAttribute('role', 'option');
+                li.setAttribute('aria-selected', 'false');
+
+                var a = document.createElement('a');
+                a.href = persona.url;
+
+                // Con foto va un <img>; sin foto, el mismo círculo de
+                // iniciales que dibuja el componente de Blade.
+                var cara;
+                if (persona.avatar) {
+                    cara = document.createElement('img');
+                    cara.src = persona.avatar;
+                    cara.alt = '';
+                    cara.loading = 'lazy';
+                    cara.className = 'avatar avatar-chico';
+                } else {
+                    cara = document.createElement('span');
+                    cara.className = 'avatar avatar-chico avatar-vacio';
+                    cara.setAttribute('aria-hidden', 'true');
+                    cara.style.setProperty('--tono', persona.tono);
+                    cara.textContent = persona.iniciales;
+                }
+
+                var textos = document.createElement('span');
+                textos.style.minWidth = '0';
+
+                var arroba = document.createElement('span');
+                arroba.className = 'arroba';
+                arroba.textContent = persona.handle;
+
+                var detalle = document.createElement('span');
+                detalle.className = 'detalle';
+                detalle.textContent = (persona.nombre ? persona.nombre + ' · ' : '')
+                    + (persona.listas === 1 ? '1 lista pública' : persona.listas + ' listas públicas');
+
+                textos.appendChild(arroba);
+                textos.appendChild(detalle);
+                a.appendChild(cara);
+                a.appendChild(textos);
+                li.appendChild(a);
+
+                return li;
+            }
+
+            function buscar() {
+                var termino = campo.value.trim().replace(/^@/, '');
+
+                if (termino.length < MINIMO) {
+                    cerrar();
+                    return;
+                }
+
+                // Se cancela la petición anterior: al escribir rápido salen
+                // varias en camino y la última en llegar no es siempre la de
+                // lo último que se escribió.
+                if (enCurso) enCurso.abort();
+                enCurso = new AbortController();
+
+                fetch(campo.dataset.buscadorPersonas + '?q=' + encodeURIComponent(termino), {
+                    signal: enCurso.signal,
+                    headers: { 'Accept': 'application/json' },
+                    credentials: 'same-origin'
+                })
+                    .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+                    .then(function (datos) { pintar(datos.usuarios); })
+                    .catch(function (e) {
+                        // Abortar es lo normal acá y no es un error que mostrar.
+                        if (e && e.name === 'AbortError') return;
+                        cerrar();
+                    });
+            }
+
+            campo.addEventListener('input', function () {
+                clearTimeout(espera);
+                // Sin esta espera se dispara una petición por tecla.
+                espera = setTimeout(buscar, 250);
+            });
+
+            campo.addEventListener('keydown', function (evento) {
+                if (evento.key === 'Escape') { cerrar(); return; }
+                if (menu.hidden) return;
+
+                if (evento.key === 'ArrowDown') { evento.preventDefault(); marcar(activo + 1); }
+                else if (evento.key === 'ArrowUp') { evento.preventDefault(); marcar(activo - 1); }
+                else if (evento.key === 'Enter' && activo >= 0) {
+                    // Solo con una opción marcada: si no, que envíe el
+                    // formulario como siempre.
+                    evento.preventDefault();
+                    menu.querySelectorAll('li[role="option"] a')[activo].click();
+                }
+            });
+
+            // El clic en una sugerencia tiene que llegar antes de cerrar, y
+            // blur se dispara primero: de ahí el respiro.
+            campo.addEventListener('blur', function () { setTimeout(cerrar, 150); });
+            campo.addEventListener('focus', function () { if (campo.value.trim().length >= MINIMO) buscar(); });
         });
     </script>
 </body>

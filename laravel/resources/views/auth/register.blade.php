@@ -7,7 +7,7 @@
         <h1>Crea tu cuenta</h1>
         <p class="bajada">Es lo único que necesitas para empezar tu primera lista.</p>
 
-        <form method="POST" action="{{ route('register') }}">
+        <form method="POST" action="{{ route('register') }}" enctype="multipart/form-data">
             @csrf
 
             <div class="campo">
@@ -29,6 +29,16 @@
             <div class="campo">
                 <label for="email">Correo</label>
                 <input id="email" type="email" name="email" value="{{ old('email') }}" required>
+            </div>
+
+            <div class="campo">
+                <label for="avatar">Foto de perfil <span class="pista">(opcional)</span></label>
+                <div class="avatar-elegir">
+                    <img class="avatar avatar-grande" id="vista-avatar" src="" alt="" hidden>
+                    <input id="avatar" type="file" name="avatar" accept="image/jpeg,image/png,image/webp"
+                           data-previsualiza-avatar="#vista-avatar">
+                </div>
+                <p class="tarjeta-meta">Si no pones ninguna, se usan tus iniciales.</p>
             </div>
 
             <div class="campo">

@@ -13,13 +13,16 @@
         @foreach ($porResponder as $solicitud)
             <article class="tarjeta">
                 <div class="fila">
-                    <div>
-                        <p class="tarjeta-titulo">
-                            <a href="{{ route('users.show', $solicitud->follower) }}">
-                                {{ $solicitud->follower->publicName() }}
-                            </a>
-                        </p>
-                        <p class="tarjeta-meta">Pidió seguirte el {{ $solicitud->created_at->translatedFormat('d \d\e F') }}.</p>
+                    <div class="persona">
+                        <x-avatar :usuario="$solicitud->follower" />
+                        <div>
+                            <p class="tarjeta-titulo">
+                                <a href="{{ route('users.show', $solicitud->follower) }}">
+                                    {{ $solicitud->follower->publicName() }}
+                                </a>
+                            </p>
+                            <p class="tarjeta-meta">Pidió seguirte el {{ $solicitud->created_at->translatedFormat('d \d\e F') }}.</p>
+                        </div>
                     </div>
                     <div class="fila-acciones">
                         <form method="POST" action="{{ route('follows.update', $solicitud) }}">
@@ -44,13 +47,16 @@
     @forelse ($seguidores as $seguimiento)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">
-                        <a href="{{ route('users.show', $seguimiento->follower) }}">
-                            {{ $seguimiento->follower->publicName() }}
-                        </a>
-                    </p>
-                    <p class="tarjeta-meta">Puede recibir tus listas privadas.</p>
+                <div class="persona">
+                    <x-avatar :usuario="$seguimiento->follower" />
+                    <div>
+                        <p class="tarjeta-titulo">
+                            <a href="{{ route('users.show', $seguimiento->follower) }}">
+                                {{ $seguimiento->follower->publicName() }}
+                            </a>
+                        </p>
+                        <p class="tarjeta-meta">Puede recibir tus listas privadas.</p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     {{-- Quitarlo le cierra en el acto las listas privadas que
@@ -75,12 +81,15 @@
     @forelse ($siguiendo as $seguimiento)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">
-                        <a href="{{ route('users.show', $seguimiento->followed) }}">
-                            {{ $seguimiento->followed->publicName() }}
-                        </a>
-                    </p>
+                <div class="persona">
+                    <x-avatar :usuario="$seguimiento->followed" />
+                    <div>
+                        <p class="tarjeta-titulo">
+                            <a href="{{ route('users.show', $seguimiento->followed) }}">
+                                {{ $seguimiento->followed->publicName() }}
+                            </a>
+                        </p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     <a class="boton-plano" href="{{ route('users.show', $seguimiento->followed) }}">Ver sus listas</a>
@@ -99,9 +108,12 @@
         @foreach ($misPendientes as $seguimiento)
             <article class="tarjeta">
                 <div class="fila">
-                    <div>
-                        <p class="tarjeta-titulo">{{ $seguimiento->followed->handle() }}</p>
-                        <p class="tarjeta-meta">Todavía no acepta que lo sigas.</p>
+                    <div class="persona">
+                        <x-avatar :usuario="$seguimiento->followed" />
+                        <div>
+                            <p class="tarjeta-titulo">{{ $seguimiento->followed->handle() }}</p>
+                            <p class="tarjeta-meta">Todavía no acepta que lo sigas.</p>
+                        </div>
                     </div>
                     <div class="fila-acciones">
                         <form method="POST" action="{{ route('follows.destroy', $seguimiento->followed) }}">

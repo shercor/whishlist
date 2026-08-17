@@ -20,14 +20,17 @@
     @forelse ($accesos as $acceso)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">
-                        <a href="{{ route('users.show', $acceso->user) }}">{{ $acceso->user->publicName() }}</a>
-                    </p>
-                    <p class="tarjeta-meta">
-                        {{ $acceso->sourceEnum()->title() }}
-                        @if ($acceso->message) · «{{ $acceso->message }}» @endif
-                    </p>
+                <div class="persona">
+                    <x-avatar :usuario="$acceso->user" />
+                    <div>
+                        <p class="tarjeta-titulo">
+                            <a href="{{ route('users.show', $acceso->user) }}">{{ $acceso->user->publicName() }}</a>
+                        </p>
+                        <p class="tarjeta-meta">
+                            {{ $acceso->sourceEnum()->title() }}
+                            @if ($acceso->message) · «{{ $acceso->message }}» @endif
+                        </p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     <span @class([
@@ -68,9 +71,12 @@
     @forelse ($invitables as $seguidor)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">{{ $seguidor->publicName() }}</p>
-                    <p class="tarjeta-meta">{{ $seguidor->handle() }}</p>
+                <div class="persona">
+                    <x-avatar :usuario="$seguidor" />
+                    <div>
+                        <p class="tarjeta-titulo">{{ $seguidor->publicName() }}</p>
+                        <p class="tarjeta-meta">{{ $seguidor->handle() }}</p>
+                    </div>
                 </div>
                 <form method="POST" action="{{ route('access.invite', $wishlist) }}" class="fila-acciones">
                     @csrf

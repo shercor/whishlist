@@ -6,25 +6,42 @@
     <h1>Buscar personas</h1>
     <p class="bajada">Se busca por usuario, con o sin el arroba. Los nombres no se buscan.</p>
 
-    <form class="buscador" method="GET" action="{{ route('users.search') }}">
-        <input type="search" name="q" value="{{ $termino }}" placeholder="@ana_perez"
-               autocapitalize="none" autocorrect="off" spellcheck="false" autofocus>
+    {{-- El formulario sigue funcionando solo, sin javascript: envía y la
+         pantalla se pinta en el servidor. El menú de sugerencias se monta
+         encima y solo adelanta el resultado. --}}
+    <form class="buscador" method="GET" action="{{ route('users.search') }}" autocomplete="off">
+        <div class="sugerible">
+            <input type="search" name="q" id="q" value="{{ $termino }}" placeholder="@ana_perez"
+                   autocapitalize="none" autocorrect="off" spellcheck="false" autofocus
+                   role="combobox" aria-expanded="false" aria-controls="sugerencias"
+                   aria-autocomplete="list" aria-describedby="pista-sugerencias"
+                   data-buscador-personas="{{ route('users.suggest') }}">
+
+            <ul class="sugerencias" id="sugerencias" role="listbox" aria-label="Personas encontradas" hidden></ul>
+        </div>
         <button type="submit" class="boton-plano">Buscar</button>
     </form>
+
+    <p class="tarjeta-meta" id="pista-sugerencias">
+        Desde tres letras te va mostrando coincidencias mientras escribes.
+    </p>
 
     @forelse ($usuarios as $persona)
         <article class="tarjeta">
             <div class="fila">
-                <div>
-                    <p class="tarjeta-titulo">
-                        <a href="{{ route('users.show', $persona) }}">{{ $persona->handle() }}</a>
-                    </p>
-                    <p class="tarjeta-meta">
-                        @if ($persona->show_name)
-                            {{ $persona->name }} ·
-                        @endif
-                        {{ trans_choice('{0}Sin listas públicas|{1}1 lista pública|[2,*]:count listas públicas', $persona->public_wishlists_count) }}
-                    </p>
+                <div class="persona">
+                    <x-avatar :usuario="$persona" />
+                    <div>
+                        <p class="tarjeta-titulo">
+                            <a href="{{ route('users.show', $persona) }}">{{ $persona->handle() }}</a>
+                        </p>
+                        <p class="tarjeta-meta">
+                            @if ($persona->show_name)
+                                {{ $persona->name }} ·
+                            @endif
+                            {{ trans_choice('{0}Sin listas públicas|{1}1 lista pública|[2,*]:count listas públicas', $persona->public_wishlists_count) }}
+                        </p>
+                    </div>
                 </div>
                 <div class="fila-acciones">
                     <a class="boton-plano" href="{{ route('users.show', $persona) }}">Ver sus listas</a>

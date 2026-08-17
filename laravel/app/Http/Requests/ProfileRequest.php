@@ -24,6 +24,8 @@ class ProfileRequest extends FormRequest
             'username' => User::usernameRules($this->user()),
             'show_name' => ['boolean'],
             'is_private' => ['boolean'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
+            'quitar_avatar' => ['boolean'],
         ];
     }
 
@@ -38,6 +40,7 @@ class ProfileRequest extends FormRequest
             // natural de leer, y acá se invierte: la columna guarda lo
             // contrario. Marcarla apaga is_private.
             'is_private' => ! $this->boolean('perfil_publico'),
+            'quitar_avatar' => $this->boolean('quitar_avatar'),
         ]);
     }
 
@@ -51,6 +54,7 @@ class ProfileRequest extends FormRequest
             'username' => 'usuario',
             'show_name' => 'mostrar el nombre',
             'is_private' => 'privacidad del perfil',
+            'avatar' => 'foto de perfil',
         ];
     }
 
