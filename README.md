@@ -21,8 +21,12 @@ API / aplicación Laravel 13 dockerizada desde el primer commit.
 └── laravel/.env.example config de LARAVEL
 ```
 
-Cuatro contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
-**db** (MariaDB 11.4) y **redis**.
+Cinco contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
+**db** (MariaDB 11.4), **redis** y **scheduler**.
+
+El `scheduler` corre `php artisan schedule:work`. Sin él, todo lo que se
+programe en `routes/console.php` queda escrito pero **no se ejecuta nunca**
+—hoy, liberar las reservas vencidas—.
 
 ## Los dos `.env` (importante)
 
@@ -78,7 +82,10 @@ $EDITOR laravel/.env
 # 6. Llave de encriptación
 docker compose exec app php artisan key:generate
 
-# 7. Migraciones + seeders (el seeder crea el usuario administrador)
+# 7. Enlace para las fotos que suben los usuarios (public/storage)
+docker compose exec app php artisan storage:link
+
+# 8. Migraciones + seeders (el seeder crea el usuario administrador)
 docker compose exec app php artisan migrate
 docker compose exec app php artisan db:seed
 ```
@@ -95,10 +102,13 @@ levantarlo. `make env` colapsa esos dos ajustes en uno.
 
 ```
 categories ──< products >── product_tag ──> tags
+                  │  └──< product_likes ──> users
                   │
 wishlists ──< wishlist_items ──< reservations ──> users
     │                                  │
     └──< wishlist_accesses ──> users   └─ (quién reserva: oculto al dueño)
+
+users >──< follows ──> users        (quién sigue a quién)
 ```
 
 | Tabla                | Para qué                                                     |
@@ -109,8 +119,10 @@ wishlists ──< wishlist_items ──< reservations ──> users
 | `product_tag`        | Pivote. Clave primaria compuesta, sin duplicados posibles.    |
 | `wishlists`          | Las listas. `visibility` + `share_token` para el enlace.      |
 | `wishlist_items`     | Un producto dentro de una lista. `received_at` = "ya me llegó". |
-| `wishlist_accesses`  | Solicitudes de acceso a listas privadas.                      |
+| `wishlist_accesses`  | Quién entró a una lista privada y **por dónde** (`source`).   |
 | `reservations`       | Quién reservó qué. **Tabla aparte a propósito.**              |
+| `follows`            | Quién sigue a quién. Acota a quién se le puede dar una lista privada. |
+| `product_likes`      | Votos a las fichas del catálogo. Ordenan las repetidas.       |
 
 ### Las tres decisiones que sostienen el dominio
 
@@ -135,10 +147,11 @@ piden tres tazas.
 Referencia (todos los entornos): 12 categorías, 36 tags, 25 productos de
 catálogo y el usuario administrador.
 
-Demo (solo en `local` y `testing`): cuatro usuarios, cinco listas cubriendo las
-tres visibilidades, ítems disponibles, reservados y ya recibidos, solicitudes
-de acceso en cada estado, un producto privado y una reserva vencida. La
-contraseña de todos es `password`.
+Demo (solo en `local` y `testing`): cuatro usuarios —`@ana`, `@bruno`,
+`@camila`, `@diego`—, cinco listas cubriendo las dos visibilidades, ítems
+disponibles, reservados y ya recibidos, solicitudes de acceso en cada estado,
+un producto privado y una reserva vencida. La contraseña de todos es
+`password`, y se entra con el correo.
 
 ## Credenciales por defecto
 
@@ -164,6 +177,7 @@ Todas viven en `.env` / `laravel/.env` y conviene cambiarlas.
 | `make composer …`| `make composer require laravel/sanctum`               |
 | `make migrate`   | migraciones pendientes                                |
 | `make fresh`     | borrar todo, migrar y sembrar de nuevo                |
+| `make storage`   | enlazar `public/storage` (fotos de perfil y productos)|
 | `make admin`     | recrear / resetear el usuario administrador           |
 | `make db`        | cliente mysql contra la base                          |
 | `make test`      | correr los tests                                      |

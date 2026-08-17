@@ -59,8 +59,8 @@ make setup
 
 Eso solo. Hace, en este orden: `.env` de docker → levanta contenedores →
 `composer install` dentro del contenedor php → `.env` de Laravel →
-`key:generate` → `migrate` → `seed`. Al terminar imprime la URL y las
-credenciales.
+`key:generate` → `storage:link` → `migrate` → `seed`. Al terminar imprime la
+URL y las credenciales.
 
 Si los puertos por defecto chocan con otro proyecto, primero
 `cp .env.example .env`, ajústalos, y recién ahí `make setup`.
@@ -78,6 +78,24 @@ usuario de demo, cuyo arroba es la parte del correo antes de la @ (`@ana`,
 `@bruno`…): `ana@whishlist.test`,
 `bruno@whishlist.test`, `camila@whishlist.test`, `diego@whishlist.test`, todos
 con contraseña `password`. Administrador: `admin@whishlist.test` / `admin1234`.
+
+### Qué NO viaja con el repositorio
+
+Esto sorprende al llegar a la máquina nueva, así que conviene saberlo antes:
+
+| No viaja | Consecuencia en el equipo nuevo |
+|----------|----------------------------------|
+| Los dos `.env` | Los crea `make setup` desde los `.env.example`. La `APP_KEY` será distinta. |
+| La base de datos | Empiezas con lo que siembren los seeders: 4 usuarios de demo, no más. |
+| `storage/app/public/` | **Todas las fotos subidas** —de perfil y de productos— se quedan acá. Las fichas mostrarán su placeholder. |
+| `public/storage` | Es un symlink por entorno. Lo crea `make storage`, que ya corre dentro de `make setup`. |
+| `usuarios-de-prueba.md` | Está en `.gitignore`. |
+
+**Los ~100 usuarios de prueba tampoco viajan.** Se generaron con un script
+suelto de una sesión, no con un seeder del repositorio, porque son datos de una
+máquina y no parte del proyecto. En el equipo nuevo tendrás los cuatro de demo.
+Si los quieres allá, hay que convertir ese generador en un seeder y commitearlo
+—es una decisión pendiente, no un olvido—.
 
 ---
 
@@ -100,7 +118,8 @@ Commits en `main`:
 | `b51c639` | Modal de detalle del regalo, copiar con ícono dentro del campo y avisos flotantes |
 | `a59d261` | Foto de perfil en todas las vistas y buscador de personas con sugerencias |
 | `d13d9a2` | Las solicitudes de seguimiento aparecen en «Solicitudes», con contador |
-| (el último) | El perfil muestra las listas privadas a las que ya tienes acceso |
+| `9663d7f` | El perfil muestra las listas privadas a las que ya tienes acceso |
+| (el último) | Pone al día el HANDOFF y el README para el traslado de equipo |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -308,8 +327,7 @@ dentro, cerrar con Escape, el fondo inerte y el backdrop. Reimplementar eso a
 mano es de donde salen los modales que no se pueden cerrar con teclado.
 
 El componente es `<x-producto-modal>` y las acciones llegan por su slot, porque
-cada pantalla ofrece cosas distintas sobre el mismo producto. Es el primer
-componente Blade del proyecto; el resto de lo compartido son `@include`.
+cada pantalla ofrece cosas distintas sobre el mismo producto.
 
 ### Los avisos flotantes
 
@@ -345,18 +363,19 @@ Los tests que importan y qué vigilan:
 | `ProductSearchTest`                | búsqueda fulltext acotada a lo visible             |
 | `WishlistVisibilityTest`           | las dos visibilidades, token de enlace, acceso aprobado |
 | `EnumTest`                         | ida y vuelta de `label()` ↔ caso del enum          |
-| `FollowAccessTest`                 | **quién ve la lista de quién**: perfil privado, seguidores, invitación, enlace, y que dejar de seguir corte |
+| `FollowAccessTest`                 | **quién ve la lista de quién**: perfil privado, seguidores, invitación, enlace, que dejar de seguir corte el acceso, y que el perfil liste exactamente lo que se puede abrir |
 
 Los dos invariantes garantizados por la base se verificaron por mutación:
 quitando el índice único, el test falla. No son verdes por casualidad.
 
-**El agujero que queda, ya más chico:** `FollowAccessTest` cubre las once
+**El agujero que queda, ya más chico:** `FollowAccessTest` cubre las catorce
 reglas de quién ve la lista de quién, que era lo más delicado. Pero el resto de
-la capa de aplicación —controladores, formularios, subida de imagen, «me
-gusta»— sigue sin un solo test y se verificó a mano, por HTTP, una vez.
+la capa de aplicación —controladores, formularios, subida de fotos, «me
+gusta», el buscador con sugerencias— sigue sin un solo test y se verificó a
+mano, por HTTP y con capturas, una vez. La lista concreta está en la sección 5.
 
 **No hecho todavía:** API (todo es Blade con formularios), notificaciones,
-y los tests de todo lo que no sea el acceso.
+achicar las fotos al subirlas, y los tests de todo lo que no sea el acceso.
 
 ---
 
@@ -458,6 +477,11 @@ defaults tomados del enum (`->default(ItemPriority::MEDIUM->label())`), índices
 compuestos declarados explícitamente. Comentarios en español explicando el
 *porqué* cuando la decisión no sea obvia.
 
+**Vistas compartidas:** componente anónimo (`resources/views/components/`)
+cuando hace falta **slot** o props con valor por defecto —hoy `<x-avatar>` y
+`<x-producto-modal>`—; `@include` cuando es un trozo de marcado que solo lee las
+variables que ya hay alrededor. No hay más criterio que ese.
+
 **Modelos:** `protected $fillable` (no los atributos `#[Fillable]` de Laravel
 13, salvo en `User` que viene así del esqueleto). Relaciones con tipo de
 retorno. Scopes reutilizables en vez de repetir `where` por todos lados.
@@ -480,14 +504,17 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
-1. **Tests de la capa de aplicación.** Lo único urgente. Como mínimo: que el
-   dueño no pueda reservar en su propia lista, que un extraño reciba 403 al
-   abrir una lista privada, que el enlace secreto sí la abra, que la vista del
-   dueño no traiga jamás el `user_id` de una reserva, que la segunda reserva
-   simultánea muestre el mensaje en vez de reventar, que no se pueda votar un
-   producto privado, y —el más importante de los nuevos— que buscar el nombre
-   real de alguien no lo encuentre nunca. Todo eso hoy lo sostiene código sin
-   red.
+1. **Los tests que faltan.** `FollowAccessTest` ya cubre lo más delicado —quién
+   ve la lista de quién, el enlace, la invitación, que dejar de seguir corte el
+   acceso, y que buscar el nombre real no encuentre a nadie—. Lo que sigue
+   **sin red** y yo escribiría primero:
+   - Que al reemplazar una foto de perfil **se borre la anterior del disco**.
+     Falla en silencio y solo se nota cuando el disco está lleno.
+   - Que el dueño no pueda reservar en su propia lista (hoy solo lo impide la
+     policy).
+   - Que no se pueda votar un producto privado.
+   - Que la segunda reserva simultánea muestre el mensaje en vez de reventar.
+   - Que `users.suggest` no devuelva a nadie buscando un nombre real.
 2. **Achicar las fotos al subirlas.** Hoy se guarda el archivo tal cual, hasta
    4 MB, y se muestra en una miniatura de 72px. Una lista con veinte regalos
    son veinte fotos de celular completas viajando por la red. `intervention/
@@ -604,3 +631,15 @@ segundo, así que edita solo el de la raíz.
 
 **El `.env` real nunca se sube.** Lo que está en GitHub son los `.env.example`
 con credenciales de juguete.
+
+**Una foto que existía deja de verse tras clonar.** No está rota la aplicación:
+`storage/app/public/` no viaja en git, así que la fila apunta a un archivo que
+en esa máquina no existe. Los productos caen en su placeholder y los perfiles
+en sus iniciales. Es lo esperable; ver «Qué NO viaja con el repositorio».
+
+**Chrome headless miente por debajo de 500px de ancho.** Si vas a verificar
+diseño de celular con capturas: `--window-size=390,900` no rinde a 390, deja el
+viewport en 500 y **recorta** la imagen, que se ve igual que un desbordamiento
+horizontal. Ya llevó una vez a «arreglar» un bug inexistente. La forma correcta
+es meter la página en un `<iframe>` del ancho real dentro de una ventana más
+grande, y comparar `clientWidth` con `scrollWidth`.
