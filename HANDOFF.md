@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 61 passed
+make test                                                     # 64 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -98,13 +98,15 @@ Commits en `main`:
 | `27872c0` | Seguidores, perfil privado y reparto de acceso lista por lista |
 | `873d2c5` | «Por enlace» se fusiona en «privada»: una sola lista privada que se invita y se comparte |
 | `b51c639` | Modal de detalle del regalo, copiar con ícono dentro del campo y avisos flotantes |
-| (el último) | Foto de perfil en todas las vistas y buscador de personas con sugerencias |
+| `a59d261` | Foto de perfil en todas las vistas y buscador de personas con sugerencias |
+| `d13d9a2` | Las solicitudes de seguimiento aparecen en «Solicitudes», con contador |
+| (el último) | El perfil muestra las listas privadas a las que ya tienes acceso |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext). Todo eso está automatizado en la suite, no solo probado a mano:
-`make test` → **61 passed**.
+`make test` → **64 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -180,10 +182,18 @@ Ese método es el único punto por donde un nombre sale hacia la interfaz, y es
 lo que respeta la decisión de cada persona. `handle()` devuelve el arroba
 siempre, para cuando se quiere el identificador y no el nombre.
 
-El perfil vive en `/u/{username}` y muestra **solo** las listas públicas de esa
-persona —y ninguna, si el perfil es privado y no lo sigues—. Las privadas y las
-de enlace no se cuentan ni se insinúan: decir «tiene 2 listas más que no puedes
+El perfil vive en `/u/{username}` y muestra **exactamente lo que esa persona
+puede abrir**: las públicas si el perfil es alcanzable, más las privadas a las
+que ya tiene acceso porque la invitaron o porque entró con el enlace. Lo que no
+puede abrir no se cuenta ni se insinúa: decir «tiene 2 listas más que no puedes
 ver» ya es contar algo de alguien que eligió no contarlo.
+
+`visibleWishlistsFor()` filtra con la **propia policy** en vez de repetir sus
+reglas en un `where`. Son cuatro caminos con matices —el acceso por enlace no
+exige seguir al dueño, el invitado sí— y tenerlos escritos en dos lugares es
+como se desincronizan: o se enseña algo que da 403 al pinchar, o se esconde
+algo que sí se puede abrir. `FollowAccessTest::test_what_the_profile_lists_is_exactly_what_can_be_opened`
+compara ambas listas y falla si se separan.
 
 Hay una lista de `USERNAMES_RESERVADOS` en el modelo, porque el usuario aparece
 en una URL y porque nadie debe poder hacerse pasar por el sistema. La migración

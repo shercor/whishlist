@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -122,24 +123,44 @@ class User extends Authenticatable
     }
 
     /**
-     * Las listas de esta persona que el que mira puede alcanzar sin pedir
-     * permiso. Nunca revela que existen las privadas.
+     * Las listas de esta persona que el que mira puede abrir de verdad.
      *
-     * Un perfil privado no muestra ninguna a quien no lo sigue, ni siquiera
-     * las marcadas como públicas: si las mostrara, «perfil privado» no querría
-     * decir nada.
+     * Incluye las privadas a las que ya tiene acceso —porque lo invitaron o
+     * porque entró con el enlace—. Antes solo devolvía las públicas, y el
+     * resultado era absurdo: alguien con el enlace de una lista privada podía
+     * abrirla, pero al entrar al perfil de su dueño no la veía y tenía que
+     * volver a buscar el enlace para llegar. Si ya puedes abrirla, el perfil
+     * no tiene por qué escondértela.
+     *
+     * Lo que sigue sin aparecer es lo que no puedes abrir: eso no cambió.
+     *
+     * Filtra con la propia policy en vez de repetir sus reglas en un `where`.
+     * Son cuatro caminos con matices —el acceso por enlace no exige seguir al
+     * dueño, el invitado sí— y tenerlos escritos en dos lugares es exactamente
+     * como se desincronizan. Una persona tiene un puñado de listas, así que
+     * preguntar por cada una sale barato.
      */
-    public function visibleWishlistsFor(User $viewer): HasMany
+    public function visibleWishlistsFor(User $viewer): Collection
     {
-        if ($viewer->id === $this->id) {
-            return $this->wishlists();
-        }
+        return $this->wishlists()
+            ->withCount('items')
+            ->latest()
+            ->get()
+            ->filter(fn (Wishlist $wishlist) => $viewer->can('view', $wishlist))
+            ->values();
+    }
 
-        if ($this->is_private && ! $this->isFollowedBy($viewer)) {
-            return $this->wishlists()->whereRaw('1 = 0');
-        }
-
-        return $this->wishlists()->public();
+    /**
+     * Si el perfil se deja mirar entero por esta persona.
+     *
+     * Es distinto de tener acceso a alguna de sus listas: se puede tener el
+     * enlace de una lista sin que el perfil se abra.
+     */
+    public function profileIsVisibleTo(User $viewer): bool
+    {
+        return $viewer->id === $this->id
+            || ! $this->is_private
+            || $this->isFollowedBy($viewer);
     }
 
     // --- Seguidores -------------------------------------------------------

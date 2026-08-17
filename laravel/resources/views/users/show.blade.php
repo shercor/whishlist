@@ -13,7 +13,9 @@
                     {{ $usuario->name }}.
                 @endif
                 @if ($esMiPerfil)
-                    Así te ven los demás.
+                    {{-- Acá salen todas las tuyas, también las privadas: es tu
+                         propio perfil. Lo que ve el resto es otra cosa. --}}
+                    Tus listas. Los demás solo ven las públicas y las que les compartiste.
                 @elseif ($usuario->is_private)
                     Perfil privado.
                 @else
@@ -54,51 +56,62 @@
         </div>
     </div>
 
-    @unless ($puedeVer)
-        <div class="vacio">
-            <p>Este perfil es privado.</p>
-            <p class="tarjeta-meta">
-                {{ $seguimiento ? 'Cuando acepte tu solicitud verás sus listas.' : 'Pídele seguirlo para ver sus listas.' }}
-            </p>
+    {{-- El perfil cerrado se avisa, pero no impide mostrar debajo las listas
+         que esta persona igual puede abrir. --}}
+    @unless ($perfilAbierto)
+        <div class="aviso aviso-ok">
+            Este perfil es privado.
+            {{ $seguimiento
+                ? 'Cuando acepte tu solicitud verás todo lo que comparte.'
+                : 'Pídele seguirlo para ver todo lo que comparte.' }}
+            @if ($wishlists->isNotEmpty())
+                Mientras tanto, esto es lo que te compartió.
+            @endif
         </div>
-    @else
-        @forelse ($wishlists as $wishlist)
-            <article class="tarjeta">
-                <div class="fila">
-                    <div>
-                        <p class="tarjeta-titulo">
-                            <a href="{{ $esMiPerfil ? route('wishlists.show', $wishlist) : route('gifts.show', $wishlist) }}">
-                                {{ $wishlist->name }}
-                            </a>
-                        </p>
-                        <p class="tarjeta-meta">
-                            {{ trans_choice('{0}Sin regalos|{1}1 regalo|[2,*]:count regalos', $wishlist->items_count) }}
-                            @if ($wishlist->event_date)
-                                · para el {{ $wishlist->event_date->translatedFormat('d \d\e F') }}
-                            @endif
-                        </p>
-                    </div>
-                    <div class="fila-acciones">
-                        <a class="boton" href="{{ $esMiPerfil ? route('wishlists.show', $wishlist) : route('gifts.show', $wishlist) }}">
-                            {{ $esMiPerfil ? 'Ver' : 'Regalarle algo' }}
+    @endunless
+
+    @forelse ($wishlists as $wishlist)
+        <article class="tarjeta">
+            <div class="fila">
+                <div>
+                    <p class="tarjeta-titulo">
+                        <a href="{{ $esMiPerfil ? route('wishlists.show', $wishlist) : route('gifts.show', $wishlist) }}">
+                            {{ $wishlist->name }}
                         </a>
-                    </div>
+                    </p>
+                    <p class="tarjeta-meta">
+                        {{ trans_choice('{0}Sin regalos|{1}1 regalo|[2,*]:count regalos', $wishlist->items_count) }}
+                        @if ($wishlist->event_date)
+                            · para el {{ $wishlist->event_date->translatedFormat('d \d\e F') }}
+                        @endif
+                        @unless ($wishlist->visibilityEnum() === \App\Enums\WishlistVisibility::PUBLIC)
+                            · <span class="etiqueta">Privada, te dieron acceso</span>
+                        @endunless
+                    </p>
                 </div>
-            </article>
-        @empty
+                <div class="fila-acciones">
+                    <a class="boton" href="{{ $esMiPerfil ? route('wishlists.show', $wishlist) : route('gifts.show', $wishlist) }}">
+                        {{ $esMiPerfil ? 'Ver' : 'Regalarle algo' }}
+                    </a>
+                </div>
+            </div>
+        </article>
+    @empty
+        @if ($perfilAbierto)
             <div class="vacio">
                 <p>
                     @if ($esMiPerfil)
-                        No tienes listas públicas. Las privadas y las de enlace no salen acá.
+                        No tienes ninguna lista todavía.
                     @else
-                        {{ $usuario->handle() }} no tiene listas públicas.
+                        {{ $usuario->handle() }} no comparte ninguna lista contigo.
                     @endif
                 </p>
                 @unless ($esMiPerfil)
-                    {{-- Si tiene listas privadas, no se dice: que existan es cosa suya. --}}
-                    <p class="tarjeta-meta">Si te compartió el enlace de una lista, ábrelo directamente.</p>
+                    {{-- Si tiene privadas que no te dio, no se dice: que
+                         existan es cosa suya. --}}
+                    <p class="tarjeta-meta">Si te comparte el enlace de una lista, ábrelo y quedará acá.</p>
                 @endunless
             </div>
-        @endforelse
-    @endunless
+        @endif
+    @endforelse
 @endsection

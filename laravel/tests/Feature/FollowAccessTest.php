@@ -178,6 +178,79 @@ class FollowAccessTest extends TestCase
         $this->assertTrue($extranio->can('requestAccess', $privada));
     }
 
+    /**
+     * El perfil enseña lo que la persona ya puede abrir, no solo lo público.
+     *
+     * Sin esto pasaba algo absurdo: con el enlace de una lista privada podías
+     * abrirla, pero al entrar al perfil de su dueño no aparecía y había que ir
+     * a buscar el enlace otra vez.
+     */
+    public function test_the_profile_shows_a_private_wishlist_you_reached_by_link(): void
+    {
+        $duenio = User::factory()->create(['is_private' => true]);
+        $visitante = User::factory()->create();
+
+        $privada = $this->lista($duenio, WishlistVisibility::PRIVATE);
+        $publica = $this->lista($duenio, WishlistVisibility::PUBLIC);
+
+        $privada->accesses()->create([
+            'user_id' => $visitante->id,
+            'status' => AccessRequestStatus::APPROVED->label(),
+            'source' => AccessSource::LINK->label(),
+            'responded_at' => now(),
+        ]);
+
+        $visibles = $duenio->visibleWishlistsFor($visitante)->pluck('id');
+
+        $this->assertTrue($visibles->contains($privada->id));
+        // Y la pública sigue escondida: el perfil está cerrado y no lo sigue.
+        $this->assertFalse($visibles->contains($publica->id));
+        $this->assertFalse($duenio->profileIsVisibleTo($visitante));
+    }
+
+    public function test_the_profile_hides_everything_from_someone_without_access(): void
+    {
+        $duenio = User::factory()->create(['is_private' => true]);
+        $extranio = User::factory()->create();
+
+        $this->lista($duenio, WishlistVisibility::PRIVATE);
+        $this->lista($duenio, WishlistVisibility::PUBLIC);
+
+        $this->assertCount(0, $duenio->visibleWishlistsFor($extranio));
+    }
+
+    /**
+     * Lo que el perfil muestra y lo que la policy deja abrir tienen que ser lo
+     * mismo. Si se separan, o se enseña algo que da 403 al pinchar, o se
+     * esconde algo que sí se puede abrir.
+     */
+    public function test_what_the_profile_lists_is_exactly_what_can_be_opened(): void
+    {
+        $duenio = User::factory()->create(['is_private' => true]);
+        $seguidor = User::factory()->create();
+        $this->seguir($seguidor, $duenio);
+        $duenio->refresh();
+
+        $privadaInvitada = $this->lista($duenio, WishlistVisibility::PRIVATE);
+        $privadaAjena = $this->lista($duenio, WishlistVisibility::PRIVATE);
+        $publica = $this->lista($duenio, WishlistVisibility::PUBLIC);
+
+        $privadaInvitada->accesses()->create([
+            'user_id' => $seguidor->id,
+            'status' => AccessRequestStatus::APPROVED->label(),
+            'source' => AccessSource::INVITATION->label(),
+            'responded_at' => now(),
+        ]);
+
+        $listadas = $duenio->visibleWishlistsFor($seguidor)->pluck('id')->sort()->values();
+        $abribles = collect([$privadaInvitada, $privadaAjena, $publica])
+            ->filter(fn ($wishlist) => $seguidor->can('view', $wishlist))
+            ->pluck('id')->sort()->values();
+
+        $this->assertEquals($abribles, $listadas);
+        $this->assertFalse($listadas->contains($privadaAjena->id));
+    }
+
     public function test_the_owner_always_sees_their_own_lists(): void
     {
         $duenio = User::factory()->create(['is_private' => true]);

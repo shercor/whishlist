@@ -94,18 +94,20 @@ class UserSearchController extends Controller
         $yo = $request->user();
         $esMiPerfil = $user->id === $yo->id;
 
-        // Un perfil privado no muestra nada a quien no lo sigue. Se llega a la
-        // página y se ve el arroba y el botón de seguir: ni una lista, ni
+        // Un perfil privado no se abre para quien no lo sigue: ni una lista, ni
         // cuántas hay. Saber cuántas listas tiene alguien ya es saber algo.
-        $puedeVer = $esMiPerfil || ! $user->is_private || $user->isFollowedBy($yo);
+        //
+        // Pero las listas que esta persona sí puede abrir —le pasaron el
+        // enlace, o la invitaron— aparecen igual, aunque el perfil esté
+        // cerrado. Esconder algo que de todos modos puede abrir solo la
+        // obligaría a ir a buscar el enlace de nuevo.
+        $wishlists = $user->visibleWishlistsFor($yo);
 
         return view('users.show', [
             'usuario' => $user,
-            'wishlists' => $puedeVer
-                ? $user->visibleWishlistsFor($yo)->withCount('items')->latest()->get()
-                : collect(),
+            'wishlists' => $wishlists,
             'esMiPerfil' => $esMiPerfil,
-            'puedeVer' => $puedeVer,
+            'perfilAbierto' => $user->profileIsVisibleTo($yo),
             'seguimiento' => $esMiPerfil ? null : $yo->followTo($user),
         ]);
     }
