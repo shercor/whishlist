@@ -1,0 +1,237 @@
+/* Estilos de whishlist. CSS plano a propósito: no hay build que correr. */
+
+:root {
+    --tinta: #1f2430;
+    --tinta-suave: #5b6478;
+    --papel: #f7f5f2;
+    --tarjeta: #ffffff;
+    --borde: #e3ded7;
+    --acento: #c0392b;
+    --acento-suave: #fdecea;
+    --ok: #1e7a4c;
+    --ok-suave: #e6f4ec;
+    --aviso: #a86a12;
+    --aviso-suave: #fdf3e2;
+    --radio: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--papel);
+    color: var(--tinta);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a { color: var(--acento); }
+
+/* --- Barra superior ----------------------------------------------------- */
+
+.barra {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    padding: 0.9rem 1.5rem;
+    background: var(--tarjeta);
+    border-bottom: 1px solid var(--borde);
+}
+
+.marca {
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--tinta);
+    text-decoration: none;
+    letter-spacing: -0.02em;
+}
+
+.barra nav { display: flex; gap: 1.1rem; flex: 1; flex-wrap: wrap; }
+
+.barra nav a {
+    color: var(--tinta-suave);
+    text-decoration: none;
+    padding-bottom: 2px;
+    border-bottom: 2px solid transparent;
+}
+
+.barra nav a:hover { color: var(--tinta); }
+.barra nav a.activo { color: var(--tinta); border-bottom-color: var(--acento); }
+
+.salir { display: flex; align-items: center; gap: 0.75rem; margin: 0; }
+.quien { color: var(--tinta-suave); font-size: 0.9rem; }
+
+/* --- Estructura --------------------------------------------------------- */
+
+.contenedor { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+.contenedor.angosto { max-width: 420px; }
+
+h1 { font-size: 1.6rem; margin: 0 0 0.35rem; letter-spacing: -0.02em; }
+h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
+.bajada { color: var(--tinta-suave); margin: 0 0 1.75rem; }
+
+.encabezado {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.vacio {
+    background: var(--tarjeta);
+    border: 1px dashed var(--borde);
+    border-radius: var(--radio);
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: var(--tinta-suave);
+}
+
+/* --- Tarjetas ----------------------------------------------------------- */
+
+.tarjeta {
+    background: var(--tarjeta);
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    padding: 1.1rem 1.25rem;
+    margin-bottom: 0.85rem;
+}
+
+.tarjeta-titulo { font-weight: 600; margin: 0 0 0.2rem; }
+.tarjeta-titulo a { color: var(--tinta); text-decoration: none; }
+.tarjeta-titulo a:hover { text-decoration: underline; }
+.tarjeta-meta { color: var(--tinta-suave); font-size: 0.88rem; margin: 0; }
+
+.fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.fila-acciones { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
+.rejilla { display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+
+/* --- Etiquetas ---------------------------------------------------------- */
+
+.etiqueta {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--borde);
+    color: var(--tinta-suave);
+    background: var(--papel);
+    white-space: nowrap;
+}
+
+.etiqueta-alta { color: var(--acento); background: var(--acento-suave); border-color: transparent; }
+.etiqueta-ok { color: var(--ok); background: var(--ok-suave); border-color: transparent; }
+.etiqueta-espera { color: var(--aviso); background: var(--aviso-suave); border-color: transparent; }
+
+.recibido .tarjeta-titulo { text-decoration: line-through; color: var(--tinta-suave); }
+
+/* --- Botones ------------------------------------------------------------ */
+
+.boton, .boton-plano, button, input[type="submit"] {
+    font: inherit;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.boton {
+    display: inline-block;
+    background: var(--acento);
+    color: #fff;
+    border: 1px solid var(--acento);
+    padding: 0.5rem 0.95rem;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.boton:hover { filter: brightness(0.93); }
+
+.boton-plano {
+    background: transparent;
+    border: 1px solid var(--borde);
+    color: var(--tinta-suave);
+    padding: 0.4rem 0.75rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.boton-plano:hover { color: var(--tinta); border-color: var(--tinta-suave); }
+.boton-peligro:hover { color: var(--acento); border-color: var(--acento); }
+
+/* --- Formularios -------------------------------------------------------- */
+
+form { margin: 0; }
+
+.campo { margin-bottom: 1rem; }
+.campo label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.3rem; }
+.campo .pista { font-weight: 400; color: var(--tinta-suave); font-size: 0.85rem; }
+
+input[type="text"], input[type="email"], input[type="password"], input[type="date"],
+input[type="url"], input[type="number"], input[type="search"], select, textarea {
+    width: 100%;
+    font: inherit;
+    color: var(--tinta);
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    background: var(--tarjeta);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--acento);
+    outline-offset: -1px;
+}
+
+textarea { min-height: 4.5rem; resize: vertical; }
+
+.opciones { display: grid; gap: 0.5rem; }
+
+.opcion {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 0.6rem 0.75rem;
+    background: var(--tarjeta);
+    cursor: pointer;
+}
+
+.opcion input { margin-top: 0.25rem; }
+.opcion strong { display: block; font-size: 0.92rem; }
+.opcion span { color: var(--tinta-suave); font-size: 0.85rem; }
+
+.acciones { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; }
+
+.buscador { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+
+/* --- Avisos ------------------------------------------------------------- */
+
+.aviso {
+    border-radius: var(--radio);
+    padding: 0.75rem 1rem;
+    margin: 0 0 1.25rem;
+    font-size: 0.92rem;
+}
+
+.aviso-ok { background: var(--ok-suave); color: var(--ok); }
+.aviso-error { background: var(--acento-suave); color: var(--acento); }
+ul.aviso { padding-left: 2rem; }
+
+/* --- Enlace para compartir ---------------------------------------------- */
+
+.enlace-compartir {
+    display: block;
+    width: 100%;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.82rem;
+    background: var(--papel);
+}
+
+@media (max-width: 620px) {
+    .barra { gap: 0.75rem; }
+    .contenedor { padding: 1.5rem 1rem 3rem; }
+    .fila { align-items: flex-start; }
+}

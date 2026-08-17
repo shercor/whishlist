@@ -60,6 +60,29 @@ class Wishlist extends Model
     }
 
     /**
+     * Clave de sesión donde se anotan las listas abiertas con su enlace.
+     */
+    private const SESION_ENLACES = 'wishlists_desbloqueadas';
+
+    /**
+     * Conocer el enlace secreto es el permiso. Se anota en la sesión para que
+     * el invitado pueda navegar y reservar sin volver a pegar el token en cada
+     * URL, y para que la policy tenga cómo enterarse.
+     */
+    public function unlockByLink(): void
+    {
+        $abiertas = session(self::SESION_ENLACES, []);
+        $abiertas[] = $this->id;
+
+        session([self::SESION_ENLACES => array_values(array_unique($abiertas))]);
+    }
+
+    public function isUnlockedByLink(): bool
+    {
+        return in_array($this->id, session(self::SESION_ENLACES, []), true);
+    }
+
+    /**
      * Listas que el usuario puede alcanzar sin pedir permiso: las públicas y
      * las suyas propias.
      */

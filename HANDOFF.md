@@ -1,6 +1,6 @@
 # Continuar en otro equipo
 
-Estado del proyecto al **14 de agosto de 2026** y qué hacer para retomarlo en
+Estado del proyecto al **17 de agosto de 2026** y qué hacer para retomarlo en
 otra máquina o en una sesión nueva.
 
 `whishlist` es una aplicación Laravel 13 dockerizada. Los usuarios arman listas
@@ -68,11 +68,13 @@ Si los puertos por defecto chocan con otro proyecto, primero
 ### Comprobar que quedó bien
 
 ```bash
-curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 200
-make test                                                     # 50 passed
+curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
+make test                                                     # 49 passed
 ```
 
-Entra a http://localhost:8080. Usuarios de demo: `ana@whishlist.test`,
+Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
+en `/register` —pide nombre, correo y contraseña, nada más— o entrar con un
+usuario de demo: `ana@whishlist.test`,
 `bruno@whishlist.test`, `camila@whishlist.test`, `diego@whishlist.test`, todos
 con contraseña `password`. Administrador: `admin@whishlist.test` / `admin1234`.
 
@@ -87,13 +89,33 @@ Commits en `main`:
 | `5474705` | Entorno dockerizado: PHP 8.4-FPM, nginx, MariaDB 11.4, Redis, Makefile, README |
 | `a1b918e` | `db` y `redis` publicados solo en `127.0.0.1`             |
 | `0a60c3d` | Modelo de datos: 4 enums, 8 migraciones, 7 modelos, 5 seeders |
-| (el último) | Factories de los 7 modelos y 50 tests del dominio          |
+| `830d138` | Factories de los 7 modelos y 49 tests del dominio          |
+| (el último) | Capa de aplicación: policies, controladores, rutas, vistas |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
-fulltext). Todo eso está ahora automatizado en la suite, no solo probado a
-mano: `make test` → **50 passed**.
+fulltext). Todo eso está automatizado en la suite, no solo probado a mano:
+`make test` → **49 passed**.
+
+**La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
+entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
+entrar con otra cuenta, reservarlo, y verlo en «mis reservas» — mientras el
+dueño de la lista no ve ni rastro de esa reserva. Registrarse pide solo nombre,
+correo y contraseña (mínimo 8, repetida); **no hay verificación de correo**,
+y al enviar el formulario quedas dentro.
+
+Lo que trae la capa de aplicación:
+
+| Pieza                          | Qué resuelve                                       |
+|--------------------------------|----------------------------------------------------|
+| `WishlistPolicy`               | los cuatro caminos para abrir una lista: dueño, pública, acceso aprobado, enlace secreto |
+| `ReservationPolicy`            | la regla que la base no puede: el dueño jamás reserva en su propia lista |
+| `WishlistItemPolicy`           | solo el dueño agrega, edita o marca recibido       |
+| `ReservationService`           | traduce el choque de dos reservas simultáneas a un mensaje |
+| `ReleaseExpiredReservations`   | comando programado cada hora en `routes/console.php` |
+| `Product::scopeSearchPrefix()` | buscador del catálogo: «pelu» encuentra «Peluche»  |
+| `Wishlist::unlockByLink()`     | el enlace secreto se anota en la sesión, para no arrastrar el token por cada URL |
 
 Los tests que importan y qué vigilan:
 
@@ -110,8 +132,14 @@ Los tests que importan y qué vigilan:
 Los dos invariantes garantizados por la base se verificaron por mutación:
 quitando el índice único, el test falla. No son verdes por casualidad.
 
-**No hecho todavía:** policies, controladores, rutas, API. O sea, la capa de
-aplicación.
+**El agujero que queda:** los 49 tests cubren el dominio —modelos, scopes,
+invariantes, enums— y **ni uno solo toca la capa de aplicación**. Policies,
+controladores y vistas se verificaron a mano, por HTTP, una vez. Nada impide
+que el próximo cambio rompa una policy en silencio. Ese es el trabajo número
+uno de la próxima sesión.
+
+**No hecho todavía:** API (todo es Blade con formularios), notificaciones,
+y los tests recién mencionados.
 
 ---
 
@@ -220,38 +248,34 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 ## 5. Lo que sigue
 
-Las factories y los tests del dominio ya están, así que el invariante queda
-blindado antes de que aparezca código capaz de romperlo. Lo que sigue:
+La aplicación funciona. Lo que sigue, en orden de importancia:
 
-1. **Policies.** Aquí está el riesgo real que queda. La estructura hace difícil
-   filtrar la sorpresa por accidente, pero los `Resource` y controladores tienen
-   que ser explícitos sobre quién ve qué. `WishlistPolicy` (ver, editar,
-   aprobar accesos) y `ReservationPolicy` (reservar, soltar; nunca el dueño de
-   la lista).
-2. **Controladores, rutas y `Resource`.** Al armar los `Resource` de
-   `WishlistItem`, exponer un booleano `is_reserved` para quien mira, y
-   **nunca** el `user_id` de la reserva. Para el dueño, ni siquiera el
-   booleano.
-3. **Job para liberar reservas vencidas.** El scope `Reservation::expired()` ya
-   está listo esperándolo. Programarlo en el scheduler.
-
-Lo que **no** cubren los tests todavía, porque depende de código que no existe:
-que un usuario no pueda reservar un ítem de su propia lista (hoy lo impide la
-aplicación, no la base) y que los `Resource` no filtren al reservante. Ambos son
-tests que hay que escribir junto con las policies.
+1. **Tests de la capa de aplicación.** Lo único urgente. Como mínimo: que el
+   dueño no pueda reservar en su propia lista, que un extraño reciba 403 al
+   abrir una lista privada, que el enlace secreto sí la abra, que la vista del
+   dueño no traiga jamás el `user_id` de una reserva, y que la segunda reserva
+   simultánea muestre el mensaje en vez de reventar. Todo eso hoy lo sostiene
+   código sin red.
+2. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
+   redirige a `/login` o a `/wishlists` y nadie la renderiza.
+3. **Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
+   que su plazo de 14 días está por vencer. Sin esto, el job que libera reservas
+   vencidas sorprende al que iba a comprar.
+4. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
+   entran los `Resource`: exponer `is_reserved` como booleano para quien mira,
+   **nunca** el `user_id` de la reserva, y para el dueño ni siquiera el booleano.
 
 ---
 
 ## 6. Decisiones pendientes
 
 **Cómo un usuario encuentra a otro** para pedirle acceso a su lista privada.
-Hoy `users` solo tiene `name` y `email`. Buscar por email es incómodo y expone
+Sigue sin resolverse. Hoy hay dos puertas y ninguna sirve para *buscar a una
+persona*: `/discover` lista las públicas, y a una privada se llega por su URL
+—que alguien te tuvo que pasar—, donde el 403 ofrece el botón de pedir acceso.
+`users` solo tiene `name` y `email`. Buscar por email es incómodo y expone
 datos. Alternativas: agregar un `username` público, o un enlace de invitación
-que cree la solicitud de acceso ya aprobada. Hay que decidirlo antes de armar
-la pantalla de solicitudes.
-
-**Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
-que su reserva está por vencer. No está modelado.
+que cree la solicitud ya aprobada.
 
 **Visibilidad del catálogo.** Hoy cualquier producto `is_public = true` es
 visible para todos, y los seeders son la única forma de crear uno. Falta
@@ -304,6 +328,14 @@ actualiza el índice `FULLTEXT` recién al confirmar, así que con
 no encuentra nada de lo que el propio test acaba de insertar. Por eso
 `ProductSearchTest` usa `DatabaseTruncation`. Está comprobado: con
 `RefreshDatabase` sus tres tests fallan.
+
+**`make test` falla con `TLS/SSL error: certificate is not yet valid`.** No es
+el código: es el reloj. MariaDB genera un certificado efímero al arrancar, y si
+después el reloj del equipo se atrasa —suspender la máquina, una corrección de
+NTP— ese certificado queda fechado en el futuro y el cliente lo rechaza.
+Se arregla con `docker compose restart db`. Pista para reconocerlo:
+`docker compose ps` muestra todos los contenedores «Up Less than a second»
+aunque lleven días arriba.
 
 **Hay dos `.env`.** El de la raíz lo lee docker compose; el de `laravel/` lo
 lee Laravel. `make env` sincroniza las credenciales de BD del primero al

@@ -80,4 +80,26 @@ class Product extends Model
     {
         return $query->whereFullText(['name', 'description'], $term);
     }
+
+    /**
+     * Búsqueda para el buscador del catálogo, donde la gente escribe a medias:
+     * "pelu" tiene que encontrar "Peluche". Modo booleano con comodín al final
+     * de cada palabra, que sigue usando el mismo índice fulltext.
+     *
+     * Ojo: InnoDB ignora los términos de menos de tres letras.
+     */
+    public function scopeSearchPrefix(Builder $query, string $term): Builder
+    {
+        $palabras = collect(preg_split('/\s+/', trim($term)))
+            ->filter(fn (string $palabra) => mb_strlen($palabra) >= 3)
+            // El modo booleano trata a estos caracteres como operadores.
+            ->map(fn (string $palabra) => preg_replace('/[+\-><()~*"@]/', '', $palabra).'*')
+            ->filter(fn (string $palabra) => $palabra !== '*');
+
+        if ($palabras->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereFullText(['name', 'description'], $palabras->implode(' '), ['mode' => 'boolean']);
+    }
 }
