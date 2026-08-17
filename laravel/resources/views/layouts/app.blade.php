@@ -71,6 +71,10 @@
         @yield('contenido')
     </main>
 
+    {{-- Los avisos flotantes se apilan acá. Vive fuera de <main> para que no
+         empuje nada del contenido. --}}
+    <div class="brindis" id="brindis" role="status" aria-live="polite"></div>
+
     <script>
         // El estado vive en el atributo data-tema del <html> y en localStorage.
         // Si no hay nada elegido todavía, el punto de partida es lo que dice el
@@ -93,31 +97,56 @@
             });
         });
 
-        // Copiar al portapapeles con confirmación visible.
-        document.querySelectorAll('[data-copiar]').forEach(function (boton) {
-            var original = boton.textContent.trim();
+        // Aviso flotante que se va solo. Flota sobre la página: no empuja nada
+        // ni hace saltar lo que el usuario está mirando.
+        function avisar(mensaje) {
+            var caja = document.getElementById('brindis');
+            if (!caja) return;
 
+            var aviso = document.createElement('p');
+            aviso.style.margin = '0';
+            aviso.textContent = mensaje;
+            caja.appendChild(aviso);
+
+            setTimeout(function () { aviso.remove(); }, 2600);
+        }
+
+        // Copiar al portapapeles.
+        document.querySelectorAll('[data-copiar]').forEach(function (boton) {
             boton.addEventListener('click', function () {
                 var campo = document.querySelector(boton.dataset.copiar);
                 if (!campo) return;
 
                 copiar(campo).then(function (copiado) {
-                    boton.textContent = copiado ? boton.dataset.copiado : 'Copia tú el enlace';
                     boton.classList.toggle('copiado', copiado);
 
-                    var aviso = document.querySelector('[data-aviso-copiado]');
-                    if (aviso) {
-                        aviso.textContent = copiado
-                            ? 'Enlace copiado. Pégalo donde quieras compartirlo.'
-                            : 'No se pudo copiar solo. El enlace quedó seleccionado.';
-                    }
+                    avisar(copiado
+                        ? 'Enlace copiado. Pégalo donde quieras compartirlo.'
+                        : 'No se pudo copiar solo: el enlace quedó seleccionado para que lo copies.');
 
-                    setTimeout(function () {
-                        boton.textContent = original;
-                        boton.classList.remove('copiado');
-                        if (aviso) aviso.textContent = '';
-                    }, 2500);
+                    setTimeout(function () { boton.classList.remove('copiado'); }, 2500);
                 });
+            });
+        });
+
+        // Detalle del regalo en un diálogo. showModal() —y no el atributo
+        // open— es lo que trae el foco atrapado, el Escape y el backdrop.
+        document.querySelectorAll('[data-abre-detalle]').forEach(function (disparador) {
+            disparador.addEventListener('click', function () {
+                var modal = document.getElementById(disparador.dataset.abreDetalle);
+                if (modal) modal.showModal();
+            });
+        });
+
+        document.querySelectorAll('.modal').forEach(function (modal) {
+            modal.querySelectorAll('[data-cierra-modal]').forEach(function (boton) {
+                boton.addEventListener('click', function () { modal.close(); });
+            });
+
+            // Clic en el fondo: el propio <dialog> ocupa toda la pantalla, así
+            // que un clic «fuera» llega al dialog y no a su contenido.
+            modal.addEventListener('click', function (evento) {
+                if (evento.target === modal) modal.close();
             });
         });
 

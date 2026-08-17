@@ -20,7 +20,7 @@ class ReservationController extends Controller
     {
         $reservations = $request->user()->reservations()
             ->active()
-            ->with(['wishlistItem.product', 'wishlistItem.wishlist.user'])
+            ->with(['wishlistItem.product.category', 'wishlistItem.wishlist.user'])
             ->orderBy('expires_at')
             ->get();
 

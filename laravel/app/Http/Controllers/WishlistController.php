@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Enums\AccessRequestStatus;
 use App\Enums\AccessSource;
-use App\Enums\WishlistVisibility;
 use App\Http\Requests\WishlistRequest;
 use App\Models\User;
 use App\Models\Wishlist;
@@ -53,7 +52,7 @@ class WishlistController extends Controller
     {
         $this->authorize('update', $wishlist);
 
-        $items = $wishlist->items()->ordered()->with('product')->get();
+        $items = $wishlist->items()->ordered()->with('product.category')->get();
 
         return view('wishlists.show', compact('wishlist', 'items'));
     }
@@ -75,8 +74,8 @@ class WishlistController extends Controller
 
         $wishlist->update([
             ...$request->safe()->only(['name', 'description', 'visibility', 'event_date']),
-            // Al pasar a "por enlace" hay que tener token; al dejar de serlo,
-            // el token viejo debe morir o el enlace seguiría abriendo la lista.
+            // Al pasar a privada hay que tener token; al volverla pública, el
+            // token viejo debe morir o el enlace seguiría abriendo la lista.
             'share_token' => $visibility->needsShareToken()
                 ? ($wishlist->share_token ?? Str::random(32))
                 : null,

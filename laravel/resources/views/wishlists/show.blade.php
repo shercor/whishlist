@@ -35,17 +35,19 @@
                 Enlace para compartir
                 <span class="pista">(quien lo tenga entra aunque no te siga; queda anotado en «Quién la ve»)</span>
             </label>
-            <div class="fila-copiar">
+            <div class="campo-con-boton">
                 <input id="enlace" class="enlace-compartir" type="text" readonly
                        onclick="this.select()" value="{{ route('shared.open', $wishlist->share_token) }}">
-                <button type="button" class="boton-plano" data-copiar="#enlace"
-                        data-copiado="¡Copiado!" title="Copiar el enlace al portapapeles">
-                    Copiar
+                <button type="button" class="boton-icono" data-copiar="#enlace"
+                        title="Copiar el enlace al portapapeles">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="9" y="9" width="12" height="12" rx="2"/>
+                        <path d="M5 15V5a2 2 0 0 1 2-2h10"/>
+                    </svg>
+                    <span class="visualmente-oculto">Copiar el enlace</span>
                 </button>
             </div>
-            {{-- aria-live: el cambio de texto del botón lo ve quien mira, pero
-                 sin esto un lector de pantalla no anunciaría nada. --}}
-            <p class="tarjeta-meta" data-aviso-copiado aria-live="polite"></p>
         </div>
     @endif
 
@@ -60,7 +62,11 @@
                     @endif
 
                     <div>
-                        <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
+                        <p class="tarjeta-titulo">
+                            <button type="button" class="abre-detalle" data-abre-detalle="regalo-{{ $item->id }}">
+                                {{ $item->displayName() }}
+                            </button>
+                        </p>
                         <p class="tarjeta-meta">
                             {{ $item->product->category?->name }}
                             @if ($item->notes) · {{ $item->notes }} @endif
@@ -120,6 +126,13 @@
                     <button type="submit" class="boton-plano boton-peligro">Quitar de la lista</button>
                 </form>
             </details>
+
+            {{-- Sin acciones: es la lista propia, acá no se reserva nada. --}}
+            <x-producto-modal :id="'regalo-'.$item->id"
+                              :producto="$item->product"
+                              :titulo="$item->displayName()"
+                              :notas="$item->notes"
+                              :prioridad="$item->priorityEnum()" />
         </article>
     @empty
         <div class="vacio">

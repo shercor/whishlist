@@ -27,8 +27,8 @@ class WishlistItemController extends Controller
         // bestFirst() es lo que hace que, entre tres fichas del mismo producto,
         // la más votada sea la que la gente ve primero.
         $resultados = $termino === ''
-            ? Product::public()->withMyLike($request->user())->bestFirst()->limit(12)->get()
-            : Product::visibleTo($request->user())->searchPrefix($termino)
+            ? Product::public()->with('category')->withMyLike($request->user())->bestFirst()->limit(12)->get()
+            : Product::visibleTo($request->user())->searchPrefix($termino)->with('category')
                 ->withMyLike($request->user())->bestFirst()->limit(24)->get();
 
         $categories = Category::active()->orderBy('name')->get();

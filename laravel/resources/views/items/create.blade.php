@@ -32,7 +32,9 @@
 
                     <div>
                         <p class="tarjeta-titulo">
-                            {{ $producto->name }}
+                            <button type="button" class="abre-detalle" data-abre-detalle="producto-{{ $producto->id }}">
+                                {{ $producto->name }}
+                            </button>
                             @unless ($producto->is_public)
                                 <span class="etiqueta">solo tuyo</span>
                             @endunless
@@ -75,6 +77,17 @@
                     <button type="submit" class="boton">Agregar</button>
                 </form>
             </div>
+
+            {{-- Desde el detalle se agrega con prioridad media: quien quiera
+                 elegirla tiene el selector en la tarjeta. --}}
+            <x-producto-modal :id="'producto-'.$producto->id" :producto="$producto">
+                <form method="POST" action="{{ route('items.store', $wishlist) }}">
+                    @csrf
+                    <input type="hidden" name="product_id" value="{{ $producto->id }}">
+                    <input type="hidden" name="priority" value="{{ \App\Enums\ItemPriority::MEDIUM->label() }}">
+                    <button type="submit" class="boton">Agregar a mi lista</button>
+                </form>
+            </x-producto-modal>
         </article>
     @empty
         <div class="vacio">

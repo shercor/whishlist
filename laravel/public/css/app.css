@@ -287,6 +287,83 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
 .previsualizacion { max-width: 220px; margin-bottom: 0.5rem; }
 .previsualizacion[hidden] { display: none; }
 
+/* La foto grande del modal. Una miniatura de 72px le deja a una imagen muy
+   apaisada apenas 24px de alto útil: acá esa misma imagen se ve entera y en
+   grande, que es de lo que se trata poder mirar bien el regalo.
+ *
+ * Acá sí se suelta el cuadrado: en las tarjetas la caja es cuadrada porque
+ * varias van una debajo de otra y deben medir lo mismo, pero en el modal hay
+ * una sola foto y nada que alinear, así que forzar el cuadrado solo agregaría
+ * franjas vacías a una imagen apaisada. */
+.marco-foto.grande {
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 1rem;
+    aspect-ratio: auto;
+}
+
+.marco-foto.grande img { height: auto; max-height: 55vh; }
+
+/* --- Modal de detalle ---------------------------------------------------- */
+
+.modal {
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 4rem);
+    padding: 0;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio);
+    background: var(--tarjeta);
+    color: var(--tinta);
+    /* El diálogo nativo se centra solo; esto solo lo separa del borde. */
+    margin: auto;
+}
+
+.modal::backdrop { background: rgba(10, 12, 16, 0.55); }
+
+.modal-cuerpo { padding: 1.5rem; overflow-y: auto; max-height: calc(100vh - 4rem); }
+
+.modal-encabezado {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.modal-encabezado h2 { margin: 0; font-size: 1.25rem; letter-spacing: -0.02em; }
+
+.modal-datos { list-style: none; margin: 0 0 1.25rem; padding: 0; }
+
+.modal-datos li {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--borde);
+    font-size: 0.92rem;
+}
+
+.modal-datos li:last-child { border-bottom: 0; }
+.modal-datos dt, .modal-datos .clave { color: var(--tinta-suave); flex: none; min-width: 8rem; }
+
+.modal-acciones { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; }
+
+/* El título de un regalo abre su detalle: es un botón, pero se lee como el
+   título que ya era. */
+.abre-detalle {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: var(--borde);
+    text-underline-offset: 3px;
+}
+
+.abre-detalle:hover { text-decoration-color: var(--acento); }
+
 /* --- Etiquetas ---------------------------------------------------------- */
 
 .etiqueta {
@@ -433,15 +510,81 @@ ul.aviso { padding-left: 2rem; }
     background: var(--papel);
 }
 
-.fila-copiar { display: flex; gap: 0.5rem; align-items: stretch; }
-.fila-copiar .enlace-compartir { min-width: 0; }
-.fila-copiar .boton-plano { flex: none; white-space: nowrap; }
+/* El botón vive dentro del campo, no al lado: es lo que la gente ya conoce de
+   cualquier caja de «copiar enlace». El input reserva a la derecha el espacio
+   que ocupa el botón para que el texto nunca pase por debajo. */
+.campo-con-boton { position: relative; display: flex; }
+.campo-con-boton .enlace-compartir { padding-right: 3rem; }
 
-/* Confirmación de copiado: verde un par de segundos y vuelve sola. */
-.boton-plano.copiado {
-    color: var(--ok);
-    border-color: var(--ok);
-    background: var(--ok-suave);
+.boton-icono {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--tinta-suave);
+}
+
+.boton-icono:hover { color: var(--tinta); border-color: var(--borde); background: var(--papel); }
+.boton-icono.copiado { color: var(--ok); border-color: var(--ok); }
+.boton-icono svg { width: 1.05rem; height: 1.05rem; display: block; }
+
+/* Solo el que va metido dentro de un campo se posiciona en absoluto. Estaba
+   en la clase base y se llevaba por delante al botón de cerrar del modal, que
+   terminaba flotando fuera de la caja. */
+.campo-con-boton .boton-icono {
+    position: absolute;
+    top: 50%;
+    right: 0.3rem;
+    transform: translateY(-50%);
+}
+
+/* --- Avisos flotantes (toast) ------------------------------------------- *
+ *
+ * Aparecen sobre la página y se van solos. Van flotando y no en el flujo a
+ * propósito: un aviso que ocupa espacio real empuja el contenido y hace saltar
+ * lo que el usuario está mirando justo cuando acaba de hacer algo.
+ */
+
+.brindis {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-end;
+    /* El contenedor no debe tapar clics cuando está vacío. */
+    pointer-events: none;
+}
+
+.brindis > * {
+    pointer-events: auto;
+    background: var(--tarjeta);
+    color: var(--tinta);
+    border: 1px solid var(--borde);
+    border-left: 3px solid var(--ok);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+    padding: 0.7rem 1rem;
+    font-size: 0.9rem;
+    max-width: min(22rem, calc(100vw - 2rem));
+    /* La animación solo desliza: NO toca la opacidad a propósito.
+       Animarla desde 0 deja el aviso invisible si la animación no llega a
+       correr —pasa en navegadores que las pausan, y pasaba de hecho al
+       renderizar con tiempo virtual—, y un aviso invisible es peor que uno
+       sin animación. Empieza visible y solo se desliza hasta su sitio. */
+    animation: brindis-entra 0.18s ease-out;
+}
+
+@keyframes brindis-entra {
+    from { transform: translateY(0.6rem); }
+    to { transform: none; }
 }
 
 /* --- Campo de usuario ---------------------------------------------------- */

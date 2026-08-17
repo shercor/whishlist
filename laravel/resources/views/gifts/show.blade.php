@@ -34,7 +34,11 @@
                     @endif
 
                     <div>
-                        <p class="tarjeta-titulo">{{ $item->displayName() }}</p>
+                        <p class="tarjeta-titulo">
+                            <button type="button" class="abre-detalle" data-abre-detalle="regalo-{{ $item->id }}">
+                                {{ $item->displayName() }}
+                            </button>
+                        </p>
                         <p class="tarjeta-meta">
                             {{ $item->product->category?->name }}
                             @if ($item->product->reference_price)
@@ -73,6 +77,28 @@
                     @endif
                 </div>
             </div>
+
+            {{-- Las mismas acciones que en la tarjeta, para no obligar a cerrar
+                 el detalle y volver a buscar el regalo en la lista. --}}
+            <x-producto-modal :id="'regalo-'.$item->id"
+                              :producto="$item->product"
+                              :titulo="$item->displayName()"
+                              :notas="$item->notes"
+                              :prioridad="$item->priorityEnum()"
+                              :estado="$estado">
+                @if ($estado->isOfferable())
+                    <form method="POST" action="{{ route('reservations.store', $item) }}">
+                        @csrf
+                        <button type="submit" class="boton">Lo regalo yo</button>
+                    </form>
+                @elseif ($estado === \App\Enums\GiftState::RESERVED_BY_ME)
+                    <form method="POST" action="{{ route('reservations.destroy', $item) }}">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="boton-plano">Soltar la reserva</button>
+                    </form>
+                @endif
+            </x-producto-modal>
         </article>
     @empty
         <div class="vacio">

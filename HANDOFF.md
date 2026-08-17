@@ -96,7 +96,8 @@ Commits en `main`:
 | `dbc046f` | Modo oscuro, estilos de celular, imagen y «me gusta» en productos |
 | `d6af2cd` | `@username`, búsqueda de personas, copiar enlace, foto en caja cuadrada |
 | `27872c0` | Seguidores, perfil privado y reparto de acceso lista por lista |
-| (el último) | «Por enlace» se fusiona en «privada»: una sola lista privada que se invita y se comparte |
+| `873d2c5` | «Por enlace» se fusiona en «privada»: una sola lista privada que se invita y se comparte |
+| (el último) | Modal de detalle del regalo, copiar con ícono dentro del campo y avisos flotantes |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -244,6 +245,38 @@ ninguna imagen se recorta.
 
 La previsualización al subir usa la misma clase `.marco-foto`, para que lo que
 se ve antes de guardar sea exactamente lo que va a quedar.
+
+**El modal sí suelta el cuadrado** (`.marco-foto.grande`): en las tarjetas la
+caja es cuadrada porque van varias una debajo de otra y deben medir lo mismo,
+pero en el detalle hay una sola foto y nada que alinear, así que forzarlo solo
+agregaría franjas vacías a una imagen apaisada.
+
+### El detalle de un regalo
+
+El título de cualquier regalo abre un `<dialog>` con la foto en grande y los
+datos ordenados, y desde ahí se puede reservar o soltar sin volver a la lista.
+Está en todas las pantallas donde aparece un producto: la lista propia, la de
+otro, el catálogo y «voy a regalar».
+
+Es un `<dialog>` nativo y no un div con clases: trae gratis el foco atrapado
+dentro, cerrar con Escape, el fondo inerte y el backdrop. Reimplementar eso a
+mano es de donde salen los modales que no se pueden cerrar con teclado.
+
+El componente es `<x-producto-modal>` y las acciones llegan por su slot, porque
+cada pantalla ofrece cosas distintas sobre el mismo producto. Es el primer
+componente Blade del proyecto; el resto de lo compartido son `@include`.
+
+### Los avisos flotantes
+
+`avisar(mensaje)` deja un aviso abajo a la derecha que se va solo a los 2,6
+segundos. Flota y no ocupa espacio real a propósito: un aviso en el flujo
+empuja el contenido y hace saltar lo que el usuario está mirando justo cuando
+acaba de hacer algo.
+
+**Su animación no toca la opacidad, y no es un descuido.** Animarla desde 0
+deja el aviso invisible si la animación no llega a correr —pasó de hecho al
+renderizar con tiempo virtual— y un aviso invisible es peor que uno sin
+animación. Empieza visible y solo se desliza hasta su sitio.
 
 ### Modo claro y oscuro
 

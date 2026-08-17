@@ -37,7 +37,7 @@ class GiftController extends Controller
 
         $items = $wishlist->items()
             ->ordered()
-            ->with('product')
+            ->with('product.category')
             ->withCount([
                 // Cuántas reservas vivas tiene: 0 o 1, nunca más.
                 'reservations as reserved_count' => fn ($query) => $query->whereNotNull('active_flag'),
