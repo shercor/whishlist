@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 200
-make test                                                     # 2 passed
+make test                                                     # 50 passed
 ```
 
 Entra a http://localhost:8080. Usuarios de demo: `ana@whishlist.test`,
@@ -80,21 +80,38 @@ con contraseña `password`. Administrador: `admin@whishlist.test` / `admin1234`.
 
 ## 2. Estado actual
 
-Tres commits en `main`, todos subidos:
+Commits en `main`:
 
 | Commit    | Qué trae                                                  |
 |-----------|-----------------------------------------------------------|
 | `5474705` | Entorno dockerizado: PHP 8.4-FPM, nginx, MariaDB 11.4, Redis, Makefile, README |
 | `a1b918e` | `db` y `redis` publicados solo en `127.0.0.1`             |
 | `0a60c3d` | Modelo de datos: 4 enums, 8 migraciones, 7 modelos, 5 seeders |
+| (el último) | Factories de los 7 modelos y 50 tests del dominio          |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
-fulltext).
+fulltext). Todo eso está ahora automatizado en la suite, no solo probado a
+mano: `make test` → **50 passed**.
 
-**No hecho todavía:** factories, tests del dominio, policies, controladores,
-rutas, API. O sea, toda la capa de aplicación.
+Los tests que importan y qué vigilan:
+
+| Archivo                            | Qué protege                                        |
+|------------------------------------|----------------------------------------------------|
+| `ReservationInvariantTest`         | que la base rechace una segunda reserva activa     |
+| `SurpriseProtectionTest`           | que el dueño nunca reciba datos de reserva         |
+| `WishlistItemTest`                 | disponible/recibido, orden por prioridad, unidades |
+| `ProductVisibilityTest`            | catálogo público vs. producto privado ajeno        |
+| `ProductSearchTest`                | búsqueda fulltext acotada a lo visible             |
+| `WishlistVisibilityTest`           | visibilidades, token de enlace, acceso aprobado    |
+| `EnumTest`                         | ida y vuelta de `label()` ↔ caso del enum          |
+
+Los dos invariantes garantizados por la base se verificaron por mutación:
+quitando el índice único, el test falla. No son verdes por casualidad.
+
+**No hecho todavía:** policies, controladores, rutas, API. O sea, la capa de
+aplicación.
 
 ---
 
@@ -203,27 +220,25 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 ## 5. Lo que sigue
 
-En este orden, que es el que deja el invariante blindado antes de que aparezca
-código capaz de romperlo:
+Las factories y los tests del dominio ya están, así que el invariante queda
+blindado antes de que aparezca código capaz de romperlo. Lo que sigue:
 
-1. **Factories** para `Category`, `Tag`, `Product`, `Wishlist`, `WishlistItem`,
-   `Reservation`. Hoy no existe ninguna.
-2. **Tests del dominio.** El más importante: que la base rechace una segunda
-   reserva activa sobre el mismo ítem. Hoy eso está probado a mano, no
-   automatizado. Después: que el dueño nunca reciba datos de reserva, que un
-   ítem recibido deje de ofrecerse, que un producto privado no aparezca en el
-   catálogo ajeno.
-3. **Policies.** Aquí está el riesgo real que queda. La estructura hace difícil
+1. **Policies.** Aquí está el riesgo real que queda. La estructura hace difícil
    filtrar la sorpresa por accidente, pero los `Resource` y controladores tienen
    que ser explícitos sobre quién ve qué. `WishlistPolicy` (ver, editar,
    aprobar accesos) y `ReservationPolicy` (reservar, soltar; nunca el dueño de
    la lista).
-4. **Controladores, rutas y `Resource`.** Al armar los `Resource` de
+2. **Controladores, rutas y `Resource`.** Al armar los `Resource` de
    `WishlistItem`, exponer un booleano `is_reserved` para quien mira, y
    **nunca** el `user_id` de la reserva. Para el dueño, ni siquiera el
    booleano.
-5. **Job para liberar reservas vencidas.** El scope `Reservation::expired()` ya
+3. **Job para liberar reservas vencidas.** El scope `Reservation::expired()` ya
    está listo esperándolo. Programarlo en el scheduler.
+
+Lo que **no** cubren los tests todavía, porque depende de código que no existe:
+que un usuario no pueda reservar un ítem de su propia lista (hoy lo impide la
+aplicación, no la base) y que los `Resource` no filtren al reservante. Ambos son
+tests que hay que escribir junto con las policies.
 
 ---
 
@@ -282,6 +297,13 @@ en `.env` y `make up`. Por defecto: 8080, 3309, 6380, 5174.
 **Xdebug se apaga al reconstruir la imagen.** `make xdebug-on` modifica el
 `.ini` dentro del contenedor, no en la imagen. Tras un `make rebuild` hay que
 volver a activarlo.
+
+**El test de búsqueda no puede correr dentro de una transacción.** InnoDB
+actualiza el índice `FULLTEXT` recién al confirmar, así que con
+`RefreshDatabase` —que envuelve cada test en una transacción— `MATCH ... AGAINST`
+no encuentra nada de lo que el propio test acaba de insertar. Por eso
+`ProductSearchTest` usa `DatabaseTruncation`. Está comprobado: con
+`RefreshDatabase` sus tres tests fallan.
 
 **Hay dos `.env`.** El de la raíz lo lee docker compose; el de `laravel/` lo
 lee Laravel. `make env` sincroniza las credenciales de BD del primero al
