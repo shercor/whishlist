@@ -7,6 +7,7 @@ use App\Models\Reservation;
 use App\Models\User;
 use App\Models\WishlistItem;
 use App\Notifications\ReservationExpiring;
+use App\Notifications\ReservationReleased;
 use Illuminate\Database\QueryException;
 
 /**
@@ -90,6 +91,49 @@ class ReservationService
         }
 
         return $avisadas;
+    }
+
+    /**
+     * Suelta las reservas de quien ya no puede ver la lista donde está el
+     * regalo. Devuelve cuántas soltó.
+     *
+     * **Por qué barre en vez de engancharse a cada acción.** Se pierde el
+     * acceso por diez caminos —dejar de seguir, que te echen de seguidores,
+     * rechazar un seguimiento, revocar un acceso, cada uno por web y por API—
+     * y por dos más que no tocan ninguna fila de seguimiento ni de acceso: que
+     * el dueño vuelva privada una lista pública, o que cierre su perfil.
+     * Enganchar diez sitios es cómo se olvida el once.
+     *
+     * Pregunta a la misma policy que decide si la lista se abre, así que la
+     * regla vive en un solo lugar y sigue valiendo cuando la policy cambie.
+     * Una reserva viva es un puñado de filas: preguntar por cada una sale
+     * barato, igual que en `visibleWishlistsFor`.
+     */
+    public function releaseUnreachable(): int
+    {
+        $soltadas = 0;
+
+        $vivas = Reservation::query()
+            ->whereNotNull('active_flag')
+            ->whereHas('wishlistItem.wishlist')
+            ->with(['user', 'wishlistItem.wishlist.user'])
+            ->cursor();
+
+        foreach ($vivas as $reservation) {
+            if ($reservation->user->can('view', $reservation->wishlistItem->wishlist)) {
+                continue;
+            }
+
+            $reservation->release(ReservationStatus::CANCELLED);
+
+            // Soltarla sin decirlo sería peor que dejarla: la persona iría a
+            // comprar un regalo que ya no tiene tomado.
+            $reservation->user->notify(new ReservationReleased($reservation));
+
+            $soltadas++;
+        }
+
+        return $soltadas;
     }
 
     /**

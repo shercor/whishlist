@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 191 passed
+make test                                                     # 203 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -127,14 +127,15 @@ Commits en `main`:
 | `3521c46` | Borra la vista de bienvenida huérfana                       |
 | `d673f19` | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
 | `aed7f69` | El catálogo público acepta fichas de usuarios, con marcha atrás |
-| (el último) | Cuatro avisos más: respondieron tu pedido, te compartieron una lista, te siguen, te aceptaron |
+| `8d1f402` | Cuatro avisos más: respondieron tu pedido, te compartieron una lista, te siguen, te aceptaron |
+| (el último) | Las reservas de quien pierde el acceso se sueltan y el regalo vuelve a estar disponible |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **191 passed**.
+`make test` → **203 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -386,7 +387,8 @@ Los tests que importan y qué vigilan:
 | `Api/ApiAuthorizationTest`         | la API apretada por un extraño **con token válido**, y que el `share_token` no llegue a un invitado |
 | `Api/ApiCrudTest`                  | el ciclo completo y los códigos: 201, 204, 409, 422 |
 | `PublicCatalogTest`                | compartir una ficha con el catálogo y retirarla, y que compartirla no delate tu lista |
-| `NotificationEventsTest`           | los seis avisos **por web y por API**, lo que no se avisa, y que un aviso cuyo modelo desapareció se descarte en vez de morir en el worker |
+| `NotificationEventsTest`           | los siete avisos **por web y por API**, lo que no se avisa, y que un aviso cuyo modelo desapareció se descarte en vez de morir en el worker |
+| `UnreachableReservationTest`       | que perder el acceso suelte la reserva por los seis caminos, **incluidos los dos que no tocan ninguna fila**, y que el dueño no vea nada |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -547,7 +549,7 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    publicada en el HTML— ni guardar varios tamaños.
 3. ~~Borrar `resources/views/welcome.blade.php`.~~ Hecho: estaba huérfana.
 4. **Notificaciones: hechas, dentro de la app.** Campana en la barra, tabla
-   `notifications` y **seis** avisos, todos encolados y procesados por el worker:
+   `notifications` y **siete** avisos, todos encolados y procesados por el worker:
 
    | Aviso | A quién | Cuándo |
    |-------|---------|--------|
@@ -557,6 +559,7 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    | `FollowReceived` | al seguido | alguien lo sigue o quiere seguirlo |
    | `FollowAccepted` | al seguidor | le aceptaron la solicitud |
    | `ReservationExpiring` | a quien reservó | le quedan 3 días |
+   | `ReservationReleased` | a quien reservó | perdió el acceso y su reserva se soltó |
 
    **Lo que no se avisa, a propósito:** revocar un acceso y rechazar un
    seguimiento. Anunciar que le quitaste algo no arregla nada y sí incomoda. El
@@ -604,12 +607,24 @@ puedes: la solicitud se guarda por lista y para crearla hace falta un
 `wishlist_id` que no conoces. Mostrarlo en el perfil revelaría que la tiene, y
 se decidió no hacerlo.
 
-**Reservas huérfanas.** Si reservas un regalo y después el dueño te quita de
-sus seguidores, pierdes la lista de vista pero la reserva sigue viva y el
-regalo bloqueado para los demás. No se puede avisar al dueño —le arruinaría la
-sorpresa— así que el ítem queda tomado hasta que el job de reservas vencidas lo
-suelte, a los 14 días. Es tolerable, pero está sin decidir si debería soltarse
-en el acto.
+**Reservas fuera de alcance: resuelto.** Se sueltan. El comando
+`reservations:release-unreachable` corre cada hora, y a quien la tenía se le
+avisa con `ReservationReleased` —soltarla en silencio sería peor que dejarla:
+iría a comprar un regalo que ya no tiene tomado—. Al dueño no le llega nada,
+como siempre.
+
+**Por qué barre en vez de engancharse a cada acción.** El acceso se pierde por
+diez caminos —dejar de seguir, que te echen, rechazar un seguimiento, revocar un
+acceso, cada uno por web y por API— y por dos más que **no tocan ninguna fila**
+de seguimiento ni de acceso: que el dueño vuelva privada una lista pública, o
+que cierre su perfil. Enganchar diez sitios es cómo se olvida el once. El
+barrido le pregunta a la misma policy que decide si la lista se abre, así que la
+regla sigue viviendo en un solo lugar.
+
+Se paga con hasta una hora de retraso, despreciable al lado de los 14 días que
+duraba antes. Si alguna vez hace falta que sea instantáneo, el barrido ya es una
+sola llamada a `ReservationService::releaseUnreachable()` y basta con invocarla
+también desde donde se quita el acceso.
 
 **Visibilidad del catálogo: resuelto.** Los usuarios **sí** pueden proponer
 productos, y se publican **al instante, sin moderación**. Se pide con la casilla
@@ -697,8 +712,9 @@ está en `.gitignore` y lo crea `make storage`, que ya corre dentro de
 
 **Lo programado y lo encolado necesitan cada uno su contenedor.** El servicio
 `scheduler` corre `schedule:work`; sin él, `routes/console.php` queda escrito
-pero no se ejecuta nunca —hoy son dos comandos: liberar reservas vencidas cada
-hora, y avisar de las que están por vencer a las 10:00—. Ya pasó una vez con las reservas vencidas. El
+pero no se ejecuta nunca —hoy son tres comandos: liberar reservas vencidas y
+soltar las que quedaron fuera de alcance, cada hora, y avisar de las que están
+por vencer a las 10:00—. Ya pasó una vez con las reservas vencidas. El
 servicio `queue` corre `queue:work` y es lo mismo para los jobs: sin él se
 apilan en redis en silencio.
 
