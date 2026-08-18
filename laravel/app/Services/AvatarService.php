@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\ShrinkStoredImage;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -26,7 +27,15 @@ class AvatarService
      */
     public function store(?UploadedFile $foto): ?string
     {
-        return $foto?->store(self::CARPETA, 'public');
+        $ruta = $foto?->store(self::CARPETA, 'public');
+
+        if ($ruta) {
+            // La foto queda guardada tal como llegó y la cola la achica en
+            // un momento. Mientras tanto se ve igual, solo que pesada.
+            dispatch(ShrinkStoredImage::forAvatar($ruta));
+        }
+
+        return $ruta;
     }
 
     /**

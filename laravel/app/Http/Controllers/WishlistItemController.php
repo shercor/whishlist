@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreWishlistItemRequest;
 use App\Http\Requests\UpdateWishlistItemRequest;
+use App\Jobs\ShrinkStoredImage;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Wishlist;
@@ -123,6 +124,12 @@ class WishlistItemController extends Controller
             return null;
         }
 
-        return $request->file('image')->store('productos', 'public');
+        $ruta = $request->file('image')->store('productos', 'public');
+
+        // Se guarda tal cual y se achica después: procesar 4 MB acá dejaría a
+        // quien agrega el regalo mirando el navegador girar.
+        dispatch(ShrinkStoredImage::forProductPhoto($ruta));
+
+        return $ruta;
     }
 }

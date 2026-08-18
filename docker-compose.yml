@@ -44,6 +44,37 @@ services:
       redis:
         condition: service_started
 
+  # El que saca de la cola lo que la aplicación deja encolado —hoy, achicar las
+  # fotos recién subidas—. Sin este servicio los jobs se apilan en redis y no
+  # los ejecuta nadie: no hay error, simplemente la foto nunca se achica. Es el
+  # mismo agujero que tenía el scheduler.
+  #
+  # --tries=3 y --max-time=3600 a propósito: los reintentos los decide cada
+  # job, pero un tope global evita que un job roto reintente para siempre, y
+  # reciclar el proceso cada hora corta las fugas de memoria de un worker que
+  # lleva días vivo. Al salir, restart: unless-stopped lo vuelve a levantar.
+  #
+  # OJO: el worker carga el código una vez y se lo queda. Después de cambiar un
+  # job hay que reiniciarlo (`make queue-restart`), o seguirá corriendo el
+  # anterior.
+  queue:
+    build:
+      context: ./docker/php
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
+    container_name: "${APP_NAME}_queue"
+    restart: unless-stopped
+    working_dir: /var/www
+    command: php artisan queue:work --tries=3 --max-time=3600
+    volumes:
+      - ./laravel:/var/www
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   webserver:
     image: nginx:stable-alpine
     container_name: "${APP_NAME}_webserver"

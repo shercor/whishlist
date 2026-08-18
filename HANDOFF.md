@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 89 passed
+make test                                                     # 98 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -119,14 +119,16 @@ Commits en `main`:
 | `a59d261` | Foto de perfil en todas las vistas y buscador de personas con sugerencias |
 | `d13d9a2` | Las solicitudes de seguimiento aparecen en «Solicitudes», con contador |
 | `9663d7f` | El perfil muestra las listas privadas a las que ya tienes acceso |
-| (el último) | Pone al día el HANDOFF y el README para el traslado de equipo |
+| `e7976fa` | Pone al día el HANDOFF y el README para el traslado de equipo |
+| `4cf97e9` | Tests de las cinco reglas que se caían en silencio          |
+| (el último) | Cola de trabajos: worker `queue` y achicado de las fotos subidas |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **89 passed**.
+`make test` → **98 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -369,6 +371,7 @@ Los tests que importan y qué vigilan:
 | `ReservationFlowTest`              | que el dueño no reserve en su lista, y que perder la carrera avise en vez de reventar |
 | `ProductLikeTest`                  | que lo privado no se vote, y que el doble clic no sea un 500 |
 | `UserSuggestTest`                  | que el endpoint de sugerencias no encuentre a nadie por su nombre ni su correo |
+| `ShrinkStoredImageTest`            | que la foto subida se achique, conserve formato y ruta, y que subirla lo encole |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -383,8 +386,7 @@ Lo que sigue sin un solo test son los formularios de listas y regalos, el
 reparto de accesos y el registro, que se verificaron a mano por HTTP y con
 capturas, una vez.
 
-**No hecho todavía:** API (todo es Blade con formularios), notificaciones y
-achicar las fotos al subirlas.
+**No hecho todavía:** API (todo es Blade con formularios) y notificaciones.
 
 ---
 
@@ -520,17 +522,19 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    listas y regalos, el reparto de accesos desde «Quién la ve», y el registro.
    Ninguno de esos es una regla que se caiga en silencio, que es por lo que van
    después y no antes.
-2. **Achicar las fotos al subirlas.** Hoy se guarda el archivo tal cual, hasta
-   4 MB, y se muestra en una miniatura de 72px. Una lista con veinte regalos
-   son veinte fotos de celular completas viajando por la red. `intervention/
-   image` y un `Job` en la cola resuelven esto; la cola ya está en redis, lo
-   que falta es el worker.
+2. **Achicar las fotos al subirlas: hecho.** `ShrinkStoredImage` reescribe la
+   imagen sobre su propio archivo —avatares a 320 px de lado, fotos de regalo
+   a 800— desde la cola, y el servicio `queue` del compose es el worker que la
+   ejecuta. Medido de punta a punta: una foto de 4000×3000 y 4,13 MB queda en
+   800×600 y 113 KB, en 195 ms. Lo que **no** hace y podría: convertir a webp
+   —ahorraría otro tanto, pero cambia la extensión y con ella la ruta ya
+   publicada en el HTML— ni guardar varios tamaños.
 3. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
    redirige a `/login` o a `/wishlists` y nadie la renderiza.
 4. **Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
    que su plazo de 14 días está por vencer. Sin esto, el job que libera reservas
-   vencidas sorprende al que iba a comprar. Necesita worker de cola: no hay
-   servicio que corra `queue:work`, igual que pasaba con el scheduler.
+   vencidas sorprende al que iba a comprar. Ya no está bloqueado: el worker de
+   cola existe desde que se agregó el achicado de fotos.
 5. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
    entran los `Resource`: exponer `is_reserved` como booleano para quien mira,
    **nunca** el `user_id` de la reserva, y para el dueño ni siquiera el booleano.
@@ -579,6 +583,9 @@ requiere moderación.
 | `make storage`    | enlaza `public/storage` (las fotos que suben)         |
 | `make test`       | tests contra MariaDB                                  |
 | `make db`         | cliente mysql contra la base                          |
+| `make queue-logs` | qué está procesando el worker, en vivo                |
+| `make queue-restart` | reiniciar el worker (obligatorio tras cambiar un job) |
+| `make queue-failed` | los jobs que fallaron sus tres intentos             |
 | `make xdebug-on`  | activar Xdebug (se apaga al reconstruir la imagen)    |
 | `make destroy`    | borrar contenedores **y la base** (pregunta antes)    |
 
@@ -624,11 +631,17 @@ contenedor. Es lo correcto —nginx sirve desde ahí— y por eso `public/storag
 está en `.gitignore` y lo crea `make storage`, que ya corre dentro de
 `make setup`. Si las fotos dan 404 en un clon nuevo, es que faltó ese paso.
 
-**Lo que se programe en el scheduler necesita su contenedor.** El servicio
+**Lo programado y lo encolado necesitan cada uno su contenedor.** El servicio
 `scheduler` corre `schedule:work`; sin él, `routes/console.php` queda escrito
-pero no se ejecuta nunca. Ya pasó una vez con las reservas vencidas. Lo mismo
-va a pasar con la cola: `QUEUE_CONNECTION=redis` pero **no hay** servicio que
-corra `queue:work`.
+pero no se ejecuta nunca. Ya pasó una vez con las reservas vencidas. El
+servicio `queue` corre `queue:work` y es lo mismo para los jobs: sin él se
+apilan en redis en silencio.
+
+**El worker se queda con el código viejo.** `queue:work` carga la aplicación
+una vez y la mantiene en memoria, así que después de cambiar un job hay que
+hacer `make queue-restart`. El síntoma es desconcertante: el test pasa, el
+código está bien, y el worker sigue haciendo lo de antes. Si una foto quedó
+sin achicar, `make queue-failed` dice si el job murió y por qué.
 
 **Hay dos `.env`.** El de la raíz lo lee docker compose; el de `laravel/` lo
 lee Laravel. `make env` sincroniza las credenciales de BD del primero al

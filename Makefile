@@ -22,6 +22,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 .PHONY: help setup env build up down restart rebuild destroy \
         install key migrate fresh seed admin optimize test test-db \
         sh sh-root logs logs-app ps db xdebug-on xdebug-off \
+        queue-logs queue-restart queue-failed queue-retry \
         artisan composer npm
 
 ## --------------------------------------------------------------------------
@@ -33,7 +34,7 @@ help: ## Muestra esta ayuda
 	@echo "  Uso: make <target>"
 	@echo ""
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-14s\033[0m %s\n", $$1, $$2}'
+	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 	@echo ""
 
 setup: ## Instalación completa desde cero (el único comando que necesitas)
@@ -113,6 +114,25 @@ logs: ## Logs de todos los contenedores (Ctrl-C para salir)
 
 logs-app: ## Logs de Laravel en vivo
 	@$(EXE) php artisan pail --timeout=0
+
+## --------------------------------------------------------------------------
+## Cola de trabajos
+## --------------------------------------------------------------------------
+
+queue-logs: ## Qué está procesando el worker, en vivo
+	@$(DC) logs -f queue
+
+# El worker carga el código una vez y se lo queda. Sin esto, después de tocar
+# un job sigue corriendo el anterior y parece que el cambio no hizo nada.
+queue-restart: ## Reinicia el worker (obligatorio tras cambiar un job)
+	@$(DC) restart queue
+	@echo "  → worker reiniciado, ya corre el código actual"
+
+queue-failed: ## Los jobs que fallaron sus tres intentos
+	@$(RUN) php artisan queue:failed
+
+queue-retry: ## Reintenta todos los jobs fallidos
+	@$(RUN) php artisan queue:retry all
 
 ## --------------------------------------------------------------------------
 ## Base de datos

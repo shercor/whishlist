@@ -106,7 +106,7 @@ class WishlistItem extends Model
     public function scopeOrdered(Builder $query): Builder
     {
         return $query->orderBy('position')
-            ->orderByRaw("FIELD(priority, ?, ?, ?)", [
+            ->orderByRaw('FIELD(priority, ?, ?, ?)', [
                 ItemPriority::HIGH->label(),
                 ItemPriority::MEDIUM->label(),
                 ItemPriority::LOW->label(),

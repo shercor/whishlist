@@ -21,12 +21,19 @@ API / aplicación Laravel 13 dockerizada desde el primer commit.
 └── laravel/.env.example config de LARAVEL
 ```
 
-Cinco contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
-**db** (MariaDB 11.4), **redis** y **scheduler**.
+Seis contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
+**db** (MariaDB 11.4), **redis**, **scheduler** y **queue**.
 
 El `scheduler` corre `php artisan schedule:work`. Sin él, todo lo que se
 programe en `routes/console.php` queda escrito pero **no se ejecuta nunca**
 —hoy, liberar las reservas vencidas—.
+
+El `queue` corre `php artisan queue:work` y es lo mismo para la cola: sin él
+los jobs se apilan en redis y no los ejecuta nadie, sin error y sin aviso —hoy,
+achicar las fotos recién subidas—. **Carga el código una vez**: después de
+tocar un job hay que hacer `make queue-restart` o seguirá corriendo el
+anterior. `make queue-logs` muestra lo que está procesando y `make
+queue-failed`, lo que se le cayó tres veces.
 
 ## Los dos `.env` (importante)
 
