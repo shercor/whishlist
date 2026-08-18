@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 128 passed
+make test                                                     # 164 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -123,14 +123,16 @@ Commits en `main`:
 | `4cf97e9` | Tests de las cinco reglas que se caían en silencio          |
 | `117266a` | Cola de trabajos: worker `queue` y achicado de las fotos subidas |
 | `85c8de0` | Notificaciones dentro de la app: campana, solicitud de acceso y reserva por vencer |
-| (el último) | Auditoría: arregla el 500 de «Voy a regalar», el webp que no se podía achicar y la reserva que sobrevivía al regalo |
+| `8f8e5d7` | Auditoría: arregla el 500 de «Voy a regalar», el webp que no se podía achicar y la reserva que sobrevivía al regalo |
+| `3521c46` | Borra la vista de bienvenida huérfana                       |
+| (el último) | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **128 passed**.
+`make test` → **164 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -377,6 +379,10 @@ Los tests que importan y qué vigilan:
 | `NotificationTest`                 | **que el dueño nunca sea avisado de una reserva**, que no se avise dos veces, y que nadie abra la notificación de otro |
 | `AuditProbeTest`                   | barrido: toda ruta que muta apretada por un extraño, todo lo que exige sesión, basura en los formularios, escapado del HTML y consultas por página |
 | `AuditFlowTest`                    | secuencias: borrar una lista o un regalo reservado, revocar accesos, ciclo del enlace secreto, marcar recibido |
+| `Api/ApiSurpriseTest`              | **la sorpresa en json**: que al dueño no le llegue ni el booleano, y que el Resource esconda por su cuenta |
+| `Api/ApiAuthTest`                  | tokens: freno de fuerza bruta, 401 sin token, revocar un aparato o todos |
+| `Api/ApiAuthorizationTest`         | la API apretada por un extraño **con token válido**, y que el `share_token` no llegue a un invitado |
+| `Api/ApiCrudTest`                  | el ciclo completo y los códigos: 201, 204, 409, 422 |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -392,7 +398,7 @@ Lo que sigue sin un solo test son los formularios de listas y regalos, el
 reparto de accesos y el registro, que se verificaron a mano por HTTP y con
 capturas, una vez.
 
-**No hecho todavía:** API (todo es Blade con formularios) y correo saliente.
+**No hecho todavía:** correo saliente y la documentación de la API.
 
 ---
 
@@ -543,9 +549,23 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    —el aviso de reserva por vencer solo sirve de verdad si alcanza a quien no
    está mirando la app—. Candidatas obvias a un tercer y cuarto aviso: que
    respondieron tu solicitud, y que alguien empezó a seguirte.
-5. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
-   entran los `Resource`: exponer `is_reserved` como booleano para quien mira,
-   **nunca** el `user_id` de la reserva, y para el dueño ni siquiera el booleano.
+5. **API: hecha, v1 y con CRUD completo.** Vive en `routes/api.php` bajo
+   `/api/v1`, con Sanctum por token —sin `statefulApi()`, a propósito: un solo
+   camino de autenticación— y controladores en `app/Http/Controllers/Api/V1`.
+   Reutiliza las policies y los servicios de la web, así que las reglas no
+   están escritas dos veces.
+
+   **Lo que hay que saber antes de tocarla:** la protección de la sorpresa vive
+   en `WishlistItemResource`, y está planteada al revés a propósito —esconde
+   salvo que pueda demostrar que quien mira no es el dueño—. Escrita de la otra
+   forma ya tuvo un agujero: sin usuario autenticado, un anónimo «no era el
+   dueño» y la reserva salía. Lo pilló un test. Al dueño no le llega ni el
+   booleano `is_reserved`; a quien mira le llega el booleano y nunca el
+   `user_id` ni el id de la reserva.
+
+   **Falta:** documentarla (no hay OpenAPI), subir la foto de perfil por API
+   —pide multipart y merece su propio endpoint— y el POST del catálogo, que
+   espera la decisión de moderación de la sección 6.
 
 ---
 

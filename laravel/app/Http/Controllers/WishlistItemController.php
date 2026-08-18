@@ -5,11 +5,10 @@ namespace App\Http\Controllers;
 use App\Enums\ReservationStatus;
 use App\Http\Requests\StoreWishlistItemRequest;
 use App\Http\Requests\UpdateWishlistItemRequest;
-use App\Jobs\ShrinkStoredImage;
 use App\Models\Category;
-use App\Models\Product;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
+use App\Services\PrivateProductCreator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -38,11 +37,18 @@ class WishlistItemController extends Controller
         return view('items.create', compact('wishlist', 'resultados', 'categories', 'termino'));
     }
 
-    public function store(StoreWishlistItemRequest $request, Wishlist $wishlist): RedirectResponse
-    {
+    public function store(
+        StoreWishlistItemRequest $request,
+        Wishlist $wishlist,
+        PrivateProductCreator $productos,
+    ): RedirectResponse {
         $this->authorize('manageItems', $wishlist);
 
-        $product = $request->chosenProduct() ?? $this->createPrivateProduct($request);
+        $product = $request->chosenProduct() ?? $productos->create(
+            $request->safe()->only(['category_id', 'name', 'description', 'url', 'reference_price']),
+            $request->file('image'),
+            $request->user(),
+        );
 
         $wishlist->items()->create([
             'product_id' => $product->id,
@@ -97,48 +103,5 @@ class WishlistItemController extends Controller
 
         return redirect()->route('wishlists.show', $item->wishlist)
             ->with('status', $item->isReceived() ? 'Marcado como recibido.' : 'Vuelve a estar en la lista.');
-    }
-
-    /**
-     * El producto que el usuario escribió a mano: privado, visible solo para
-     * él, no entra al catálogo de nadie más.
-     */
-    private function createPrivateProduct(StoreWishlistItemRequest $request): Product
-    {
-        return Product::create([
-            'category_id' => $request->integer('category_id'),
-            'created_by_user_id' => $request->user()->id,
-            'name' => $request->string('name')->toString(),
-            'description' => $request->input('description'),
-            'url' => $request->input('url'),
-            'image_path' => $this->storeImage($request),
-            'reference_price' => $request->input('reference_price'),
-            'is_public' => false,
-        ]);
-    }
-
-    /**
-     * Guarda la foto que subió el usuario y devuelve su ruta, o null si no
-     * subió ninguna.
-     *
-     * El nombre lo inventa Laravel: 40 caracteres al azar. Importa porque el
-     * disco es público y la URL queda adivinable solo para quien la tiene, que
-     * es el mismo trato que ya se le da al enlace secreto de una lista. De
-     * paso evita que el nombre original del archivo —que puede traer el nombre
-     * de la persona— termine a la vista en la URL.
-     */
-    private function storeImage(StoreWishlistItemRequest $request): ?string
-    {
-        if (! $request->hasFile('image')) {
-            return null;
-        }
-
-        $ruta = $request->file('image')->store('productos', 'public');
-
-        // Se guarda tal cual y se achica después: procesar 4 MB acá dejaría a
-        // quien agrega el regalo mirando el navegador girar.
-        dispatch(ShrinkStoredImage::forProductPhoto($ruta));
-
-        return $ruta;
     }
 }

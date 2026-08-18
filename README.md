@@ -35,6 +35,24 @@ tocar un job hay que hacer `make queue-restart` o seguirá corriendo el
 anterior. `make queue-logs` muestra lo que está procesando y `make
 queue-failed`, lo que se le cayó tres veces.
 
+## La API
+
+Vive bajo `/api/v1` y es solo de token (Sanctum). Se entra creando un token:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tokens \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{"email":"admin@whishlist.test","password":"admin1234","device_name":"curl"}'
+```
+
+Y se usa con `Authorization: Bearer <token>`. `php artisan route:list --path=api`
+los lista todos. Códigos: 201 al crear, 204 sin cuerpo, 409 si otro se te
+adelantó reservando, 422 en validación, 403 sin permiso, 401 sin token.
+
+**Antes de tocar los `Resource`, lee el aviso de la sección 5 del HANDOFF:** lo
+que un regalo revela depende de quién pregunta, y ahí es donde se filtra una
+sorpresa sin que se note en pantalla.
+
 ## Los dos `.env` (importante)
 
 Es la parte que más confunde. Son dos archivos con dos dueños distintos:
