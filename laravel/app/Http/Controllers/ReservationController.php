@@ -20,6 +20,11 @@ class ReservationController extends Controller
     {
         $reservations = $request->user()->reservations()
             ->active()
+            // Cinturón: los modelos ya sueltan la reserva cuando se borra el
+            // regalo o su lista, pero si alguna vez quedara una suelta, esta
+            // pantalla no puede ser lo que se rompa. Antes lo era, y dejaba a
+            // la persona sin poder ni soltarla.
+            ->whereHas('wishlistItem.wishlist')
             ->with(['wishlistItem.product.category', 'wishlistItem.wishlist.user'])
             ->orderBy('expires_at')
             ->get();

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Storage;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
+use Throwable;
 
 /**
  * Achica una imagen ya guardada, sobre su propio archivo.
@@ -82,12 +83,24 @@ class ShrinkStoredImage implements ShouldQueue
             return;
         }
 
-        $imagen = ImageManager::usingDriver(Driver::class)
-            ->decodeBinary($almacen->get($this->path))
-            ->scaleDown(width: $this->ladoMaximo, height: $this->ladoMaximo);
+        try {
+            $imagen = ImageManager::usingDriver(Driver::class)
+                ->decodeBinary($almacen->get($this->path))
+                ->scaleDown(width: $this->ladoMaximo, height: $this->ladoMaximo);
 
-        // encodeUsingPath elige el codificador por la extensión, así que el
-        // formato se conserva sin tener que preguntarlo aparte.
-        $almacen->put($this->path, (string) $imagen->encodeUsingPath($this->path, quality: 82));
+            // encodeUsingPath elige el codificador por la extensión, así que
+            // el formato se conserva sin tener que preguntarlo aparte.
+            $almacen->put($this->path, (string) $imagen->encodeUsingPath($this->path, quality: 82));
+        } catch (Throwable $e) {
+            // Que no se pueda achicar no puede costarle la foto al usuario:
+            // queda guardada como la subió, pesada, y el motivo en el log.
+            //
+            // Esto no es decorativo. Pasó de verdad: GD venía compilado sin
+            // webp, un formato que los formularios sí aceptan, y el fallo era
+            // un `Error` de función indefinida —ni siquiera una excepción—.
+            // La imagen ya trae webp, pero cualquier formato que la validación
+            // acepte y la librería no sepa leer volvería a caer justo acá.
+            report($e);
+        }
     }
 }

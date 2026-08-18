@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
   libzip-dev \
   libjpeg62-turbo-dev \
   libfreetype6-dev \
+  libwebp-dev \
   libicu-dev \
   locales \
   zip \
@@ -27,7 +28,9 @@ RUN apt-get update && apt-get install -y \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Extensiones PHP
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+# --with-webp no es opcional: los formularios aceptan webp, y sin esto GD no
+# tiene imagecreatefromwebp(), así que achicar una foto webp reventaba.
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
   && docker-php-ext-install -j"$(nproc)" pdo_mysql bcmath zip exif pcntl gd intl opcache
 
 RUN pecl install redis && docker-php-ext-enable redis

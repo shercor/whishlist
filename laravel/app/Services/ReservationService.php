@@ -70,7 +70,15 @@ class ReservationService
     {
         $avisadas = 0;
 
-        foreach (Reservation::expiringSoon(self::DIAS_DE_AVISO)->with('user')->cursor() as $reservation) {
+        $porAvisar = Reservation::expiringSoon(self::DIAS_DE_AVISO)
+            // Sin el regalo no hay nada que decir: el aviso nombra el regalo y
+            // a quién es, así que sobre una reserva huérfana la notificación
+            // revienta contra un nulo. Y lo hace **dentro del worker**, donde
+            // no lo ve nadie: la petición que la encoló termina bien.
+            ->whereHas('wishlistItem.wishlist')
+            ->with('user');
+
+        foreach ($porAvisar->cursor() as $reservation) {
             $reservation->user->notify(new ReservationExpiring($reservation));
 
             // Se marca aunque la notificación se encole: si el worker falla,

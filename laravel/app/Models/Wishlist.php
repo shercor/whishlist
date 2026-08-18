@@ -30,6 +30,29 @@ class Wishlist extends Model
         ];
     }
 
+    /**
+     * Al borrar una lista se lleva sus regalos.
+     *
+     * La migración declara `cascadeOnDelete`, pero eso solo vale para un
+     * borrado de verdad: acá el borrado es suave, la fila de la lista sigue
+     * existiendo y la base no tiene nada que cascadear. Sin esto, los regalos
+     * quedaban vivos apuntando a una lista que ya nadie ve, y todo lo que
+     * hiciera `$item->wishlist->...` reventaba con un nulo.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $wishlist) {
+            if ($wishlist->isForceDeleting()) {
+                // Un borrado de verdad sí lo cascadea la base.
+                return;
+            }
+
+            // Uno por uno y no con un update masivo: cada regalo tiene que
+            // pasar por su propio hook, que es el que suelta las reservas.
+            $wishlist->items()->each(fn (WishlistItem $item) => $item->delete());
+        });
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

@@ -34,6 +34,42 @@ class WishlistItem extends Model
         ];
     }
 
+    /**
+     * Al borrar un regalo se sueltan sus reservas.
+     *
+     * Mismo motivo que en Wishlist: el borrado es suave, así que el
+     * `cascadeOnDelete` de la migración no se dispara y la reserva quedaba
+     * viva apuntando a un regalo que ya no existe. Quien lo había reservado
+     * se encontraba con «Voy a regalar» roto y sin forma de arreglarlo, ni
+     * siquiera soltando la reserva, porque la pantalla no llegaba a cargar.
+     *
+     * Se sueltan como canceladas: nadie va a regalar algo que ya no está en
+     * ninguna lista.
+     */
+    protected static function booted(): void
+    {
+        static::deleting(function (self $item) {
+            if ($item->isForceDeleting()) {
+                return;
+            }
+
+            $item->releaseActiveReservation(ReservationStatus::CANCELLED);
+        });
+    }
+
+    /**
+     * Suelta la reserva viva de este regalo, si la hay.
+     *
+     * Devuelve si había alguna. No dice quién la tenía —ni podría—: esto lo
+     * llama el dueño de la lista sin enterarse de nada.
+     */
+    public function releaseActiveReservation(ReservationStatus $status): bool
+    {
+        $reserva = $this->reservations()->whereNotNull('active_flag')->first();
+
+        return $reserva?->release($status) ?? false;
+    }
+
     public function wishlist(): BelongsTo
     {
         return $this->belongsTo(Wishlist::class);

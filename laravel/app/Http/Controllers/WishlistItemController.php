@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ReservationStatus;
 use App\Http\Requests\StoreWishlistItemRequest;
 use App\Http\Requests\UpdateWishlistItemRequest;
 use App\Jobs\ShrinkStoredImage;
@@ -85,6 +86,14 @@ class WishlistItemController extends Controller
         $this->authorize('markReceived', $item);
 
         $item->update(['received_at' => $item->isReceived() ? null : now()]);
+
+        // El regalo llegó, así que la reserva cumplió su función y se cierra.
+        // Si no, quien lo reservó lo seguiría viendo en «Voy a regalar» hasta
+        // que venciera el plazo, y el regalo quedaría bloqueado por una
+        // reserva que ya no significa nada.
+        if ($item->isReceived()) {
+            $item->releaseActiveReservation(ReservationStatus::FULFILLED);
+        }
 
         return redirect()->route('wishlists.show', $item->wishlist)
             ->with('status', $item->isReceived() ? 'Marcado como recibido.' : 'Vuelve a estar en la lista.');

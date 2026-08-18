@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 110 passed
+make test                                                     # 128 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -122,14 +122,15 @@ Commits en `main`:
 | `e7976fa` | Pone al día el HANDOFF y el README para el traslado de equipo |
 | `4cf97e9` | Tests de las cinco reglas que se caían en silencio          |
 | `117266a` | Cola de trabajos: worker `queue` y achicado de las fotos subidas |
-| (el último) | Notificaciones dentro de la app: campana, solicitud de acceso y reserva por vencer |
+| `85c8de0` | Notificaciones dentro de la app: campana, solicitud de acceso y reserva por vencer |
+| (el último) | Auditoría: arregla el 500 de «Voy a regalar», el webp que no se podía achicar y la reserva que sobrevivía al regalo |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **110 passed**.
+`make test` → **128 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -374,6 +375,8 @@ Los tests que importan y qué vigilan:
 | `UserSuggestTest`                  | que el endpoint de sugerencias no encuentre a nadie por su nombre ni su correo |
 | `ShrinkStoredImageTest`            | que la foto subida se achique, conserve formato y ruta, y que subirla lo encole |
 | `NotificationTest`                 | **que el dueño nunca sea avisado de una reserva**, que no se avise dos veces, y que nadie abra la notificación de otro |
+| `AuditProbeTest`                   | barrido: toda ruta que muta apretada por un extraño, todo lo que exige sesión, basura en los formularios, escapado del HTML y consultas por página |
+| `AuditFlowTest`                    | secuencias: borrar una lista o un regalo reservado, revocar accesos, ciclo del enlace secreto, marcar recibido |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -643,6 +646,19 @@ pero no se ejecuta nunca —hoy son dos comandos: liberar reservas vencidas cada
 hora, y avisar de las que están por vencer a las 10:00—. Ya pasó una vez con las reservas vencidas. El
 servicio `queue` corre `queue:work` y es lo mismo para los jobs: sin él se
 apilan en redis en silencio.
+
+**El borrado es suave, así que la base no cascadea nada.** `Wishlist`,
+`WishlistItem` y `Product` usan `SoftDeletes`. Las migraciones declaran
+`cascadeOnDelete`, pero eso solo se dispara en un borrado de verdad: al borrar
+suave la fila sigue ahí y los hijos quedan huérfanos. Costó un 500 permanente
+en «Voy a regalar» —la reserva sobrevivía al regalo borrado y la vista hacía
+`$item->product` sobre un nulo—. Hoy lo resuelven los hooks `deleting` de los
+dos modelos. **Si agregas otra relación colgando de estos, revisa que el hook
+la contemple: la base de datos no te va a avisar.**
+
+**Recrear el contenedor `app` deja a nginx dando 502.** El upstream le queda
+apuntando al contenedor viejo. Se arregla con `docker compose restart
+webserver`. Pasa después de cualquier `docker compose up -d --build app`.
 
 **El worker se queda con el código viejo.** `queue:work` carga la aplicación
 una vez y la mantiene en memoria, así que después de cambiar un job hay que
