@@ -7,6 +7,7 @@ use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GiftController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductLikeController;
+use App\Http\Controllers\ProductPublicationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\UserSearchController;
@@ -60,6 +61,9 @@ Route::middleware('auth')->group(function () {
     // --- Catálogo: votar las fichas bien hechas -----------------------------
     Route::post('/products/{product}/like', [ProductLikeController::class, 'store'])->name('products.like');
     Route::delete('/products/{product}/like', [ProductLikeController::class, 'destroy'])->name('products.unlike');
+    // Retirar del catálogo una ficha propia. No hay ruta para publicar: eso se
+    // pide al escribir el regalo, con la casilla del formulario.
+    Route::delete('/products/{product}/publicacion', [ProductPublicationController::class, 'destroy'])->name('products.unpublish');
 
     // --- Listas de otros, para regalarles ----------------------------------
     Route::get('/discover', [WishlistController::class, 'discover'])->name('discover');

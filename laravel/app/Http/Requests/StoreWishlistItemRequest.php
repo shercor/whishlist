@@ -53,6 +53,11 @@ class StoreWishlistItemRequest extends FormRequest
             // de celular sin tocar.
             'image' => ['nullable', 'image', 'mimes:jpeg,png,webp', 'max:4096'],
 
+            // Compartir la ficha con el catálogo público. Solo tiene sentido
+            // con un producto escrito a mano: si eligió uno del catálogo, ya
+            // está publicado.
+            'share_with_catalog' => ['boolean'],
+
             'alias' => ['nullable', 'string', 'max:200'],
             'notes' => ['nullable', 'string', 'max:500'],
             'priority' => ['required', Rule::in(ItemPriority::labels())],
@@ -72,6 +77,7 @@ class StoreWishlistItemRequest extends FormRequest
             'priority' => 'prioridad',
             'notes' => 'notas',
             'image' => 'imagen',
+            'share_with_catalog' => 'compartir con el catálogo',
         ];
     }
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductLikeController;
+use App\Http\Controllers\Api\V1\ProductPublicationController;
 use App\Http\Controllers\Api\V1\ProfileController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\TokenController;
@@ -76,6 +77,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // PUT porque votar es idempotente: apretarlo dos veces deja un voto.
         Route::put('products/{product}/like', [ProductLikeController::class, 'store'])->name('products.like.store');
         Route::delete('products/{product}/like', [ProductLikeController::class, 'destroy'])->name('products.like.destroy');
+        // Retirar del catálogo una ficha propia. No hay POST hermano: publicar
+        // se pide al crear el regalo, con `share_with_catalog`.
+        Route::delete('products/{product}/publication', [ProductPublicationController::class, 'destroy'])->name('products.publication.destroy');
 
         // --- Seguidores -------------------------------------------------------
         Route::get('follows', [FollowController::class, 'index'])->name('follows.index');

@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 164 passed
+make test                                                     # 175 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -125,14 +125,15 @@ Commits en `main`:
 | `85c8de0` | Notificaciones dentro de la app: campana, solicitud de acceso y reserva por vencer |
 | `8f8e5d7` | Auditoría: arregla el 500 de «Voy a regalar», el webp que no se podía achicar y la reserva que sobrevivía al regalo |
 | `3521c46` | Borra la vista de bienvenida huérfana                       |
-| (el último) | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
+| `d673f19` | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
+| (el último) | El catálogo público acepta fichas de usuarios, con marcha atrás |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **164 passed**.
+`make test` → **175 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -383,6 +384,7 @@ Los tests que importan y qué vigilan:
 | `Api/ApiAuthTest`                  | tokens: freno de fuerza bruta, 401 sin token, revocar un aparato o todos |
 | `Api/ApiAuthorizationTest`         | la API apretada por un extraño **con token válido**, y que el `share_token` no llegue a un invitado |
 | `Api/ApiCrudTest`                  | el ciclo completo y los códigos: 201, 204, 409, 422 |
+| `PublicCatalogTest`                | compartir una ficha con el catálogo y retirarla, y que compartirla no delate tu lista |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -589,10 +591,24 @@ sorpresa— así que el ítem queda tomado hasta que el job de reservas vencidas
 suelte, a los 14 días. Es tolerable, pero está sin decidir si debería soltarse
 en el acto.
 
-**Visibilidad del catálogo.** Hoy cualquier producto `is_public = true` es
-visible para todos, y los seeders son la única forma de crear uno. Falta
-decidir si los usuarios pueden proponer productos al catálogo público y si eso
-requiere moderación.
+**Visibilidad del catálogo: resuelto.** Los usuarios **sí** pueden proponer
+productos, y se publican **al instante, sin moderación**. Se pide con la casilla
+«Compartir esta ficha con el catálogo» al escribir un regalo a mano
+(`share_with_catalog`, también en la API).
+
+Se decidió así a sabiendas de la contrapartida: el catálogo ya tenía fichas
+repetidas y esto las va a multiplicar, y no hay quien limpie. La marcha atrás
+existe y es lo único que hay contra una ficha publicada por error: su autor la
+retira con `DELETE /products/{id}/publication` (o el botón «Retirar del
+catálogo» en el buscador). Retirarla no la borra —las listas de quienes ya la
+agregaron siguen intactas— pero sí se lleva los votos que juntó.
+
+Lo que **no** cambia: compartir la ficha no cuenta que tú quieras el regalo. La
+lista y el deseo siguen siendo privados, y hay un test que lo fija.
+
+Si el catálogo se ensucia, lo siguiente sería moderación: un estado pendiente en
+`products`, una pantalla de revisión, y un rol de admin —que hoy no existe: el
+usuario admin es uno normal creado por seeder—.
 
 ---
 
@@ -674,6 +690,13 @@ en «Voy a regalar» —la reserva sobrevivía al regalo borrado y la vista hac�
 `$item->product` sobre un nulo—. Hoy lo resuelven los hooks `deleting` de los
 dos modelos. **Si agregas otra relación colgando de estos, revisa que el hook
 la contemple: la base de datos no te va a avisar.**
+
+**Un `use` que se va al refactorizar no lo pilla ningún test de lógica.** Al
+extraer `UserProductCreator` se fue el import de `Product` del controlador web y
+el formulario de agregar regalo empezó a devolver 500, con la suite en verde:
+ningún test abría esa página. Por eso existe
+`AuditProbeTest::test_every_screen_actually_renders`, que pide las trece
+pantallas y comprueba que responden 200. Si agregas una pantalla, agrégala ahí.
 
 **Recrear el contenedor `app` deja a nginx dando 502.** El upstream le queda
 apuntando al contenedor viejo. Se arregla con `docker compose restart

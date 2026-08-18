@@ -60,6 +60,20 @@
                                     </span>
                                 </button>
                             </form>
+
+                            @can('unpublish', $producto)
+                                {{-- Publicar es directo, así que la marcha atrás
+                                     tiene que estar a la vista de su autor. --}}
+                                <form method="POST" action="{{ route('products.unpublish', $producto) }}"
+                                      style="margin-top:0.4rem">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="boton-plano"
+                                            title="Dejará de estar en el catálogo de los demás">
+                                        Retirar del catálogo
+                                    </button>
+                                </form>
+                            @endcan
                         @endif
                     </div>
                 </div>
@@ -101,7 +115,10 @@
     @endforelse
 
     <h2>O escríbelo tú</h2>
-    <p class="bajada">Queda como producto privado: solo lo ves tú y quien mire esta lista.</p>
+    <p class="bajada">
+        Queda como producto privado: solo lo ves tú y quien mire esta lista.
+        Si quieres, puedes compartir la ficha con el catálogo para que le sirva a más gente.
+    </p>
 
     {{-- enctype: sin esto el navegador manda solo el nombre del archivo y la
          imagen nunca llega. --}}
@@ -174,6 +191,21 @@
                     </option>
                 @endforeach
             </select>
+        </div>
+
+        <div class="campo">
+            <label class="opcion" for="share_with_catalog">
+                <input id="share_with_catalog" type="checkbox" name="share_with_catalog" value="1"
+                       @checked(old('share_with_catalog'))>
+                Compartir esta ficha con el catálogo
+            </label>
+            <p class="tarjeta-meta">
+                La ficha —el nombre, la foto y el precio— pasa a estar visible para todos y
+                cualquiera puede agregarla a su lista. <strong>Tu lista y tu regalo siguen
+                siendo tuyos:</strong> lo que se comparte es la ficha del producto, no que tú lo quieras.
+                Puedes retirarla cuando quieras: aparece con un botón para hacerlo en el
+                buscador del catálogo de arriba.
+            </p>
         </div>
 
         <div class="acciones">

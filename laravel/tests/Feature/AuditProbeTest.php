@@ -318,4 +318,51 @@ class AuditProbeTest extends TestCase
             $this->assertLessThan(500, $respuesta->status(), "Subir {$formato} devolvió {$respuesta->status()}.");
         }
     }
+
+    /**
+     * Que cada pantalla se renderice de verdad.
+     *
+     * Parece trivial y no lo es: un `use` de más que se borra al refactorizar
+     * no lo detecta ningún test de lógica, porque el fallo está en la vista o
+     * en el método que la arma. Pasó exactamente eso —se extrajo un servicio,
+     * se fue el import de `Product`, y el formulario de agregar regalo devolvía
+     * 500— y ningún test lo vio porque ninguno abría esa página.
+     */
+    public function test_every_screen_actually_renders(): void
+    {
+        $duenio = User::factory()->create(['is_private' => false]);
+        $lista = Wishlist::factory()
+            ->visibility(WishlistVisibility::PUBLIC)
+            ->create(['user_id' => $duenio->id]);
+
+        WishlistItem::factory()->for($lista)->create();
+        Product::factory()->create();
+
+        $pantallas = [
+            'mis listas' => route('wishlists.index'),
+            'crear lista' => route('wishlists.create'),
+            'ver lista' => route('wishlists.show', $lista),
+            'editar lista' => route('wishlists.edit', $lista),
+            'agregar regalo' => route('items.create', $lista),
+            'quién la ve' => route('access.manage', $lista),
+            'descubrir' => route('discover'),
+            'buscar personas' => route('users.search', ['q' => 'pel']),
+            'mi perfil' => route('profile.edit'),
+            'mi gente' => route('follows.index'),
+            'solicitudes' => route('access.index'),
+            'notificaciones' => route('notifications.index'),
+            'voy a regalar' => route('reservations.index'),
+        ];
+
+        foreach ($pantallas as $nombre => $url) {
+            $this->actingAs($duenio)
+                ->get($url)
+                ->assertOk("«{$nombre}» no se renderiza: {$url}");
+        }
+
+        // La de regalar es de otra persona, así que va con otro usuario.
+        $this->actingAs(User::factory()->create())
+            ->get(route('gifts.show', $lista))
+            ->assertOk('«regalar» no se renderiza.');
+    }
 }

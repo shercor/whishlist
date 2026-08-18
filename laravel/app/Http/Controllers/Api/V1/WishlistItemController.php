@@ -9,7 +9,7 @@ use App\Http\Requests\UpdateWishlistItemRequest;
 use App\Http\Resources\WishlistItemResource;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
-use App\Services\PrivateProductCreator;
+use App\Services\UserProductCreator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -26,7 +26,7 @@ class WishlistItemController extends Controller
     public function store(
         StoreWishlistItemRequest $request,
         Wishlist $wishlist,
-        PrivateProductCreator $productos,
+        UserProductCreator $productos,
     ): JsonResponse {
         $this->authorize('manageItems', $wishlist);
 
@@ -34,6 +34,7 @@ class WishlistItemController extends Controller
             $request->safe()->only(['category_id', 'name', 'description', 'url', 'reference_price']),
             $request->file('image'),
             $request->user(),
+            $request->boolean('share_with_catalog'),
         );
 
         $item = $wishlist->items()->create([

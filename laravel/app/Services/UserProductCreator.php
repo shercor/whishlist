@@ -11,26 +11,31 @@ use Illuminate\Http\UploadedFile;
  * El regalo que alguien escribe a mano, cuando no está en el catálogo.
  *
  * Existe porque lo crean dos sitios —el formulario de la web y la API— y son
- * cuatro decisiones que no pueden divergir: nace privado, su autor queda
- * anotado, el nombre del archivo lo inventa Laravel, y la foto se achica en la
- * cola. Con una copia en cada controlador, la segunda se olvida de una.
+ * decisiones que no pueden divergir: su autor queda anotado, el nombre del
+ * archivo lo inventa Laravel, la foto se achica en la cola, y nace privado
+ * salvo que la persona pida compartirlo.
  */
-class PrivateProductCreator
+class UserProductCreator
 {
     private const CARPETA = 'productos';
 
     /**
      * @param  array<string, mixed>  $atributos
+     * @param  bool  $alCatalogo  Si la persona pidió compartirlo con todos.
      */
-    public function create(array $atributos, ?UploadedFile $foto, User $autor): Product
-    {
+    public function create(
+        array $atributos,
+        ?UploadedFile $foto,
+        User $autor,
+        bool $alCatalogo = false,
+    ): Product {
         return Product::create([
             ...$atributos,
             'created_by_user_id' => $autor->id,
             'image_path' => $this->guardarFoto($foto),
-            // Privado siempre: lo que alguien escribe para su lista no entra
-            // al catálogo de nadie más.
-            'is_public' => false,
+            // Privado por defecto: compartir con el catálogo es algo que se
+            // pide, nunca lo que pasa por no marcar nada.
+            'is_public' => $alCatalogo,
         ]);
     }
 

@@ -23,4 +23,17 @@ class ProductPolicy
     {
         return $product->is_public;
     }
+
+    /**
+     * Retirar del catálogo una ficha que uno mismo publicó.
+     *
+     * Los productos del catálogo curado —los de los seeders, sin autor— no se
+     * retiran desde la aplicación: nadie es su dueño. Y una ficha ajena
+     * tampoco, aunque sea pública: eso sería moderación, y esto no lo es.
+     */
+    public function unpublish(User $user, Product $product): bool
+    {
+        return $product->is_public
+            && $product->created_by_user_id === $user->id;
+    }
 }

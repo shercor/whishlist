@@ -258,6 +258,52 @@ class ApiCrudTest extends TestCase
         $this->assertSame(0, $regalador->fresh()->unreadNotifications()->count());
     }
 
+    /**
+     * Compartir con el catálogo desde la API, y retirarlo.
+     */
+    public function test_a_gift_can_be_shared_with_the_catalog_and_pulled_back(): void
+    {
+        $autor = User::factory()->create();
+        $lista = Wishlist::factory()->create(['user_id' => $autor->id]);
+
+        Sanctum::actingAs($autor);
+
+        $this->postJson(route('api.v1.items.store', $lista), [
+            'name' => 'Cuaderno de la feria',
+            'category_id' => Category::factory()->create()->id,
+            'priority' => ItemPriority::MEDIUM->label(),
+            'share_with_catalog' => true,
+        ])->assertCreated()->assertJsonPath('data.product.is_public', true);
+
+        $producto = Product::where('name', 'Cuaderno de la feria')->firstOrFail();
+
+        // Otra persona lo ve en el catálogo.
+        Sanctum::actingAs(User::factory()->create());
+        $this->getJson(route('api.v1.products.show', $producto))->assertOk();
+
+        // Y solo su autor lo retira.
+        $this->deleteJson(route('api.v1.products.publication.destroy', $producto))->assertForbidden();
+
+        Sanctum::actingAs($autor);
+        $this->deleteJson(route('api.v1.products.publication.destroy', $producto))
+            ->assertOk()
+            ->assertJsonPath('data.is_public', false);
+    }
+
+    public function test_a_gift_stays_private_when_sharing_is_not_asked_for(): void
+    {
+        $autor = User::factory()->create();
+        $lista = Wishlist::factory()->create(['user_id' => $autor->id]);
+
+        Sanctum::actingAs($autor);
+
+        $this->postJson(route('api.v1.items.store', $lista), [
+            'name' => 'Algo muy mío',
+            'category_id' => Category::factory()->create()->id,
+            'priority' => ItemPriority::MEDIUM->label(),
+        ])->assertCreated()->assertJsonPath('data.product.is_public', false);
+    }
+
     public function test_validation_errors_come_back_as_422_with_field_names(): void
     {
         Sanctum::actingAs(User::factory()->create());

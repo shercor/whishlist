@@ -6,9 +6,10 @@ use App\Enums\ReservationStatus;
 use App\Http\Requests\StoreWishlistItemRequest;
 use App\Http\Requests\UpdateWishlistItemRequest;
 use App\Models\Category;
+use App\Models\Product;
 use App\Models\Wishlist;
 use App\Models\WishlistItem;
-use App\Services\PrivateProductCreator;
+use App\Services\UserProductCreator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,7 +41,7 @@ class WishlistItemController extends Controller
     public function store(
         StoreWishlistItemRequest $request,
         Wishlist $wishlist,
-        PrivateProductCreator $productos,
+        UserProductCreator $productos,
     ): RedirectResponse {
         $this->authorize('manageItems', $wishlist);
 
@@ -48,6 +49,7 @@ class WishlistItemController extends Controller
             $request->safe()->only(['category_id', 'name', 'description', 'url', 'reference_price']),
             $request->file('image'),
             $request->user(),
+            $request->boolean('share_with_catalog'),
         );
 
         $wishlist->items()->create([
