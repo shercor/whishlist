@@ -10,3 +10,8 @@ Artisan::command('inspire', function () {
 
 // Cada hora basta: el plazo de una reserva se mide en días, no en minutos.
 Schedule::command('reservations:release-expired')->hourly();
+
+// Una vez al día y a media mañana: el aviso dice «te quedan 3 días», así que
+// llegar a las 3 de la madrugada solo conseguiría que se leyera más tarde.
+// Va antes que la liberación del día para no avisar de algo ya soltado.
+Schedule::command('reservations:warn-expiring')->dailyAt('10:00');

@@ -17,6 +17,7 @@ class Reservation extends Model
         'user_id',
         'status',
         'expires_at',
+        'expiry_warned_at',
         'released_at',
         'note',
         'active_flag',
@@ -26,6 +27,7 @@ class Reservation extends Model
     {
         return [
             'expires_at' => 'datetime',
+            'expiry_warned_at' => 'datetime',
             'released_at' => 'datetime',
             'active_flag' => 'integer',
         ];
@@ -68,6 +70,23 @@ class Reservation extends Model
         return $query->whereNotNull('active_flag')
             ->whereNotNull('expires_at')
             ->where('expires_at', '<=', now());
+    }
+
+    /**
+     * Reservas vivas a las que les quedan pocos días y a las que todavía no
+     * se ha avisado.
+     *
+     * El «todavía no» lo decide `expiry_warned_at` y no la fecha: el comando
+     * corre a diario sobre una ventana de varios días, así que sin esa marca
+     * la misma reserva avisaría una vez por día hasta vencer.
+     */
+    public function scopeExpiringSoon(Builder $query, int $dias): Builder
+    {
+        return $query->whereNotNull('active_flag')
+            ->whereNull('expiry_warned_at')
+            ->whereNotNull('expires_at')
+            ->where('expires_at', '>', now())
+            ->where('expires_at', '<=', now()->addDays($dias));
     }
 
     /**

@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 98 passed
+make test                                                     # 110 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -121,14 +121,15 @@ Commits en `main`:
 | `9663d7f` | El perfil muestra las listas privadas a las que ya tienes acceso |
 | `e7976fa` | Pone al día el HANDOFF y el README para el traslado de equipo |
 | `4cf97e9` | Tests de las cinco reglas que se caían en silencio          |
-| (el último) | Cola de trabajos: worker `queue` y achicado de las fotos subidas |
+| `117266a` | Cola de trabajos: worker `queue` y achicado de las fotos subidas |
+| (el último) | Notificaciones dentro de la app: campana, solicitud de acceso y reserva por vencer |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **98 passed**.
+`make test` → **110 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -372,11 +373,13 @@ Los tests que importan y qué vigilan:
 | `ProductLikeTest`                  | que lo privado no se vote, y que el doble clic no sea un 500 |
 | `UserSuggestTest`                  | que el endpoint de sugerencias no encuentre a nadie por su nombre ni su correo |
 | `ShrinkStoredImageTest`            | que la foto subida se achique, conserve formato y ruta, y que subirla lo encole |
+| `NotificationTest`                 | **que el dueño nunca sea avisado de una reserva**, que no se avise dos veces, y que nadie abra la notificación de otro |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
-regla del dueño que no reserva, el filtro de «me gusta» y el buscador de
-sugerencias, cae exactamente el test que cada uno dice cuidar.
+regla del dueño que no reserva, el filtro de «me gusta», el buscador de
+sugerencias y la protección de la sorpresa en las notificaciones, cae
+exactamente el test que cada uno dice cuidar.
 
 **El agujero que queda, ya bastante más chico:** además de las catorce reglas
 de acceso, ahora tienen red las cinco cosas que se caían en silencio: el
@@ -386,7 +389,7 @@ Lo que sigue sin un solo test son los formularios de listas y regalos, el
 reparto de accesos y el registro, que se verificaron a mano por HTTP y con
 capturas, una vez.
 
-**No hecho todavía:** API (todo es Blade con formularios) y notificaciones.
+**No hecho todavía:** API (todo es Blade con formularios) y correo saliente.
 
 ---
 
@@ -531,10 +534,13 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    publicada en el HTML— ni guardar varios tamaños.
 3. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
    redirige a `/login` o a `/wishlists` y nadie la renderiza.
-4. **Notificaciones.** Avisar al dueño que le pidieron acceso, y a quien reservó
-   que su plazo de 14 días está por vencer. Sin esto, el job que libera reservas
-   vencidas sorprende al que iba a comprar. Ya no está bloqueado: el worker de
-   cola existe desde que se agregó el achicado de fotos.
+4. **Notificaciones: hechas, dentro de la app.** Campana en la barra, tabla
+   `notifications` y dos avisos: al dueño cuando le piden una lista, y a quien
+   reservó cuando le quedan 3 días. Van encoladas, así que las procesa el
+   worker. **No hay correo**: `MAIL_MAILER=log`, y decidirlo es lo que queda
+   —el aviso de reserva por vencer solo sirve de verdad si alcanza a quien no
+   está mirando la app—. Candidatas obvias a un tercer y cuarto aviso: que
+   respondieron tu solicitud, y que alguien empezó a seguirte.
 5. **API.** Hoy todo es Blade con formularios. Si va a haber app móvil, aquí
    entran los `Resource`: exponer `is_reserved` como booleano para quien mira,
    **nunca** el `user_id` de la reserva, y para el dueño ni siquiera el booleano.
@@ -633,7 +639,8 @@ está en `.gitignore` y lo crea `make storage`, que ya corre dentro de
 
 **Lo programado y lo encolado necesitan cada uno su contenedor.** El servicio
 `scheduler` corre `schedule:work`; sin él, `routes/console.php` queda escrito
-pero no se ejecuta nunca. Ya pasó una vez con las reservas vencidas. El
+pero no se ejecuta nunca —hoy son dos comandos: liberar reservas vencidas cada
+hora, y avisar de las que están por vencer a las 10:00—. Ya pasó una vez con las reservas vencidas. El
 servicio `queue` corre `queue:work` y es lo mismo para los jobs: sin él se
 apilan en redis en silencio.
 

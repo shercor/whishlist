@@ -22,6 +22,7 @@ class ProductSeeder extends Seeder
 
             if (! $category) {
                 $this->command->warn("Categoría no encontrada: {$row['category']}, se omite {$row['name']}");
+
                 continue;
             }
 

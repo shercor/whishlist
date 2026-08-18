@@ -7,6 +7,7 @@ use App\Enums\AccessSource;
 use App\Enums\FollowStatus;
 use App\Models\Wishlist;
 use App\Models\WishlistAccess;
+use App\Notifications\AccessRequested;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -59,12 +60,17 @@ class AccessRequestController extends Controller
             ['message' => 'mensaje']
         );
 
-        $wishlist->accesses()->create([
+        $acceso = $wishlist->accesses()->create([
             'user_id' => $request->user()->id,
             'status' => AccessRequestStatus::PENDING->label(),
             'source' => AccessSource::REQUEST->label(),
             'message' => $validated['message'] ?? null,
         ]);
+
+        // Sin este aviso, el pedido solo se descubre entrando a «Solicitudes»
+        // a propósito, y quien pidió se queda esperando una respuesta que
+        // nadie sabe que tiene que dar.
+        $wishlist->user->notify(new AccessRequested($acceso));
 
         return redirect()->route('access.index')
             ->with('status', 'Pedido enviado. Te avisará cuando responda.');

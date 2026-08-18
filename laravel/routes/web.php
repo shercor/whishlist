@@ -5,6 +5,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\FollowController;
 use App\Http\Controllers\GiftController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductLikeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReservationController;
@@ -71,6 +72,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/reservations', [ReservationController::class, 'index'])->name('reservations.index');
     Route::post('/items/{item}/reservation', [ReservationController::class, 'store'])->name('reservations.store');
     Route::delete('/items/{item}/reservation', [ReservationController::class, 'destroy'])->name('reservations.destroy');
+
+    // --- Notificaciones -----------------------------------------------------
+    Route::get('/notificaciones', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notificaciones/leidas', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    // Va después de /leidas para que esa palabra no se lea como un id.
+    Route::get('/notificaciones/{notification}', [NotificationController::class, 'open'])->name('notifications.open');
 
     // --- Seguidores ---------------------------------------------------------
     Route::get('/seguidores', [FollowController::class, 'index'])->name('follows.index');

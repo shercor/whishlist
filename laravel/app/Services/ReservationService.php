@@ -6,6 +6,7 @@ use App\Enums\ReservationStatus;
 use App\Models\Reservation;
 use App\Models\User;
 use App\Models\WishlistItem;
+use App\Notifications\ReservationExpiring;
 use Illuminate\Database\QueryException;
 
 /**
@@ -51,6 +52,36 @@ class ReservationService
     public function release(Reservation $reservation, ReservationStatus $status = ReservationStatus::CANCELLED): void
     {
         $reservation->release($status);
+    }
+
+    /**
+     * Días de antelación con que se avisa a quien reservó.
+     *
+     * Tres deja margen para ir a comprar el fin de semana sin que el aviso
+     * llegue tan pronto que se olvide.
+     */
+    public const DIAS_DE_AVISO = 3;
+
+    /**
+     * Avisa a quien reservó que su plazo está por vencer, una sola vez por
+     * reserva. Devuelve cuántos avisos salieron.
+     */
+    public function warnExpiring(): int
+    {
+        $avisadas = 0;
+
+        foreach (Reservation::expiringSoon(self::DIAS_DE_AVISO)->with('user')->cursor() as $reservation) {
+            $reservation->user->notify(new ReservationExpiring($reservation));
+
+            // Se marca aunque la notificación se encole: si el worker falla,
+            // el aviso se pierde, pero repetirlo cada día sería peor. La
+            // notificación fallida queda en `failed_jobs`.
+            $reservation->update(['expiry_warned_at' => now()]);
+
+            $avisadas++;
+        }
+
+        return $avisadas;
     }
 
     /**

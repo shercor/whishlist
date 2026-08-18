@@ -22,7 +22,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 .PHONY: help setup env build up down restart rebuild destroy \
         install key migrate fresh seed admin optimize test test-db \
         sh sh-root logs logs-app ps db xdebug-on xdebug-off \
-        queue-logs queue-restart queue-failed queue-retry \
+        queue-status queue-logs queue-restart queue-failed queue-retry \
         artisan composer npm
 
 ## --------------------------------------------------------------------------
@@ -118,6 +118,12 @@ logs-app: ## Logs de Laravel en vivo
 ## --------------------------------------------------------------------------
 ## Cola de trabajos
 ## --------------------------------------------------------------------------
+
+queue-status: ## Estado de la cola: worker, pendientes y fallidos
+	@$(DC) ps queue
+	@echo ""
+	@$(RUN) php artisan queue:monitor redis:default
+	@$(RUN) php artisan queue:failed
 
 queue-logs: ## Qué está procesando el worker, en vivo
 	@$(DC) logs -f queue

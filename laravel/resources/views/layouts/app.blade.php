@@ -42,6 +42,14 @@
                         <span class="contador" aria-label="{{ $pendientes }} sin responder">{{ $pendientes }}</span>
                     @endif
                 </a>
+                @php($sinLeer = auth()->user()->unreadNotifications()->count())
+                <a href="{{ route('notifications.index') }}" @class(['activo' => request()->routeIs('notifications.*')])
+                   aria-label="Notificaciones{{ $sinLeer > 0 ? ", {$sinLeer} sin leer" : '' }}">
+                    <span aria-hidden="true">🔔</span>
+                    @if ($sinLeer > 0)
+                        <span class="contador">{{ $sinLeer }}</span>
+                    @endif
+                </a>
             </nav>
             @include('layouts.tema')
             <form method="POST" action="{{ route('logout') }}" class="salir">
