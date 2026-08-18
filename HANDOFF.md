@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 64 passed
+make test                                                     # 89 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -124,8 +124,9 @@ Commits en `main`:
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
-fulltext). Todo eso está automatizado en la suite, no solo probado a mano:
-`make test` → **64 passed**.
+fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
+eso está automatizado en la suite, no solo probado a mano:
+`make test` → **89 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -364,18 +365,26 @@ Los tests que importan y qué vigilan:
 | `WishlistVisibilityTest`           | las dos visibilidades, token de enlace, acceso aprobado |
 | `EnumTest`                         | ida y vuelta de `label()` ↔ caso del enum          |
 | `FollowAccessTest`                 | **quién ve la lista de quién**: perfil privado, seguidores, invitación, enlace, que dejar de seguir corte el acceso, y que el perfil liste exactamente lo que se puede abrir |
+| `AvatarStorageTest`                | que cambiar la foto borre la anterior del disco    |
+| `ReservationFlowTest`              | que el dueño no reserve en su lista, y que perder la carrera avise en vez de reventar |
+| `ProductLikeTest`                  | que lo privado no se vote, y que el doble clic no sea un 500 |
+| `UserSuggestTest`                  | que el endpoint de sugerencias no encuentre a nadie por su nombre ni su correo |
 
-Los dos invariantes garantizados por la base se verificaron por mutación:
-quitando el índice único, el test falla. No son verdes por casualidad.
+Verificado por mutación, no solo verde: quitando el índice único caen los
+invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
+regla del dueño que no reserva, el filtro de «me gusta» y el buscador de
+sugerencias, cae exactamente el test que cada uno dice cuidar.
 
-**El agujero que queda, ya más chico:** `FollowAccessTest` cubre las catorce
-reglas de quién ve la lista de quién, que era lo más delicado. Pero el resto de
-la capa de aplicación —controladores, formularios, subida de fotos, «me
-gusta», el buscador con sugerencias— sigue sin un solo test y se verificó a
-mano, por HTTP y con capturas, una vez. La lista concreta está en la sección 5.
+**El agujero que queda, ya bastante más chico:** además de las catorce reglas
+de acceso, ahora tienen red las cinco cosas que se caían en silencio: el
+borrado de la foto vieja, el dueño reservando en su propia lista, el voto a un
+producto privado, la carrera de dos reservas y el buscador de sugerencias.
+Lo que sigue sin un solo test son los formularios de listas y regalos, el
+reparto de accesos y el registro, que se verificaron a mano por HTTP y con
+capturas, una vez.
 
-**No hecho todavía:** API (todo es Blade con formularios), notificaciones,
-achicar las fotos al subirlas, y los tests de todo lo que no sea el acceso.
+**No hecho todavía:** API (todo es Blade con formularios), notificaciones y
+achicar las fotos al subirlas.
 
 ---
 
@@ -504,17 +513,13 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
-1. **Los tests que faltan.** `FollowAccessTest` ya cubre lo más delicado —quién
-   ve la lista de quién, el enlace, la invitación, que dejar de seguir corte el
-   acceso, y que buscar el nombre real no encuentre a nadie—. Lo que sigue
-   **sin red** y yo escribiría primero:
-   - Que al reemplazar una foto de perfil **se borre la anterior del disco**.
-     Falla en silencio y solo se nota cuando el disco está lleno.
-   - Que el dueño no pueda reservar en su propia lista (hoy solo lo impide la
-     policy).
-   - Que no se pueda votar un producto privado.
-   - Que la segunda reserva simultánea muestre el mensaje en vez de reventar.
-   - Que `users.suggest` no devuelva a nadie buscando un nombre real.
+1. **Los tests que faltaban: hechos.** Los cinco que estaban en esta lista ya
+   están escritos y verificados por mutación —`AvatarStorageTest`,
+   `ReservationFlowTest`, `ProductLikeTest` y `UserSuggestTest`—. Lo que sigue
+   **sin red**, si se quiere seguir por acá: los formularios de crear y editar
+   listas y regalos, el reparto de accesos desde «Quién la ve», y el registro.
+   Ninguno de esos es una regla que se caiga en silencio, que es por lo que van
+   después y no antes.
 2. **Achicar las fotos al subirlas.** Hoy se guarda el archivo tal cual, hasta
    4 MB, y se muestra en una miniatura de 72px. Una lista con veinte regalos
    son veinte fotos de celular completas viajando por la red. `intervention/
