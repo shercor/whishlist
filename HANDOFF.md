@@ -535,8 +535,7 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    800×600 y 113 KB, en 195 ms. Lo que **no** hace y podría: convertir a webp
    —ahorraría otro tanto, pero cambia la extensión y con ella la ruta ya
    publicada en el HTML— ni guardar varios tamaños.
-3. **Borrar `resources/views/welcome.blade.php`.** Quedó huérfana: `/` ahora
-   redirige a `/login` o a `/wishlists` y nadie la renderiza.
+3. ~~Borrar `resources/views/welcome.blade.php`.~~ Hecho: estaba huérfana.
 4. **Notificaciones: hechas, dentro de la app.** Campana en la barra, tabla
    `notifications` y dos avisos: al dueño cuando le piden una lista, y a quien
    reservó cuando le quedan 3 días. Van encoladas, así que las procesa el
