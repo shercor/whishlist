@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\FollowResource;
 use App\Models\Follow;
 use App\Models\User;
+use App\Notifications\FollowAccepted;
+use App\Notifications\FollowReceived;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -58,8 +60,11 @@ class FollowController extends Controller
             ? FollowStatus::ACCEPTED
             : FollowStatus::PENDING;
 
+        // null si el seguimiento ya existía: solo se avisa del que nace.
+        $nuevo = null;
+
         try {
-            $follow = Follow::create([
+            $follow = $nuevo = Follow::create([
                 'follower_id' => $yo->id,
                 'followed_id' => $user->id,
                 'status' => $estado->label(),
@@ -73,6 +78,10 @@ class FollowController extends Controller
             }
 
             $follow = $yo->followTo($user);
+        }
+
+        if ($nuevo) {
+            $user->notify(new FollowReceived($nuevo->load('follower')));
         }
 
         return response()->json(
@@ -104,6 +113,8 @@ class FollowController extends Controller
             'status' => FollowStatus::ACCEPTED->label(),
             'responded_at' => now(),
         ]);
+
+        $follow->follower->notify(new FollowAccepted($follow->fresh()->load('followed')));
 
         return response()->json([
             'data' => FollowResource::make($follow->fresh()->load('follower'))->resolve($request),

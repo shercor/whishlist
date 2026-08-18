@@ -8,13 +8,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
- * Al dueño: alguien pidió ver una de tus listas privadas.
+ * A quien recibe una lista privada sin haberla pedido.
  *
- * Sin esto, una solicitud solo se descubre entrando a «Solicitudes» a
- * propósito, que es justo lo que no se hace cuando uno no sabe que hay algo
- * esperando. El que pide se queda mirando un pedido que quizá nadie vio.
+ * Es el camino previsto para repartir una lista privada —el dueño elige a quién
+ * se la da— y sin aviso era completamente invisible: la persona tenía acceso a
+ * algo que no sabía que existía, así que nunca lo abría.
  */
-class AccessRequested extends Notification implements ShouldQueue
+class WishlistShared extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -47,16 +47,13 @@ class AccessRequested extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        $quienPide = $this->acceso->user;
+        $lista = $this->acceso->wishlist;
 
         return [
-            // publicName() y no name: quien oculta su nombre tampoco lo filtra
-            // por acá. Una notificación es texto que se guarda tal cual, así
-            // que un name suelto quedaría escrito para siempre.
-            'titulo' => $quienPide->publicName().' quiere ver tu lista',
-            'detalle' => $this->acceso->wishlist->name,
-            'url' => route('access.index'),
-            'icono' => '🔑',
+            'titulo' => $lista->user->publicName().' te compartió una lista',
+            'detalle' => $lista->name,
+            'url' => route('gifts.show', $lista),
+            'icono' => '🎁',
         ];
     }
 }

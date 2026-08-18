@@ -23,6 +23,20 @@ class ReservationExpiring extends Notification implements ShouldQueue
 {
     use Queueable;
 
+    /**
+     * Si lo que se iba a anunciar ya no existe, el aviso se descarta en vez de
+     * fallar.
+     *
+     * La cola guarda una referencia al modelo y lo vuelve a leer al ejecutar,
+     * así que entre encolar y ejecutar cabe que alguien deshaga el seguimiento,
+     * borre la lista o suelte la reserva. Sin esto el job muere **dentro del
+     * worker**, donde el fallo no lo ve nadie hasta mirar `failed_jobs`.
+     * Comprobado: pasaba de verdad.
+     *
+     * Descartarlo es lo correcto: no hay nada que anunciar.
+     */
+    public bool $deleteWhenMissingModels = true;
+
     public function __construct(private readonly Reservation $reserva) {}
 
     /**

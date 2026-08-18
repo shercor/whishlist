@@ -2,19 +2,19 @@
 
 namespace App\Notifications;
 
-use App\Models\WishlistAccess;
+use App\Models\Follow;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
 /**
- * Al dueño: alguien pidió ver una de tus listas privadas.
+ * A quien pidió seguir: le aceptaron.
  *
- * Sin esto, una solicitud solo se descubre entrando a «Solicitudes» a
- * propósito, que es justo lo que no se hace cuando uno no sabe que hay algo
- * esperando. El que pide se queda mirando un pedido que quizá nadie vio.
+ * Importa más de lo que parece: seguir a alguien es el paso previo a que te
+ * pueda dar una lista privada, así que hasta que te aceptan no puedes ni pedir
+ * nada. Sin aviso, esa espera no tenía final visible.
  */
-class AccessRequested extends Notification implements ShouldQueue
+class FollowAccepted extends Notification implements ShouldQueue
 {
     use Queueable;
 
@@ -32,7 +32,7 @@ class AccessRequested extends Notification implements ShouldQueue
      */
     public bool $deleteWhenMissingModels = true;
 
-    public function __construct(private readonly WishlistAccess $acceso) {}
+    public function __construct(private readonly Follow $follow) {}
 
     /**
      * @return array<int, string>
@@ -47,16 +47,13 @@ class AccessRequested extends Notification implements ShouldQueue
      */
     public function toArray(object $notifiable): array
     {
-        $quienPide = $this->acceso->user;
+        $quien = $this->follow->followed;
 
         return [
-            // publicName() y no name: quien oculta su nombre tampoco lo filtra
-            // por acá. Una notificación es texto que se guarda tal cual, así
-            // que un name suelto quedaría escrito para siempre.
-            'titulo' => $quienPide->publicName().' quiere ver tu lista',
-            'detalle' => $this->acceso->wishlist->name,
-            'url' => route('access.index'),
-            'icono' => '🔑',
+            'titulo' => 'Ya sigues a '.$quien->publicName(),
+            'detalle' => 'Aceptó tu solicitud. Ya puedes ver sus listas públicas.',
+            'url' => route('users.show', $quien),
+            'icono' => '✅',
         ];
     }
 }

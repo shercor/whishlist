@@ -7,7 +7,9 @@ use App\Enums\AccessSource;
 use App\Enums\FollowStatus;
 use App\Models\Wishlist;
 use App\Models\WishlistAccess;
+use App\Notifications\AccessAnswered;
 use App\Notifications\AccessRequested;
+use App\Notifications\WishlistShared;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -119,7 +121,7 @@ class AccessRequestController extends Controller
             ],
         ], [], ['user_id' => 'persona']);
 
-        $wishlist->accesses()->updateOrCreate(
+        $acceso = $wishlist->accesses()->updateOrCreate(
             ['user_id' => $validated['user_id']],
             [
                 'status' => AccessRequestStatus::APPROVED->label(),
@@ -127,6 +129,10 @@ class AccessRequestController extends Controller
                 'responded_at' => now(),
             ]
         );
+
+        // Sin aviso, una invitación es invisible: la persona tiene acceso a
+        // algo que no sabe que existe, así que nunca lo abre.
+        $acceso->user->notify(new WishlistShared($acceso));
 
         return back()->with('status', 'Invitación hecha. Ya puede ver la lista.');
     }
@@ -168,6 +174,14 @@ class AccessRequestController extends Controller
             'status' => $validated['status'],
             'responded_at' => now(),
         ]);
+
+        // Esto es lo que promete el mensaje de «te avisará cuando responda».
+        // Solo a quien pidió: una revocación no se anuncia, porque avisar de
+        // que le quitaste algo no arregla nada y sí duele.
+        if ($access->sourceEnum() === AccessSource::REQUEST
+            && $validated['status'] !== AccessRequestStatus::REVOKED->label()) {
+            $access->user->notify(new AccessAnswered($access));
+        }
 
         return back()->with('status', 'Solicitud respondida.');
     }

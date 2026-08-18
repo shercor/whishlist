@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 175 passed
+make test                                                     # 191 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -126,14 +126,15 @@ Commits en `main`:
 | `8f8e5d7` | Auditoría: arregla el 500 de «Voy a regalar», el webp que no se podía achicar y la reserva que sobrevivía al regalo |
 | `3521c46` | Borra la vista de bienvenida huérfana                       |
 | `d673f19` | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
-| (el último) | El catálogo público acepta fichas de usuarios, con marcha atrás |
+| `aed7f69` | El catálogo público acepta fichas de usuarios, con marcha atrás |
+| (el último) | Cuatro avisos más: respondieron tu pedido, te compartieron una lista, te siguen, te aceptaron |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **175 passed**.
+`make test` → **191 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -385,6 +386,7 @@ Los tests que importan y qué vigilan:
 | `Api/ApiAuthorizationTest`         | la API apretada por un extraño **con token válido**, y que el `share_token` no llegue a un invitado |
 | `Api/ApiCrudTest`                  | el ciclo completo y los códigos: 201, 204, 409, 422 |
 | `PublicCatalogTest`                | compartir una ficha con el catálogo y retirarla, y que compartirla no delate tu lista |
+| `NotificationEventsTest`           | los seis avisos **por web y por API**, lo que no se avisa, y que un aviso cuyo modelo desapareció se descarte en vez de morir en el worker |
 
 Verificado por mutación, no solo verde: quitando el índice único caen los
 invariantes de la base, y rompiendo a mano el borrado de la foto anterior, la
@@ -545,12 +547,30 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    publicada en el HTML— ni guardar varios tamaños.
 3. ~~Borrar `resources/views/welcome.blade.php`.~~ Hecho: estaba huérfana.
 4. **Notificaciones: hechas, dentro de la app.** Campana en la barra, tabla
-   `notifications` y dos avisos: al dueño cuando le piden una lista, y a quien
-   reservó cuando le quedan 3 días. Van encoladas, así que las procesa el
-   worker. **No hay correo**: `MAIL_MAILER=log`, y decidirlo es lo que queda
-   —el aviso de reserva por vencer solo sirve de verdad si alcanza a quien no
-   está mirando la app—. Candidatas obvias a un tercer y cuarto aviso: que
-   respondieron tu solicitud, y que alguien empezó a seguirte.
+   `notifications` y **seis** avisos, todos encolados y procesados por el worker:
+
+   | Aviso | A quién | Cuándo |
+   |-------|---------|--------|
+   | `AccessRequested` | al dueño | alguien le pide una lista privada |
+   | `AccessAnswered` | a quien pidió | el dueño aprueba o niega |
+   | `WishlistShared` | al invitado | el dueño le da una lista sin pedirla |
+   | `FollowReceived` | al seguido | alguien lo sigue o quiere seguirlo |
+   | `FollowAccepted` | al seguidor | le aceptaron la solicitud |
+   | `ReservationExpiring` | a quien reservó | le quedan 3 días |
+
+   **Lo que no se avisa, a propósito:** revocar un acceso y rechazar un
+   seguimiento. Anunciar que le quitaste algo no arregla nada y sí incomoda. El
+   aviso de un rechazo de lista tampoco nombra la lista: decirlo sería contar
+   algo de una lista que la persona sigue sin poder ver.
+
+   **Cuidado al agregar el séptimo:** los avisos se disparan desde los
+   controladores, y hay dos juegos —web y API— para las mismas acciones.
+   Agregarlo en uno y olvidarlo en el otro no rompe nada visible. Por eso cada
+   aviso tiene su test **por los dos caminos** en `NotificationEventsTest`.
+
+   **No hay correo**: `MAIL_MAILER=log`. Es lo que queda por decidir, y el aviso
+   de reserva por vencer solo sirve de verdad si alcanza a quien no está mirando
+   la app.
 5. **API: hecha, v1 y con CRUD completo.** Vive en `routes/api.php` bajo
    `/api/v1`, con Sanctum por token —sin `statefulApi()`, a propósito: un solo
    camino de autenticación— y controladores en `app/Http/Controllers/Api/V1`.
@@ -690,6 +710,13 @@ en «Voy a regalar» —la reserva sobrevivía al regalo borrado y la vista hac�
 `$item->product` sobre un nulo—. Hoy lo resuelven los hooks `deleting` de los
 dos modelos. **Si agregas otra relación colgando de estos, revisa que el hook
 la contemple: la base de datos no te va a avisar.**
+
+**Un job encolado guarda una referencia al modelo, no el modelo.** Lo vuelve a
+leer al ejecutarse, así que entre encolar y ejecutar cabe que alguien deshaga lo
+que se iba a anunciar —dejar de seguir, borrar la lista, soltar la reserva—. Sin
+`$deleteWhenMissingModels = true` el job muere **dentro del worker**, donde el
+fallo no lo ve nadie. Todas las notificaciones lo declaran. Si escribes un job
+nuevo que reciba un modelo, decide qué pasa si ese modelo ya no está.
 
 **Un `use` que se va al refactorizar no lo pilla ningún test de lógica.** Al
 extraer `UserProductCreator` se fue el import de `Product` del controlador web y

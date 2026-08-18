@@ -9,7 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\WishlistAccessResource;
 use App\Models\Wishlist;
 use App\Models\WishlistAccess;
+use App\Notifications\AccessAnswered;
 use App\Notifications\AccessRequested;
+use App\Notifications\WishlistShared;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -95,6 +97,13 @@ class AccessRequestController extends Controller
             'responded_at' => now(),
         ]);
 
+        // Mismo criterio que la web: se avisa de la respuesta a un pedido, y
+        // nunca de una revocación.
+        if ($access->sourceEnum() === AccessSource::REQUEST
+            && $datos['status'] !== AccessRequestStatus::REVOKED->label()) {
+            $access->user->notify(new AccessAnswered($access->fresh()));
+        }
+
         return response()->json([
             'data' => WishlistAccessResource::make($access->fresh()->load('user'))->resolve($request),
         ]);
@@ -126,6 +135,8 @@ class AccessRequestController extends Controller
                 'responded_at' => now(),
             ]
         );
+
+        $acceso->user->notify(new WishlistShared($acceso));
 
         return response()->json(
             ['data' => WishlistAccessResource::make($acceso->load('user'))->resolve($request)],

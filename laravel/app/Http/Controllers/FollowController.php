@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Enums\FollowStatus;
 use App\Models\Follow;
 use App\Models\User;
+use App\Notifications\FollowAccepted;
+use App\Notifications\FollowReceived;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -51,8 +53,12 @@ class FollowController extends Controller
             ? FollowStatus::ACCEPTED
             : FollowStatus::PENDING;
 
+        // null cuando el seguimiento ya existía: es lo que distingue «acabo de
+        // seguirte» de un doble clic, y solo el primero se avisa.
+        $follow = null;
+
         try {
-            Follow::create([
+            $follow = Follow::create([
                 'follower_id' => $yo->id,
                 'followed_id' => $user->id,
                 'status' => $estado->label(),
@@ -64,6 +70,10 @@ class FollowController extends Controller
             if ($e->getCode() !== '23000') {
                 throw $e;
             }
+        }
+
+        if ($follow) {
+            $user->notify(new FollowReceived($follow->load('follower')));
         }
 
         return back()->with('status', $estado->isActive()
@@ -107,6 +117,10 @@ class FollowController extends Controller
             'status' => FollowStatus::ACCEPTED->label(),
             'responded_at' => now(),
         ]);
+
+        // Seguir es el paso previo a que te puedan dar una lista privada, así
+        // que quien pidió necesita saber que ya puede.
+        $follow->follower->notify(new FollowAccepted($follow->fresh()));
 
         return back()->with('status', "{$follow->follower->handle()} ya te sigue.");
     }
