@@ -25,8 +25,11 @@
 
     {{-- Nada en esta pantalla consulta la tabla de reservas: es lo que impide
          que el dueño se entere de quién le va a regalar qué. --}}
-    <p class="aviso aviso-ok">
-        Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.
+    {{-- `aviso-info` y no `aviso-ok`: esto explica una regla y está siempre,
+         no es el resultado de nada que acabes de hacer. Pintado de verde,
+         competía con los avisos de «guardado» y les quitaba el significado. --}}
+    <p class="aviso aviso-info">
+        <span>Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.</span>
     </p>
 
     @if ($wishlist->share_token)
@@ -87,9 +90,10 @@
                 </div>
             </div>
 
-            <details>
-                <summary class="tarjeta-meta">Editar</summary>
-                <form method="POST" action="{{ route('items.update', $item) }}" style="margin-top:1rem">
+            <details class="desplegable">
+                <summary>Editar</summary>
+                <div class="desplegable-cuerpo">
+                <form method="POST" action="{{ route('items.update', $item) }}">
                     @csrf
                     @method('PATCH')
 
@@ -115,7 +119,7 @@
                         </select>
                     </div>
 
-                    <button type="submit" class="boton">Guardar</button>
+                    <button type="submit" class="boton" data-ocupado="Guardando...">Guardar</button>
                 </form>
 
                 {{-- Fuera del formulario de arriba: los form no se anidan. --}}
@@ -125,6 +129,7 @@
                     @method('DELETE')
                     <button type="submit" class="boton-plano boton-peligro">Quitar de la lista</button>
                 </form>
+                </div>
             </details>
 
             {{-- Sin acciones: es la lista propia, acá no se reserva nada. --}}
@@ -136,7 +141,12 @@
         </article>
     @empty
         <div class="vacio">
+            <span class="vacio-icono" aria-hidden="true">📝</span>
             <p>Esta lista está vacía.</p>
+            <p class="vacio-pista">
+                Elige algo del catálogo o escríbelo tú. Hasta que no tenga regalos,
+                compartirla no le sirve a nadie.
+            </p>
             <a class="boton" href="{{ route('items.create', $wishlist) }}">Agregar el primer regalo</a>
         </div>
     @endforelse

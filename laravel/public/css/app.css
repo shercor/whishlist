@@ -25,7 +25,18 @@
     --aviso: #a86a12;
     --aviso-suave: #fdf3e2;
     --sombra: 0 1px 2px rgba(31, 36, 48, 0.06);
+    /* La sombra de algo que se levanta al pasar por encima. Es la misma idea
+       que --sombra, un escalón más arriba. */
+    --sombra-alta: 0 4px 14px rgba(31, 36, 48, 0.10);
     --radio: 10px;
+    /* Tres radios con nombre. Antes había un único token y el resto del
+       archivo ponía 8px y 6px a mano, así que redondear la interfaz entera
+       obligaba a buscar y reemplazar en veinte sitios. */
+    --radio-chico: 8px;
+    --radio-mini: 6px;
+    /* Una sola duración para todo lo que se mueve: si cada componente elige la
+       suya, la interfaz se siente descoordinada sin que se sepa por qué. */
+    --paso: 140ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -46,6 +57,7 @@
         --aviso: #e8b464;
         --aviso-suave: #332711;
         --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sombra-alta: 0 4px 14px rgba(0, 0, 0, 0.5);
     }
 }
 
@@ -65,6 +77,7 @@
     --aviso: #e8b464;
     --aviso-suave: #332711;
     --sombra: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sombra-alta: 0 4px 14px rgba(0, 0, 0, 0.5);
 }
 
 * { box-sizing: border-box; }
@@ -92,6 +105,34 @@ body {
 a { color: var(--acento); }
 
 img { max-width: 100%; height: auto; }
+
+/* --- Foco visible -------------------------------------------------------- *
+ *
+ * Antes solo lo tenían los campos de formulario, así que quien navega con Tab
+ * veía el recorrido desaparecer en cuanto llegaba a un enlace, a un botón o a
+ * una pestaña de la barra: se pulsaba a ciegas.
+ *
+ * `:focus-visible` y no `:focus` a propósito: el navegador solo lo enciende
+ * cuando el foco viene del teclado, así que un clic con el ratón no deja el
+ * botón con un anillo pegado —que es por lo que tanta gente termina quitando
+ * el outline y dejando la página inservible sin ratón—.
+ *
+ * Va con `outline` y no con `box-shadow`: el outline sigue el contorno real
+ * del elemento aunque esté partido en dos líneas, y se ve en modo de alto
+ * contraste, donde las sombras se descartan.
+ */
+:focus-visible {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+    border-radius: var(--radio-mini);
+}
+
+/* Dentro de un campo el anillo va por dentro: hacia fuera lo tapa el borde del
+   contenedor y en una fila de campos se solapan entre ellos. */
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline-offset: -1px;
+    border-radius: var(--radio-chico);
+}
 
 /* --- Barra superior ----------------------------------------------------- */
 
@@ -122,7 +163,11 @@ img { max-width: 100%; height: auto; }
     border-bottom: 2px solid transparent;
 }
 
-.barra nav a:hover { color: var(--tinta); }
+.barra nav a {
+    transition: color var(--paso) ease, border-color var(--paso) ease;
+}
+
+.barra nav a:hover { color: var(--tinta); border-bottom-color: var(--borde); }
 .barra nav a.activo { color: var(--tinta); border-bottom-color: var(--acento); }
 
 /* Cuántas cosas esperan respuesta. Va en la propia pestaña porque, si no, una
@@ -217,6 +262,34 @@ html[data-tema="oscuro"] .tema .luna { display: none; }
 html[data-tema="claro"] .tema .sol { display: none; }
 html[data-tema="claro"] .tema .luna { display: inline; }
 
+/* --- Saltar al contenido -------------------------------------------------- *
+ *
+ * La barra tiene ocho enlaces. Sin esto, quien navega con teclado o con lector
+ * de pantalla los recorre enteros en **cada** página antes de llegar a lo que
+ * vino a leer. Es el primer elemento del documento y solo aparece cuando el
+ * foco cae en él, así que para el resto de la gente no existe.
+ */
+.saltar {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 200;
+    padding: 0.6rem 1rem;
+    background: var(--tarjeta);
+    color: var(--tinta);
+    border: 1px solid var(--acento);
+    border-radius: var(--radio-chico);
+    box-shadow: var(--sombra-alta);
+    text-decoration: none;
+    font-weight: 600;
+    /* Fuera de la pantalla y no `display: none`: escondido con display no
+       recibe el foco nunca y el enlace no serviría de nada. */
+    transform: translateY(-200%);
+    transition: transform var(--paso) ease;
+}
+
+.saltar:focus { transform: translateY(0); }
+
 /* --- Estructura --------------------------------------------------------- */
 
 .contenedor { max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
@@ -244,6 +317,43 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
     color: var(--tinta-suave);
 }
 
+/* El icono grande de un estado vacío. Una pantalla vacía con solo una frase
+   gris se lee como si algo hubiera fallado; con un dibujo se lee como lo que
+   es, un sitio donde todavía no hay nada. */
+.vacio-icono {
+    display: block;
+    font-size: 2.25rem;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+    /* Decorativo puro: el texto de debajo ya lo dice todo. */
+    opacity: 0.75;
+}
+
+.vacio p { margin: 0 0 0.35rem; }
+.vacio .vacio-pista { font-size: 0.88rem; margin-bottom: 1.25rem; }
+.vacio .boton, .vacio .boton-plano { margin-top: 0.5rem; }
+
+/* --- Páginas de error ---------------------------------------------------- *
+ *
+ * Antes eran las que trae Laravel de fábrica: en inglés, con fondo blanco
+ * pasara lo que pasara con el tema, y sin ninguna salida —ni un enlace de
+ * vuelta—. Un 403 al abrir la lista de alguien es una situación normal en esta
+ * aplicación, no un fallo, y merecía explicarse en el mismo idioma que el
+ * resto.
+ */
+.error-pagina { padding-top: 5rem; text-align: center; }
+
+.error-codigo {
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin: 0 0 0.75rem;
+    color: var(--borde);
+}
+
+.error-pagina .acciones { justify-content: center; }
+
 /* --- Tarjetas ----------------------------------------------------------- */
 
 .tarjeta {
@@ -252,12 +362,54 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
     border-radius: var(--radio);
     padding: 1.1rem 1.25rem;
     margin-bottom: 0.85rem;
+    transition: border-color var(--paso) ease, box-shadow var(--paso) ease;
 }
 
 .tarjeta-titulo { font-weight: 600; margin: 0 0 0.2rem; }
 .tarjeta-titulo a { color: var(--tinta); text-decoration: none; }
 .tarjeta-titulo a:hover { text-decoration: underline; }
 .tarjeta-meta { color: var(--tinta-suave); font-size: 0.88rem; margin: 0; }
+
+/* --- Tarjeta que entera es un enlace ------------------------------------- *
+ *
+ * En «Mis listas» y en «Descubrir» la tarjeta era un rectángulo grande donde
+ * lo único que llevaba a algún lado eran las dos palabras del título. Es un
+ * objetivo diminuto en una caja enorme, y en el móvil hay que apuntar; la
+ * expectativa de cualquiera es que la tarjeta entera sea el enlace.
+ *
+ * El truco del `::after` estirado y no un `<a>` envolviendo todo: envolver
+ * obliga a que dentro no haya ningún otro enlace ni botón —anidarlos no es
+ * válido y el navegador los desarma—, y estas tarjetas llevan etiquetas y
+ * acciones. Así el enlace sigue siendo solo el título —que es lo que anuncia
+ * un lector de pantalla, y lo que recibe el foco— pero su zona de clic se
+ * estira hasta cubrir la tarjeta.
+ */
+.tarjeta-enlazada { position: relative; }
+
+.tarjeta-enlazada:hover {
+    border-color: var(--tinta-suave);
+    box-shadow: var(--sombra-alta);
+}
+
+.tarjeta-enlazada .tarjeta-titulo a::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+}
+
+/* Lo que va por encima de la capa de clic: sigue siendo pulsable por su
+   cuenta, como el botón de «me gusta» o una etiqueta con enlace. */
+.tarjeta-enlazada .sobre-la-capa { position: relative; z-index: 1; }
+
+/* El anillo de foco lo dibuja la tarjeta, no las dos palabras del título: es
+   la tarjeta lo que se va a activar con Enter. */
+.tarjeta-enlazada:has(.tarjeta-titulo a:focus-visible) {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+}
+
+.tarjeta-enlazada .tarjeta-titulo a:focus-visible { outline: none; }
 
 .fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 
@@ -288,6 +440,38 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
 /* minmax con min() para que en un móvil angosto la columna no fuerce scroll
    horizontal: 240px es un mínimo deseable, no una imposición. */
 .rejilla { display: grid; gap: 0.85rem; grid-template-columns: repeat(auto-fill, minmax(min(240px, 100%), 1fr)); }
+
+/* Las tarjetas de una rejilla miden todas lo mismo.
+ *
+ * Sin esto, una con el título de dos líneas estira su fila entera y las de al
+ * lado quedan con un hueco abajo: la cuadrícula se ve rota, y el ojo lee ese
+ * desnivel como si las tarjetas fueran de tipos distintos. `align-items:
+ * stretch` es el valor por defecto del grid, así que basta con que la tarjeta
+ * sepa repartir su propio alto. */
+.rejilla .tarjeta {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+/* Lo que va abajo del todo se pega abajo del todo, mida lo que mida el
+   título. Es lo que alinea los pies de todas las tarjetas de una fila. */
+.rejilla .tarjeta .al-pie { margin-top: auto; padding-top: 0.6rem; }
+
+/* El estado vacío no es una tarjeta más de la cuadrícula: ocupa el ancho
+   entero, porque no hay nada con lo que alinearlo. */
+.rejilla .vacio { grid-column: 1 / -1; }
+
+/* Un título de tres líneas en una tarjeta de rejilla desequilibra la fila
+   entera; a dos líneas se corta con puntos suspensivos. El title del elemento
+   deja el nombre completo a mano. */
+.titulo-recortado {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    overflow: hidden;
+}
 
 /* --- Imagen del producto ------------------------------------------------- *
  *
@@ -471,6 +655,13 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
 .persona { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
 .persona > div { min-width: 0; }
 
+/* Las dos líneas de debajo de una cara: el arroba y el detalle. Iban dentro de
+   un solo <span> separadas por un «·» y un <br>, y al no caber envolvían por
+   donde tocara: la cara se quedaba sola arriba y el texto colgando. */
+.arroba-tenue, .linea-tenue { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.arroba-tenue { font-weight: 600; color: var(--tinta); }
+.linea-tenue { font-size: 0.85rem; }
+
 .avatar-elegir { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .avatar-elegir input[type="file"] { max-width: 22rem; }
 .avatar-elegir [hidden] { display: none; }
@@ -495,6 +686,73 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
 
 .recibido .tarjeta-titulo { text-decoration: line-through; color: var(--tinta-suave); }
 
+/* --- Desplegable de edición ---------------------------------------------- *
+ *
+ * El «Editar» de cada regalo era un <details> sin estilo: salía el triangulito
+ * negro del navegador y un texto gris pegado, en una pantalla donde todo lo
+ * demás que se pulsa es un botón con borde redondeado. Se leía como un resto
+ * sin terminar, y encima no parecía pulsable.
+ *
+ * Sigue siendo un <details> de verdad —abre y cierra sin javascript, y el
+ * navegador se encarga de anunciarlo como desplegable—; lo único que cambia es
+ * cómo se ve el resumen.
+ */
+.desplegable { margin-top: 0.9rem; border-top: 1px solid var(--borde); padding-top: 0.75rem; }
+
+.desplegable > summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    width: auto;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--borde);
+    border-radius: var(--radio-chico);
+    color: var(--tinta-suave);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    transition: color var(--paso) ease, border-color var(--paso) ease, background var(--paso) ease;
+}
+
+/* El triángulo por defecto se quita en los dos dialectos: `list-style: none`
+   vale en Firefox y en Chrome moderno, y el ::-webkit-details-marker hace
+   falta para Safari. */
+.desplegable > summary::-webkit-details-marker { display: none; }
+
+.desplegable > summary:hover { color: var(--tinta); border-color: var(--tinta-suave); background: var(--papel); }
+
+/* El chevron lo dibujamos nosotros y gira al abrir, que es lo que dice si lo
+   de dentro está desplegado sin tener que mirar más abajo. */
+.desplegable > summary::after {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg) translate(-1px, -1px);
+    transition: transform var(--paso) ease;
+}
+
+.desplegable[open] > summary::after { transform: rotate(-135deg) translate(-1px, -1px); }
+
+.desplegable-cuerpo { padding-top: 1rem; }
+
+/* El desplegable que no vive dentro de una tarjeta —el «O escríbelo tú» de
+   agregar regalo— es una sección de la página, así que su resumen pesa como un
+   encabezado y se separa de lo de arriba. */
+.desplegable-suelto { margin-top: 2rem; padding-top: 1.25rem; }
+
+.desplegable-suelto > summary {
+    font-size: 1.05rem;
+    padding: 0.6rem 1rem;
+    color: var(--tinta);
+}
+
+/* Cuántas fichas se están viendo y de dónde salen. */
+.resumen-busqueda { margin: -0.25rem 0 1rem; }
+
 /* --- Me gusta ------------------------------------------------------------ */
 
 .megusta {
@@ -510,9 +768,35 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
     font-weight: 600;
 }
 
+.megusta { transition: color var(--paso) ease, border-color var(--paso) ease, background var(--paso) ease, transform var(--paso) ease; }
 .megusta:hover { color: var(--acento); border-color: var(--acento); }
 .megusta.marcado { color: var(--acento); border-color: var(--acento); background: var(--acento-suave); }
 .megusta .corazon { font-size: 0.95rem; line-height: 1; }
+
+/* --- Agregar desde el catálogo ------------------------------------------- *
+ *
+ * El selector de prioridad y el botón, juntos y a la derecha de la ficha. Iban
+ * dentro de un `.fila-acciones` genérico, y como la columna que les quedaba es
+ * estrecha el selector se estiraba a todo el ancho y empujaba el botón a la
+ * línea de abajo: doce fichas seguidas, cada una con su escalón.
+ */
+.agregar-catalogo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: none;
+}
+
+.agregar-catalogo select {
+    width: auto;
+    min-width: 6.5rem;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+}
+
+/* El pie de una ficha del catálogo: el voto y, para su autor, la marcha
+   atrás. En fila y no apilados. */
+.ficha-pie { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
 
 /* --- Botones ------------------------------------------------------------ */
 
@@ -532,7 +816,17 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
     font-weight: 600;
 }
 
+.boton {
+    transition: filter var(--paso) ease, transform var(--paso) ease;
+}
+
 .boton:hover { filter: brightness(0.93); }
+
+/* Se hunde un pelo al pulsarlo. Es lo que confirma que el clic entró, en una
+   aplicación donde casi todo navega y la página tarda en cambiar. */
+.boton:active, .boton-plano:active, .boton-icono:active, .megusta:active {
+    transform: translateY(1px);
+}
 
 .boton-plano {
     background: transparent;
@@ -543,8 +837,40 @@ h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; }
     display: inline-block;
 }
 
-.boton-plano:hover { color: var(--tinta); border-color: var(--tinta-suave); }
-.boton-peligro:hover { color: var(--acento); border-color: var(--acento); }
+.boton-plano {
+    transition: color var(--paso) ease, border-color var(--paso) ease,
+                background var(--paso) ease, transform var(--paso) ease;
+}
+
+/* Un botón secundario que acompaña a otra cosa —el «Retirar del catálogo»
+   que va junto al corazón— y no debe pesar más que ella. */
+.boton-menudo { padding: 0.3rem 0.7rem; font-size: 0.82rem; }
+
+.boton-plano:hover { color: var(--tinta); border-color: var(--tinta-suave); background: var(--papel); }
+.boton-peligro:hover { color: var(--acento); border-color: var(--acento); background: var(--acento-suave); }
+
+/* --- Botón ocupado ------------------------------------------------------- *
+ *
+ * Un formulario que tarda —reservar un regalo, subir una foto— se puede enviar
+ * dos veces con dos clics seguidos, y la segunda reserva choca contra el
+ * índice único y sale un error que no explica nada. El botón se apaga solo al
+ * enviar (ver el layout) y esto es cómo se ve mientras tanto.
+ */
+.boton[disabled], .boton-plano[disabled], button[disabled] {
+    opacity: 0.6;
+    cursor: progress;
+    filter: none;
+    transform: none;
+}
+
+/* El «Anterior» de la primera página. Ya decía `aria-disabled` —así que un
+   lector de pantalla lo anunciaba apagado— pero se veía idéntico al que sí
+   lleva a algún lado, y se pulsaba esperando que hiciera algo. */
+[aria-disabled="true"] {
+    opacity: 0.45;
+    cursor: default;
+    pointer-events: none;
+}
 
 /* --- Formularios -------------------------------------------------------- */
 
@@ -570,29 +896,85 @@ select, textarea {
 
 input[type="file"] { padding: 0.4rem; color: var(--tinta-suave); font-size: 0.9rem; }
 
+/* En un campo de texto sí se marca también con el ratón: ahí el anillo no es
+   solo un rastro de navegación, dice dónde va a caer lo que se escriba. */
 input:focus, select:focus, textarea:focus {
     outline: 2px solid var(--acento);
     outline-offset: -1px;
+    border-color: var(--acento);
 }
 
 textarea { min-height: 4.5rem; resize: vertical; }
 
 .opciones { display: grid; gap: 0.5rem; }
 
-.opcion {
+/* --- Tarjeta de opción (radio o casilla) --------------------------------- *
+ *
+ * Va como `label.opcion` y no como `.opcion` a secas por una razón concreta:
+ * estas tarjetas viven dentro de un `.campo`, y `.campo label` —que pone
+ * `display: block` para las etiquetas normales— pesa (0,1,1) contra el (0,1,0)
+ * de una sola clase. Le ganaba siempre, y el resultado es que la tarjeta nunca
+ * llegó a ser flex: el redondel del radio se iba a su propia línea encima del
+ * texto, y el `font-weight: 600` de la etiqueta se derramaba sobre la
+ * descripción, que salía en negrita y del mismo gris que el título. Las tres
+ * pantallas con opciones se veían así, salvo el «No cerrar sesión» del login,
+ * que está fuera de un `.campo` y por eso sí se veía bien: la misma clase
+ * pintaba dos cosas distintas según dónde estuviera.
+ *
+ * `label.opcion` empata en especificidad y gana por ir después.
+ */
+label.opcion {
     display: flex;
     gap: 0.6rem;
     align-items: flex-start;
     border: 1px solid var(--borde);
-    border-radius: 8px;
-    padding: 0.6rem 0.75rem;
+    border-radius: var(--radio-chico);
+    padding: 0.7rem 0.85rem;
     background: var(--tarjeta);
     cursor: pointer;
+    /* Lo que heredaba de `.campo label` y no corresponde acá: la etiqueta de un
+       campo es un rótulo corto en negrita; esto es una tarjeta con dos niveles
+       de texto propios. */
+    font-weight: 400;
+    font-size: 1rem;
+    margin-bottom: 0;
+    transition: border-color var(--paso) ease, background var(--paso) ease;
 }
 
-.opcion input { margin-top: 0.25rem; }
-.opcion strong { display: block; font-size: 0.92rem; }
-.opcion span { color: var(--tinta-suave); font-size: 0.85rem; }
+label.opcion:hover { border-color: var(--tinta-suave); }
+
+/* La elegida se distingue sola, sin javascript. Antes las dos tarjetas se
+   veían idénticas y lo único que decía cuál estaba puesta era el punto del
+   radio, de trece píxeles. */
+label.opcion:has(input:checked) {
+    border-color: var(--acento);
+    background: var(--acento-suave);
+}
+
+/* El anillo de foco lo dibuja la tarjeta entera: el radio en sí es diminuto y
+   su anillo se perdía contra el borde. */
+label.opcion:has(input:focus-visible) {
+    outline: 2px solid var(--acento);
+    outline-offset: 2px;
+}
+
+label.opcion input { margin-top: 0.3rem; flex: none; }
+
+/* El envoltorio de los dos textos, por hijo directo: antes el selector
+   `.opcion span` alcanzaba también al envoltorio y le aplicaba a todo el
+   bloque el tamaño pensado solo para la descripción. */
+label.opcion > span { min-width: 0; }
+
+label.opcion strong {
+    display: block;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--tinta);
+    margin-bottom: 0.1rem;
+}
+
+label.opcion strong + span,
+label.opcion > span > span { color: var(--tinta-suave); font-size: 0.85rem; font-weight: 400; }
 
 .acciones { display: flex; gap: 0.75rem; align-items: center; margin-top: 1.5rem; flex-wrap: wrap; }
 
@@ -655,6 +1037,9 @@ textarea { min-height: 4.5rem; resize: vertical; }
 /* --- Avisos ------------------------------------------------------------- */
 
 .aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
     border-radius: var(--radio);
     padding: 0.75rem 1rem;
     margin: 0 0 1.25rem;
@@ -663,7 +1048,58 @@ textarea { min-height: 4.5rem; resize: vertical; }
 
 .aviso-ok { background: var(--ok-suave); color: var(--ok); }
 .aviso-error { background: var(--acento-suave); color: var(--acento); }
-ul.aviso { padding-left: 2rem; }
+
+/* --- Aviso informativo --------------------------------------------------- *
+ *
+ * El que explica cómo funciona algo, y que está siempre: «acá no verás si
+ * alguien reservó tus regalos». Estaba pintado de verde con la clase de
+ * «salió bien», y eso es decir dos cosas distintas con el mismo color: el
+ * verde aparecía tanto cuando acababas de guardar algo como cuando la página
+ * te explicaba una regla, así que dejaba de significar «salió bien».
+ *
+ * Este es deliberadamente callado —tinta suave sobre el papel— porque es un
+ * texto que se lee una vez y después estorba.
+ */
+.aviso-info {
+    background: var(--papel);
+    color: var(--tinta-suave);
+    border: 1px solid var(--borde);
+}
+
+/* El icono que abre cada aviso. Un color no basta: quien no distingue el rojo
+   del verde ve dos cajas iguales, y el icono sí se distingue. */
+.aviso::before {
+    flex: none;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.aviso-ok::before { content: "✓"; font-weight: 700; }
+.aviso-error::before { content: "!"; font-weight: 700; }
+.aviso-info::before { content: "🔒"; }
+
+.aviso > * { min-width: 0; }
+
+ul.aviso { padding-left: 1rem; display: block; }
+ul.aviso::before { content: none; }
+ul.aviso li { margin-left: 1rem; }
+
+/* Cerrar un aviso de los que aparecen tras una acción. Se quedaban puestos
+   hasta cambiar de página, ocupando sitio mucho después de haberse leído. */
+.aviso-cerrar {
+    margin-left: auto;
+    flex: none;
+    background: none;
+    border: 0;
+    padding: 0 0.25rem;
+    color: inherit;
+    opacity: 0.6;
+    font-size: 1.1rem;
+    line-height: 1.3;
+    transition: opacity var(--paso) ease;
+}
+
+.aviso-cerrar:hover { opacity: 1; }
 
 /* --- Enlace para compartir ---------------------------------------------- */
 
@@ -835,7 +1271,12 @@ ul.aviso { padding-left: 2rem; }
     .acciones .boton, .acciones .boton-plano { flex: 1 1 auto; }
 
     .buscador { flex-wrap: wrap; }
-    .buscador .boton { flex: 1 1 auto; }
+
+    /* `.boton-plano` también: el botón de «Buscar» es plano y se quedaba fuera
+       de esta regla, así que en el móvil caía a su propia línea y salía
+       estrecho y pegado a la izquierda, mientras el de otras pantallas —que sí
+       es `.boton`— ocupaba el ancho. La misma fila se veía de dos maneras. */
+    .buscador .boton, .buscador .boton-plano { flex: 1 1 auto; }
 
     .tarjeta { padding: 1rem; }
 

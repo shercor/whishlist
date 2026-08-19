@@ -26,6 +26,11 @@
     </script>
 </head>
 <body>
+    {{-- Primero de todo en el documento: es lo que permite a quien navega con
+         teclado saltarse los ocho enlaces de la barra en cada página. Solo se
+         ve cuando recibe el foco. --}}
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
+
     @auth
         <header class="barra">
             <a class="marca" href="{{ route('wishlists.index') }}">whishlist</a>
@@ -68,17 +73,31 @@
         @include('layouts.tema', ['suelto' => true])
     @endauth
 
-    <main class="contenedor">
+    {{-- tabindex="-1" para que el enlace de «saltar al contenido» pueda dejar
+         el foco aquí: sin él, el navegador mueve el scroll pero el foco se
+         queda en la barra y el siguiente Tab vuelve al principio. --}}
+    <main class="contenedor" id="contenido" tabindex="-1">
         @if (session('status'))
-            <p class="aviso aviso-ok">{{ session('status') }}</p>
+            <p class="aviso aviso-ok">
+                <span>{{ session('status') }}</span>
+                <button type="button" class="aviso-cerrar" data-cierra-aviso
+                        aria-label="Descartar este aviso">&times;</button>
+            </p>
         @endif
 
         @if (session('error'))
-            <p class="aviso aviso-error">{{ session('error') }}</p>
+            <p class="aviso aviso-error">
+                <span>{{ session('error') }}</span>
+                <button type="button" class="aviso-cerrar" data-cierra-aviso
+                        aria-label="Descartar este aviso">&times;</button>
+            </p>
         @endif
 
         @if ($errors->any())
-            <ul class="aviso aviso-error">
+            {{-- role="alert" para que un lector de pantalla lo lea al cargar la
+                 página: un error de formulario que hay que ir a buscar con el
+                 cursor es un error que no se entera nadie. --}}
+            <ul class="aviso aviso-error" role="alert">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
                 @endforeach
@@ -112,6 +131,68 @@
                     /* Sin dónde guardarlo: el cambio vale para esta página. */
                 }
             });
+        });
+
+        // Descartar un aviso. El aviso entero se va, no solo su texto: dejar
+        // la caja vacía sería peor que dejar el mensaje.
+        document.querySelectorAll('[data-cierra-aviso]').forEach(function (boton) {
+            boton.addEventListener('click', function () {
+                var aviso = boton.closest('.aviso');
+                if (aviso) aviso.remove();
+            });
+        });
+
+        // Un formulario no se envía dos veces.
+        //
+        // Reservar un regalo o subir una foto tarda lo suficiente como para que
+        // el segundo clic entre antes de que la página cambie. La segunda
+        // reserva choca contra el índice único de reserva activa y sale un
+        // error que no le explica nada a nadie; la segunda subida guarda la
+        // foto dos veces.
+        //
+        // Se apaga en el submit y no en el click: así respeta la validación del
+        // navegador —un campo requerido vacío cancela el envío, y el botón no
+        // se puede quedar apagado sin que se haya enviado nada—.
+        document.querySelectorAll('form').forEach(function (formulario) {
+            formulario.addEventListener('submit', function (evento) {
+                var boton = formulario.querySelector('button[type="submit"], input[type="submit"]');
+                if (!boton || boton.disabled) return;
+
+                var textoOriginal = boton.textContent;
+
+                // Un respiro antes de apagarlo: deshabilitar el botón dentro
+                // del propio submit hace que algunos navegadores no manden su
+                // name/value, y hay formularios que lo usan.
+                setTimeout(function () {
+                    // Los formularios que borran algo llevan un
+                    // `onsubmit="return confirm(...)"`, que corre antes que
+                    // esto y cancela el envío si la persona dice que no. Sin
+                    // esta pregunta el botón se apagaba igual y el regalo
+                    // quedaba sin poder borrarse hasta recargar.
+                    if (evento.defaultPrevented) return;
+
+                    boton.disabled = true;
+                    if (boton.dataset.ocupado) boton.textContent = boton.dataset.ocupado;
+
+                    // Si la navegación no llega —se canceló, falló la red—, el
+                    // botón vuelve: dejarlo apagado para siempre deja la
+                    // pantalla muerta sin decir por qué.
+                    setTimeout(function () {
+                        boton.disabled = false;
+                        boton.textContent = textoOriginal;
+                    }, 8000);
+                }, 0);
+            });
+        });
+
+        // Volver atrás con el botón del navegador restaura la página tal cual
+        // estaba, con el botón apagado incluido: la pantalla vuelve muerta. Al
+        // restaurarse desde la caché se vuelven a encender.
+        window.addEventListener('pageshow', function (evento) {
+            if (!evento.persisted) return;
+
+            document.querySelectorAll('button[disabled], input[type="submit"][disabled]')
+                .forEach(function (boton) { boton.disabled = false; });
         });
 
         // Aviso flotante que se va solo. Flota sobre la página: no empuja nada

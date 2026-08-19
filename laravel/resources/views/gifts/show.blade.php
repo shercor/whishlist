@@ -15,8 +15,10 @@
         </div>
     </div>
 
-    <p class="aviso aviso-ok">
-        {{ $wishlist->user->publicName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
+    {{-- Informativo y permanente, no el resultado de una acción: por eso no va
+         en verde. Ver `aviso-info` en el CSS. --}}
+    <p class="aviso aviso-info">
+        <span>{{ $wishlist->user->publicName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.</span>
     </p>
 
     @forelse ($items as $item)
@@ -62,17 +64,21 @@
                     @if ($estado->isOfferable())
                         <form method="POST" action="{{ route('reservations.store', $item) }}">
                             @csrf
-                            <button type="submit" class="boton">Lo regalo yo</button>
+                            <button type="submit" class="boton" data-ocupado="Reservando...">Lo regalo yo</button>
                         </form>
                     @else
                         <span class="{{ $estado->badge() }}">{{ $estado->title() }}</span>
                     @endif
 
                     @if ($estado === \App\Enums\GiftState::RESERVED_BY_ME)
-                        <form method="POST" action="{{ route('reservations.destroy', $item) }}">
+                        {{-- Se pregunta antes: soltar deja el regalo libre para
+                             que lo tome otro, y desde ahí no hay vuelta atrás
+                             si alguien se adelanta. --}}
+                        <form method="POST" action="{{ route('reservations.destroy', $item) }}"
+                              onsubmit="return confirm('¿Soltar «{{ $item->displayName() }}»? Queda libre para que lo reserve otra persona.')">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="boton-plano">Soltar</button>
+                            <button type="submit" class="boton-plano boton-peligro">Soltar</button>
                         </form>
                     @endif
                 </div>
@@ -102,7 +108,9 @@
         </article>
     @empty
         <div class="vacio">
+            <span class="vacio-icono" aria-hidden="true">🎁</span>
             <p>{{ $wishlist->user->publicName() }} todavía no ha puesto nada en esta lista.</p>
+            <p class="vacio-pista">Vuelve más adelante: cuando agregue algo, aparecerá acá.</p>
         </div>
     @endforelse
 @endsection

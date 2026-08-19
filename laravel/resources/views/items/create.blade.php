@@ -3,15 +3,45 @@
 @section('title', 'Agregar regalo · whishlist')
 
 @section('contenido')
-    <h1>Agregar un regalo</h1>
-    <p class="bajada">A «{{ $wishlist->name }}». Elige algo del catálogo o escríbelo tú.</p>
+    <div class="encabezado">
+        <div>
+            <h1>Agregar un regalo</h1>
+            <p class="bajada">A «{{ $wishlist->name }}». Elige algo del catálogo o escríbelo tú.</p>
+        </div>
+        <a class="boton-plano" href="{{ route('wishlists.show', $wishlist) }}">Volver a la lista</a>
+    </div>
 
     <h2>Buscar en el catálogo</h2>
 
     <form class="buscador" method="GET" action="{{ route('items.create', $wishlist) }}">
-        <input type="search" name="q" value="{{ $termino }}" placeholder="peluche, audífonos, libro...">
-        <button type="submit" class="boton-plano">Buscar</button>
+        {{-- autofocus: se llega a esta pantalla para buscar algo, así que el
+             cursor ya está donde se va a escribir. Solo cuando no hay búsqueda
+             hecha: si la hay, robarle el foco a los resultados hace que un
+             Tab desde el campo se salte lo que se acaba de encontrar. --}}
+        <input type="search" name="q" value="{{ $termino }}"
+               placeholder="peluche, audífonos, libro..." @if ($termino === '') autofocus @endif>
+        <button type="submit" class="boton-plano" data-ocupado="Buscando...">Buscar</button>
     </form>
+
+    {{-- Decir cuántos hay y de dónde salen. Sin esto, la lista de doce fichas
+         que aparece sin haber buscado nada se lee como si ese fuera el catálogo
+         entero, y quien no ve lo que quiere se va pensando que no está. --}}
+    @if ($termino === '')
+        <p class="tarjeta-meta resumen-busqueda">
+            Las {{ $resultados->count() }} fichas más votadas del catálogo. Busca para ver el resto.
+        </p>
+    @else
+        <p class="tarjeta-meta resumen-busqueda">
+            {{-- El tope de la consulta son 24: si vienen justo 24, es que
+                 seguramente hay más y decir «24 resultados» sería mentir. --}}
+            @if ($resultados->count() >= 24)
+                Los primeros 24 resultados para «{{ $termino }}». Afina la búsqueda si no ves lo que buscas.
+            @else
+                {{ $resultados->count() }} {{ Str::plural('resultado', $resultados->count()) }} para «{{ $termino }}».
+            @endif
+            <a href="{{ route('items.create', $wishlist) }}">Ver las más votadas</a>
+        </p>
+    @endif
 
     @forelse ($resultados as $producto)
         @php $leGusta = $producto->isLikedBy(auth()->user()); @endphp
@@ -47,8 +77,14 @@
                         </p>
 
                         @if ($producto->is_public)
-                            <form method="POST" style="margin-top:0.55rem"
-                                  action="{{ $leGusta ? route('products.unlike', $producto) : route('products.like', $producto) }}">
+                        {{-- El corazón y «Retirar del catálogo» en una fila y no
+                             uno sobre otro: son dos formularios hermanos —no se
+                             pueden anidar— pero se leen como un mismo pie de la
+                             ficha, y apilados hacían de cada resultado una
+                             tarjeta el doble de alta. --}}
+                        <div class="ficha-pie">
+                            <form action="{{ $leGusta ? route('products.unlike', $producto) : route('products.like', $producto) }}"
+                                  method="POST">
                                 @csrf
                                 @if ($leGusta) @method('DELETE') @endif
                                 <button type="submit" @class(['megusta', 'marcado' => $leGusta])
@@ -63,32 +99,39 @@
 
                             @can('unpublish', $producto)
                                 {{-- Publicar es directo, así que la marcha atrás
-                                     tiene que estar a la vista de su autor. --}}
+                                     tiene que estar a la vista de su autor. Se
+                                     pregunta antes: retirarla se lleva por
+                                     delante los votos que la ficha juntó, y eso
+                                     no se recupera. --}}
                                 <form method="POST" action="{{ route('products.unpublish', $producto) }}"
-                                      style="margin-top:0.4rem">
+                                      onsubmit="return confirm('¿Retirar «{{ $producto->name }}» del catálogo? Las listas que ya la tienen no cambian, pero se pierden sus votos.')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="boton-plano"
+                                    <button type="submit" class="boton-plano boton-menudo"
                                             title="Dejará de estar en el catálogo de los demás">
                                         Retirar del catálogo
                                     </button>
                                 </form>
                             @endcan
+                        </div>
                         @endif
                     </div>
                 </div>
 
-                <form method="POST" action="{{ route('items.store', $wishlist) }}" class="fila-acciones">
+                <form method="POST" action="{{ route('items.store', $wishlist) }}" class="agregar-catalogo">
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $producto->id }}">
-                    <select name="priority" aria-label="Prioridad">
+                    <select name="priority" aria-label="Cuánto quieres «{{ $producto->name }}»">
                         @foreach (\App\Enums\ItemPriority::cases() as $prioridad)
                             <option value="{{ $prioridad->label() }}" @selected($prioridad === \App\Enums\ItemPriority::MEDIUM)>
                                 {{ $prioridad->title() }}
                             </option>
                         @endforeach
                     </select>
-                    <button type="submit" class="boton">Agregar</button>
+                    <button type="submit" class="boton" data-ocupado="Agregando...">
+                        Agregar
+                        <span class="visualmente-oculto">{{ $producto->name }} a la lista</span>
+                    </button>
                 </form>
             </div>
 
@@ -105,20 +148,37 @@
         </article>
     @empty
         <div class="vacio">
+            <span class="vacio-icono" aria-hidden="true">🔍</span>
             @if ($termino === '')
                 <p>El catálogo está vacío.</p>
+                <p class="vacio-pista">Escribe el regalo tú mismo aquí abajo.</p>
             @else
-                <p>Nada calzó con «{{ $termino }}». Escríbelo tú aquí abajo.</p>
-                <p class="tarjeta-meta">La búsqueda ignora las palabras de menos de tres letras.</p>
+                <p>Nada calzó con «{{ $termino }}».</p>
+                <p class="vacio-pista">
+                    La búsqueda ignora las palabras de menos de tres letras.
+                    Si no está en el catálogo, escríbelo tú.
+                </p>
             @endif
         </div>
     @endforelse
 
-    <h2>O escríbelo tú</h2>
-    <p class="bajada">
-        Queda como producto privado: solo lo ves tú y quien mire esta lista.
-        Si quieres, puedes compartir la ficha con el catálogo para que le sirva a más gente.
-    </p>
+    {{-- Plegado a propósito.
+         Los doce resultados del catálogo y este formulario completo, uno detrás
+         del otro, hacían una página de más de tres mil píxeles: quien venía a
+         elegir del catálogo tenía que pasar por encima de nueve campos que no
+         iba a usar, y quien venía a escribirlo tenía que bajar hasta el final.
+
+         Se abre solo si la validación rebotó —los errores son de este
+         formulario, y dejarlo cerrado escondería justo lo que hay que
+         arreglar— o si la persona ya había empezado a escribir. --}}
+    <details class="desplegable desplegable-suelto" @if ($errors->any() || old('name') !== null) open @endif>
+        <summary>O escríbelo tú</summary>
+
+        <div class="desplegable-cuerpo">
+        <p class="bajada">
+            Queda como producto privado: solo lo ves tú y quien mire esta lista.
+            Si quieres, puedes compartir la ficha con el catálogo para que le sirva a más gente.
+        </p>
 
     {{-- enctype: sin esto el navegador manda solo el nombre del archivo y la
          imagen nunca llega. --}}
@@ -209,8 +269,10 @@
         </div>
 
         <div class="acciones">
-            <button type="submit" class="boton">Agregar a la lista</button>
+            <button type="submit" class="boton" data-ocupado="Agregando...">Agregar a la lista</button>
             <a href="{{ route('wishlists.show', $wishlist) }}">Volver a la lista</a>
         </div>
     </form>
+        </div>
+    </details>
 @endsection
