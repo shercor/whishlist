@@ -773,6 +773,18 @@ con credenciales de juguete.
 en esa máquina no existe. Los productos caen en su placeholder y los perfiles
 en sus iniciales. Es lo esperable; ver «Qué NO viaja con el repositorio».
 
+**`DatabaseTruncation` limpia al entrar, no al salir.** `ProductSearchTest` es
+el único test que lo usa —el índice FULLTEXT obliga a confirmar, así que no
+puede correr dentro de una transacción—, y por eso lo que crea su **último**
+test queda commiteado. Los demás usan `RefreshDatabase`, que abre una
+transacción sobre lo que haya: no limpian, heredan. Se manifestaba una vez cada
+tantas corridas y en otro archivo: `UserSuggestTest` comprueba que buscar «ana»
+no encuentre a nadie, y `UserFactory` arma el usuario desde un nombre de pila al
+azar, así que «Ana» sale `ana_12345`. Cuando a `ProductSearchTest` le tocaba una
+Ana, fallaba un test que nadie había tocado. Hoy lo cierra un `tearDown()` que
+vuelve a truncar. **Si escribes otro test que no pueda usar `RefreshDatabase`,
+tiene que limpiar lo suyo al salir.**
+
 **`view()` de la policy mira la sesión; para decidir por otro, `viewDurably()`.**
 `WishlistPolicy::view()` mezcla dos cosas que solo coinciden dentro de una
 petición: lo que esa persona tiene concedido, y lo que **esta sesión** abrió con

@@ -17,6 +17,29 @@ class ProductSearchTest extends TestCase
 {
     use DatabaseTruncation;
 
+    /**
+     * Limpiar también **al salir**, y no solo al entrar.
+     *
+     * `DatabaseTruncation` vacía las tablas antes de cada test, no después. Y
+     * como acá no hay transacción que revertir —ese es justamente el motivo de
+     * usar este trait—, lo que crea el último test de esta clase queda
+     * commiteado y sigue ahí para todo lo que corra detrás. Los demás tests de
+     * la suite usan `RefreshDatabase`, que abre una transacción sobre lo que
+     * haya: no limpian nada, así que heredan estas filas.
+     *
+     * Se notaba de la peor manera posible: `UserSuggestTest` comprueba que
+     * buscar «ana» no encuentre a nadie, y `UserFactory` arma el usuario a
+     * partir de un nombre de pila al azar —«Ana» sale `ana_12345`—. Cuando a
+     * esta clase le tocaba una Ana en su último test, el otro fallaba. Una vez
+     * cada tantas corridas, en un archivo que no se había tocado.
+     */
+    protected function tearDown(): void
+    {
+        $this->truncateDatabaseTables();
+
+        parent::tearDown();
+    }
+
     public function test_the_search_finds_products_by_name(): void
     {
         Product::factory()->create([
