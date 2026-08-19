@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 203 passed
+make test                                                     # 225 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -128,14 +128,16 @@ Commits en `main`:
 | `d673f19` | API v1 con Sanctum: CRUD completo y la sorpresa protegida en los Resource |
 | `aed7f69` | El catálogo público acepta fichas de usuarios, con marcha atrás |
 | `8d1f402` | Cuatro avisos más: respondieron tu pedido, te compartieron una lista, te siguen, te aceptaron |
-| (el último) | Las reservas de quien pierde el acceso se sueltan y el regalo vuelve a estar disponible |
+| `33549a4` | Las reservas de quien pierde el acceso se sueltan y el regalo vuelve a estar disponible |
+| `cdcb5e9` | Auditoría del barrido de reservas: sin sesión ajena, sin huérfanas atascadas y sin avisos de más |
+| (el último) | Rework de la interfaz: foco de teclado, tarjetas de opción arregladas, avisos coherentes y páginas de error propias |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **203 passed**.
+`make test` → **225 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -626,6 +628,14 @@ duraba antes. Si alguna vez hace falta que sea instantáneo, el barrido ya es un
 sola llamada a `ReservationService::releaseUnreachable()` y basta con invocarla
 también desde donde se quita el acceso.
 
+**Y ahora se puede hacer sin romper nada, que antes no.** El barrido preguntaba
+`can('view', ...)` en nombre de otra persona, y esa pregunta mira la sesión de
+quien la hace: desde consola no hay sesión y daba igual, pero llamada desde una
+petición habría salvado del barrido las reservas de cualquiera sobre una lista
+que quien pulsó el botón tuviera abierta por enlace. Hoy pregunta
+`viewDurably()`, que no mira la sesión. Está fijado en
+`ReservationSweepHardeningTest`.
+
 **Visibilidad del catálogo: resuelto.** Los usuarios **sí** pueden proponer
 productos, y se publican **al instante, sin moderación**. Se pide con la casilla
 «Compartir esta ficha con el catálogo» al escribir un regalo a mano
@@ -762,6 +772,42 @@ con credenciales de juguete.
 `storage/app/public/` no viaja en git, así que la fila apunta a un archivo que
 en esa máquina no existe. Los productos caen en su placeholder y los perfiles
 en sus iniciales. Es lo esperable; ver «Qué NO viaja con el repositorio».
+
+**`view()` de la policy mira la sesión; para decidir por otro, `viewDurably()`.**
+`WishlistPolicy::view()` mezcla dos cosas que solo coinciden dentro de una
+petición: lo que esa persona tiene concedido, y lo que **esta sesión** abrió con
+el enlace. Preguntarla en nombre de un tercero —como hace el barrido de reservas
+fuera de alcance— arrastra la sesión de quien pregunta, y una lista que yo abrí
+con el enlace parece alcanzable para todo el mundo. En consola no hay sesión y
+no se nota; desde una petición, sí. **Cualquier código que decida por otra
+persona tiene que preguntar `viewDurably()`.** No pierde a nadie: entrar por el
+enlace deja anotado un acceso de origen `enlace`, que es un hecho guardado.
+
+**`with()` seguido de `cursor()` no carga nada.** `cursor()` ignora el eager
+loading, así que el `with()` queda de adorno y cada relación de cada fila vuelve
+a la base. En el barrido de reservas eran seis consultas por reserva, en un
+comando que corre cada hora. Lo que sí respeta el `with()` es `lazy()`, que
+además va por lotes. Si escribes un recorrido largo, usa `lazy()`.
+
+**Un `whereHas` en un barrido de limpieza descarta justo lo que hay que
+limpiar.** El barrido pedía que la lista del regalo existiera, así que una
+reserva colgando de una lista borrada quedaba viva bloqueando el ítem, y ninguna
+pasada volvía a mirarla. Los hooks de borrado las sueltan, pero solo si el
+borrado pasa por el modelo: un update masivo o SQL a mano no. Ya hizo falta una
+migración de una vez (`release_orphaned_reservations`) para limpiar las que
+había. En un barrido, carga con `withTrashed()` y **suéltalas**, no las filtres.
+
+**`.campo label` le gana a cualquier clase de un solo nombre.** Es (0,1,1)
+contra (0,1,0), así que un `<label class="loquesea">` dentro de un `.campo`
+hereda `display: block` y `font-weight: 600` pase lo que pase el orden del
+archivo. Las tarjetas de opción —los radios de «Quién puede verla», la casilla
+de compartir la ficha— **nunca llegaron a ser flex** por esto: el redondel se
+iba a su propia línea y la descripción salía en negrita del mismo gris que el
+título. Y no se veía igual en todas partes: el «No cerrar sesión» del login está
+fuera de un `.campo` y por eso sí se veía bien. Hoy va como `label.opcion`, que
+empata en especificidad y gana por ir después. **Si escribes una clase para un
+elemento que también tiene una regla por tipo dentro de un contenedor, cuenta la
+especificidad antes de confiar en el orden.**
 
 **Chrome headless miente por debajo de 500px de ancho.** Si vas a verificar
 diseño de celular con capturas: `--window-size=390,900` no rinde a 390, deja el
