@@ -33,6 +33,38 @@ class NotificationTest extends TestCase
             ->create(['user_id' => $duenio->id]);
     }
 
+    /**
+     * Una reserva viva sobre una lista que quien reservó **puede ver**.
+     *
+     * No es un detalle del montaje. Una reserva solo existe si su dueño pudo
+     * abrir la lista para hacerla, y desde que `warnExpiring()` se calla ante
+     * lo inalcanzable, montar la escena con `Reservation::factory()` a secas
+     * describe algo que no puede pasar: la lista nace privada, así que quien
+     * reserva no la ve, y el aviso —con razón— no sale.
+     *
+     * @return array{0: User, 1: User, 2: Reservation}
+     */
+    private function reservaAlcanzable(array $atributos = []): array
+    {
+        $duenio = User::factory()->create(['is_private' => false]);
+        $regalador = User::factory()->create();
+
+        $lista = Wishlist::factory()
+            ->visibility(WishlistVisibility::PUBLIC)
+            ->create(['user_id' => $duenio->id]);
+
+        $item = WishlistItem::factory()->for($lista)->create();
+
+        $reserva = Reservation::factory()
+            ->for($item, 'wishlistItem')
+            ->for($regalador)
+            ->create($atributos);
+
+        $this->assertTrue($regalador->can('view', $lista));
+
+        return [$duenio, $regalador, $reserva];
+    }
+
     // --- Pedir acceso a una lista -------------------------------------------
 
     public function test_asking_for_a_list_notifies_its_owner(): void
@@ -79,10 +111,7 @@ class NotificationTest extends TestCase
     {
         Notification::fake();
 
-        $regalador = User::factory()->create();
-        $reserva = Reservation::factory()->for($regalador)->create([
-            'expires_at' => now()->addDays(2),
-        ]);
+        [, $regalador, $reserva] = $this->reservaAlcanzable(['expires_at' => now()->addDays(2)]);
 
         app(ReservationService::class)->warnExpiring();
 
@@ -98,15 +127,7 @@ class NotificationTest extends TestCase
     {
         Notification::fake();
 
-        $duenio = User::factory()->create();
-        $regalador = User::factory()->create();
-
-        $lista = Wishlist::factory()->create(['user_id' => $duenio->id]);
-        $item = WishlistItem::factory()->for($lista)->create();
-
-        Reservation::factory()->for($item, 'wishlistItem')->for($regalador)->create([
-            'expires_at' => now()->addDay(),
-        ]);
+        [$duenio, $regalador] = $this->reservaAlcanzable(['expires_at' => now()->addDay()]);
 
         app(ReservationService::class)->warnExpiring();
 
@@ -133,7 +154,7 @@ class NotificationTest extends TestCase
     {
         Notification::fake();
 
-        Reservation::factory()->create(['expires_at' => now()->addDays(2)]);
+        $this->reservaAlcanzable(['expires_at' => now()->addDays(2)]);
 
         $servicio = app(ReservationService::class);
 

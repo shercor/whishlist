@@ -77,9 +77,20 @@ class ReservationService
             // revienta contra un nulo. Y lo hace **dentro del worker**, donde
             // no lo ve nadie: la petición que la encoló termina bien.
             ->whereHas('wishlistItem.wishlist')
-            ->with('user');
+            ->with(['user', 'wishlistItem.wishlist.user']);
 
-        foreach ($porAvisar->cursor() as $reservation) {
+        foreach ($porAvisar->lazy() as $reservation) {
+            // Quien ya no alcanza la lista no tiene nada que hacer con un «te
+            // quedan 3 días»: el barrido de fuera de alcance está a punto de
+            // soltarle la reserva. Antes esto dependía de que el barrido
+            // corriera primero, y los dos comandos están programados a la
+            // misma hora —el orden lo decidía el orden de registro en
+            // `routes/console.php`, que es un hilo muy fino del que colgar un
+            // mensaje equivocado—.
+            if (! $reservation->user->can('viewDurably', $reservation->wishlistItem->wishlist)) {
+                continue;
+            }
+
             $reservation->user->notify(new ReservationExpiring($reservation));
 
             // Se marca aunque la notificación se encole: si el worker falla,
@@ -113,18 +124,63 @@ class ReservationService
     {
         $soltadas = 0;
 
+        // Una misma persona suele tener varios regalos reservados de la misma
+        // lista. La respuesta de la policy es la misma para todos, y cuesta
+        // dos consultas cada vez: se pregunta una y se recuerda.
+        $veredictos = [];
+
         $vivas = Reservation::query()
             ->whereNotNull('active_flag')
-            ->whereHas('wishlistItem.wishlist')
-            ->with(['user', 'wishlistItem.wishlist.user'])
-            ->cursor();
+            // `withTrashed` a propósito: antes esto era un `whereHas` que
+            // **descartaba** las reservas colgando de un regalo o una lista
+            // borrados, que es justo al revés de lo que hace falta. Los hooks
+            // de borrado las sueltan, pero un borrado que no pase por el
+            // modelo —un update masivo, SQL a mano— deja la reserva viva
+            // bloqueando un ítem que ya nadie puede ver, y ningún barrido
+            // volvía a mirarla. Hizo falta una migración de una vez
+            // (`release_orphaned_reservations`) para limpiar las que ya había;
+            // esto evita necesitar la siguiente.
+            ->with([
+                'user',
+                'wishlistItem' => fn ($query) => $query->withTrashed(),
+                'wishlistItem.wishlist' => fn ($query) => $query->withTrashed(),
+                'wishlistItem.wishlist.user',
+            ])
+            // `lazy()` y no `cursor()`: cursor() ignora el `with()` de arriba y
+            // vuelve a la base por cada relación de cada reserva. Se veía como
+            // seis consultas por reserva, en un comando que corre cada hora.
+            ->lazy();
 
         foreach ($vivas as $reservation) {
-            if ($reservation->user->can('view', $reservation->wishlistItem->wishlist)) {
+            $item = $reservation->wishlistItem;
+            $wishlist = $item?->wishlist;
+
+            $huerfana = ! $reservation->user
+                || ! $item || $item->trashed()
+                || ! $wishlist || $wishlist->trashed();
+
+            if ($huerfana) {
+                // En silencio, igual que los hooks de borrado: el aviso nombra
+                // el regalo y a quién es, y aquí no hay ninguna de las dos
+                // cosas que nombrar.
+                $reservation->release(ReservationStatus::CANCELLED);
+                $soltadas++;
+
                 continue;
             }
 
-            $reservation->release(ReservationStatus::CANCELLED);
+            $clave = $reservation->user_id.':'.$wishlist->id;
+
+            // Nunca `can('view', ...)`: eso mira la sesión de quien esté
+            // corriendo esto y la aplicaría a una persona que no es. Ver
+            // `WishlistPolicy::viewDurably()`.
+            $alcanza = $veredictos[$clave] ??= $reservation->user->can('viewDurably', $wishlist);
+
+            if ($alcanza) {
+                continue;
+            }
+
+            $reservation->release(ReservationStatus::REVOKED);
 
             // Soltarla sin decirlo sería peor que dejarla: la persona iría a
             // comprar un regalo que ya no tiene tomado.

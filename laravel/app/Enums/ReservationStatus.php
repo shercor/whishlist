@@ -10,6 +10,16 @@ enum ReservationStatus
     case EXPIRED;
 
     /**
+     * La soltó el sistema porque quien la tenía dejó de alcanzar la lista.
+     *
+     * Es su propio estado y no CANCELLED a propósito: «Cancelada» le dice a la
+     * persona que ella la soltó, y aquí no hizo nada —le quitaron el acceso, o
+     * la lista se volvió privada—. Verlo como cancelada en «Voy a regalar» la
+     * deja pensando que se equivocó de botón.
+     */
+    case REVOKED;
+
+    /**
      * Valor que se guarda en la base. Para mostrar en pantalla, title().
      */
     public function label(): string
@@ -19,6 +29,7 @@ enum ReservationStatus
             self::FULFILLED => 'cumplida',
             self::CANCELLED => 'cancelada',
             self::EXPIRED => 'expirada',
+            self::REVOKED => 'revocada',
         };
     }
 
@@ -32,6 +43,7 @@ enum ReservationStatus
             self::FULFILLED => 'Cumplida',
             self::CANCELLED => 'Cancelada',
             self::EXPIRED => 'Vencida',
+            self::REVOKED => 'Liberada',
         };
     }
 
@@ -52,6 +64,7 @@ enum ReservationStatus
             self::FULFILLED => '#198754',
             self::CANCELLED => '#6c757d',
             self::EXPIRED => '#fd7e14',
+            self::REVOKED => '#6c757d',
         };
     }
 

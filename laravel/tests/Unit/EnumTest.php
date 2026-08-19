@@ -63,8 +63,15 @@ class EnumTest extends TestCase
     {
         $this->assertTrue(ReservationStatus::ACTIVE->blocksItem());
 
-        foreach ([ReservationStatus::FULFILLED, ReservationStatus::CANCELLED, ReservationStatus::EXPIRED] as $status) {
-            $this->assertFalse($status->blocksItem());
+        // Todos los demás, sin enumerarlos: un estado nuevo que bloqueara el
+        // ítem sin querer es exactamente lo que este test debe pillar, y una
+        // lista escrita a mano no lo pilla porque no lo menciona.
+        foreach (ReservationStatus::cases() as $status) {
+            if ($status === ReservationStatus::ACTIVE) {
+                continue;
+            }
+
+            $this->assertFalse($status->blocksItem(), "{$status->label()} bloquea el ítem");
         }
     }
 

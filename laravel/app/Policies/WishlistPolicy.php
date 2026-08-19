@@ -24,11 +24,36 @@ class WishlistPolicy
      */
     public function view(User $user, Wishlist $wishlist): bool
     {
-        if ($this->owns($user, $wishlist)) {
+        // El segundo camino es el único que no vive en la base: es un dato de
+        // *esta* sesión. Por eso está aquí y no en viewDurably().
+        if ($wishlist->isUnlockedByLink()) {
             return true;
         }
 
-        if ($wishlist->isUnlockedByLink()) {
+        return $this->viewDurably($user, $wishlist);
+    }
+
+    /**
+     * Lo mismo que view(), pero sin mirar la sesión.
+     *
+     * Existe porque `view()` mezcla dos cosas que solo coinciden dentro de una
+     * petición: lo que esta persona tiene concedido, y lo que *esta sesión*
+     * abrió con el enlace. Preguntar `view()` en nombre de un tercero —como
+     * hace el barrido de reservas fuera de alcance— arrastra la sesión de
+     * quien pregunta, y entonces una lista que yo abrí con el enlace parece
+     * alcanzable para todo el mundo. En consola no hay sesión y no se nota;
+     * el día que alguien llame al barrido desde una petición, sí.
+     *
+     * No pierde a nadie por el camino: entrar con el enlace deja anotado un
+     * acceso de origen `enlace` (ver `WishlistController::recordLinkAccess`),
+     * que es un hecho guardado y lo ve `hasLiveAccess()`. La sesión solo
+     * ahorra volver a pegar el token.
+     *
+     * Quien decida por un tercero debe preguntar por acá, siempre.
+     */
+    public function viewDurably(User $user, Wishlist $wishlist): bool
+    {
+        if ($this->owns($user, $wishlist)) {
             return true;
         }
 
