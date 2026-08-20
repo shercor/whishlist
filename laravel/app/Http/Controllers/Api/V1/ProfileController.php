@@ -16,8 +16,10 @@ use Illuminate\Support\Str;
  * casilla llamada «perfil_publico» para obtener `is_private`, que es lenguaje
  * de formulario. Un cliente de API manda el campo que existe.
  *
- * La foto de perfil no se cambia por acá: subir un archivo pide multipart y
- * merece su propio endpoint. Está anotado como pendiente en el HANDOFF.
+ * La foto de perfil no se cambia por acá, sino en `PUT me/avatar`: es lo único
+ * que viaja como multipart, y quitarla necesita un verbo propio porque en un
+ * PATCH «no mando el campo» y «bórralo» se confunden. El porqué completo está
+ * en AvatarController.
  */
 class ProfileController extends Controller
 {

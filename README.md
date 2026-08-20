@@ -49,6 +49,15 @@ Y se usa con `Authorization: Bearer <token>`. `php artisan route:list --path=api
 los lista todos. Códigos: 201 al crear, 204 sin cuerpo, 409 si otro se te
 adelantó reservando, 422 en validación, 403 sin permiso, 401 sin token.
 
+Todo viaja en json menos una cosa: la foto de perfil, que va como
+`multipart/form-data` en su propio endpoint.
+
+```bash
+curl -X PUT http://localhost:8080/api/v1/me/avatar \
+  -H 'Accept: application/json' -H "Authorization: Bearer $TOKEN" \
+  -F 'avatar=@foto.jpg'          # y DELETE en la misma ruta para quitarla
+```
+
 **Antes de tocar los `Resource`, lee el aviso de la sección 5 del HANDOFF:** lo
 que un regalo revela depende de quién pregunta, y ahí es donde se filtra una
 sorpresa sin que se note en pantalla.

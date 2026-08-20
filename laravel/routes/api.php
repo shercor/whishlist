@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AccessRequestController;
+use App\Http\Controllers\Api\V1\AvatarController;
 use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -48,6 +49,13 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // --- Mi perfil --------------------------------------------------------
         Route::get('me', [ProfileController::class, 'show'])->name('me.show');
         Route::patch('me', [ProfileController::class, 'update'])->name('me.update');
+
+        // La foto va aparte del PATCH: es lo único de la API que viaja como
+        // multipart y no como json, y quitarla necesita su propio verbo. PUT
+        // porque reemplazarla es idempotente. Necesita PHP 8.4 para desarmar
+        // el multipart fuera de POST; el porqué, en AvatarController.
+        Route::put('me/avatar', [AvatarController::class, 'store'])->name('me.avatar.store');
+        Route::delete('me/avatar', [AvatarController::class, 'destroy'])->name('me.avatar.destroy');
 
         // --- Personas ---------------------------------------------------------
         Route::get('users', [UserController::class, 'index'])->name('users.index');

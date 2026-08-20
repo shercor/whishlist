@@ -18,10 +18,13 @@ return [
     'in' => 'El valor de :attribute no es válido.',
     'exists' => 'El :attribute seleccionado no existe o no puedes usarlo.',
     'unique' => 'Ese :attribute ya está registrado.',
+    'image' => 'El campo :attribute debe ser una imagen.',
+    'mimes' => 'El campo :attribute debe ser un archivo de tipo: :values.',
 
     'max' => [
         'string' => 'El campo :attribute no puede tener más de :max caracteres.',
         'numeric' => 'El campo :attribute no puede ser mayor que :max.',
+        'file' => 'El campo :attribute no puede pesar más de :max kilobytes.',
     ],
 
     'min' => [

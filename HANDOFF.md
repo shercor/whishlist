@@ -130,14 +130,16 @@ Commits en `main`:
 | `8d1f402` | Cuatro avisos más: respondieron tu pedido, te compartieron una lista, te siguen, te aceptaron |
 | `33549a4` | Las reservas de quien pierde el acceso se sueltan y el regalo vuelve a estar disponible |
 | `cdcb5e9` | Auditoría del barrido de reservas: sin sesión ajena, sin huérfanas atascadas y sin avisos de más |
-| (el último) | Rework de la interfaz: foco de teclado, tarjetas de opción arregladas, avisos coherentes y páginas de error propias |
+| `e2bb8c3` | Rework de la interfaz: foco de teclado, tarjetas de opción arregladas, avisos coherentes y páginas de error propias |
+| `b97bb38` | Cierra la fuga de datos entre tests que hacía fallar el buscador de personas al azar |
+| (el último) | La foto de perfil se cambia por la API: `PUT`/`DELETE me/avatar` |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **225 passed**.
+`make test` → **235 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -388,6 +390,7 @@ Los tests que importan y qué vigilan:
 | `Api/ApiAuthTest`                  | tokens: freno de fuerza bruta, 401 sin token, revocar un aparato o todos |
 | `Api/ApiAuthorizationTest`         | la API apretada por un extraño **con token válido**, y que el `share_token` no llegue a un invitado |
 | `Api/ApiCrudTest`                  | el ciclo completo y los códigos: 201, 204, 409, 422 |
+| `Api/ApiAvatarTest`                | la foto de perfil por la API: que reemplazar borre la anterior, que se encole el achicado, y que editar el perfil no la toque |
 | `PublicCatalogTest`                | compartir una ficha con el catálogo y retirarla, y que compartirla no delate tu lista |
 | `NotificationEventsTest`           | los siete avisos **por web y por API**, lo que no se avisa, y que un aviso cuyo modelo desapareció se descarte en vez de morir en el worker |
 | `UnreachableReservationTest`       | que perder el acceso suelte la reserva por los seis caminos, **incluidos los dos que no tocan ninguna fila**, y que el dueño no vea nada |
@@ -590,9 +593,24 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    booleano `is_reserved`; a quien mira le llega el booleano y nunca el
    `user_id` ni el id de la reserva.
 
-   **Falta:** documentarla (no hay OpenAPI), subir la foto de perfil por API
-   —pide multipart y merece su propio endpoint— y el POST del catálogo, que
-   espera la decisión de moderación de la sección 6.
+   **La foto de perfil ya se cambia por API:** `PUT me/avatar` la reemplaza y
+   `DELETE me/avatar` la quita, ambas contra el mismo `AvatarService` de la web,
+   así que borrar la anterior y encolar el achicado no están escritos dos veces.
+
+   Va en su propio endpoint y no dentro de `PATCH me` por dos razones, y
+   **ninguna es técnica**: un binario no cabe en un documento json, y quitar la
+   foto hay que poder decirlo —en un PATCH, «no mando el campo» y «bórralo» se
+   confunden, porque todos sus campos son `sometimes`—. La razón que parecía
+   obligar a esto era otra y resultó falsa: que PHP no desarma multipart fuera
+   de POST. Ver la trampa del PHP 8.4 en la sección 8.
+
+   **Falta:** documentarla (no hay OpenAPI) y el POST del catálogo. Este último
+   no lo bloquea la moderación —eso se resolvió: se publica al instante—, sino
+   una pregunta que sigue abierta: hoy **no existe forma de publicar una ficha
+   sin querer el regalo**. Se publica marcando `share_with_catalog` al escribir
+   un regalo propio, en la web y en la API. Un `POST /products` suelto sería una
+   capacidad que la web no tiene, y hay que decidir si se quiere antes de
+   escribirla.
 
 ---
 
@@ -755,11 +773,31 @@ pantallas y comprueba que responden 200. Si agregas una pantalla, agrégala ahí
 apuntando al contenedor viejo. Se arregla con `docker compose restart
 webserver`. Pasa después de cualquier `docker compose up -d --build app`.
 
+**Multipart fuera de POST funciona, pero solo desde PHP 8.4.** `PUT me/avatar`
+recibe un archivo porque `Request::createFromGlobals()` de Symfony llama a
+`request_parse_body()`, que existe desde PHP 8.4 y desarma el cuerpo sea cual
+sea el verbo. En PHP crudo la historia es la de siempre: comprobado con una
+sonda, en un PATCH o un PUT `$_POST` y `$_FILES` llegan **vacíos** y el cuerpo
+se queda entero en `php://input`. Así que bajar la versión de PHP rompe ese
+endpoint —devolvería 422 «el campo foto de perfil es obligatorio»— y **la suite
+no se entera**: el cliente de pruebas de Laravel arma la petición por dentro sin
+pasar por ese parser, así que `ApiAvatarTest` seguiría verde. Si alguna vez hay
+que soportar PHP 8.3, el endpoint vuelve a POST. Lo mismo vale para cualquier
+endpoint nuevo que reciba archivos en un verbo que no sea POST: **verifícalo por
+HTTP, no solo con `artisan test`.**
+
 **El worker se queda con el código viejo.** `queue:work` carga la aplicación
 una vez y la mantiene en memoria, así que después de cambiar un job hay que
 hacer `make queue-restart`. El síntoma es desconcertante: el test pasa, el
 código está bien, y el worker sigue haciendo lo de antes. Si una foto quedó
 sin achicar, `make queue-failed` dice si el job murió y por qué.
+
+Hay una variante peor: el worker **vivo pero sin consumir**. `docker compose ps`
+lo muestra «Up», no hay jobs fallidos, y sin embargo la cola crece. Para verla
+hay que mirar la cola de verdad, y la clave lleva prefijo:
+`docker compose exec redis redis-cli LLEN 'whishlist-database-queues:default'`
+—un `LLEN queues:default` a secas devuelve 0 y parece que todo está bien—. Se
+arregla igual, con `make queue-restart`.
 
 **Hay dos `.env`.** El de la raíz lo lee docker compose; el de `laravel/` lo
 lee Laravel. `make env` sincroniza las credenciales de BD del primero al
