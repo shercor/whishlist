@@ -45,9 +45,30 @@ curl -X POST http://localhost:8080/api/v1/tokens \
   -d '{"email":"admin@whishlist.test","password":"admin1234","device_name":"curl"}'
 ```
 
-Y se usa con `Authorization: Bearer <token>`. `php artisan route:list --path=api`
-los lista todos. Códigos: 201 al crear, 204 sin cuerpo, 409 si otro se te
-adelantó reservando, 422 en validación, 403 sin permiso, 401 sin token.
+Y se usa con `Authorization: Bearer <token>`. Códigos: 201 al crear, 204 sin
+cuerpo, 409 si otro se te adelantó reservando, 422 en validación, 403 sin
+permiso, 401 sin token.
+
+### Documentación
+
+Las 41 operaciones están descritas en [`docs/openapi.yaml`](docs/openapi.yaml)
+(OpenAPI 3.1). Para leerlas con una interfaz encima:
+
+```bash
+make api-docs        # Swagger UI en http://localhost:8081
+```
+
+Y para comprobar que el spec no se quedó atrás del código:
+
+```bash
+make api-docs-check  # falla si sobra o falta alguna ruta
+```
+
+**Lee la descripción de `WishlistItem` antes de escribir un cliente.** Un regalo
+sale con **dos formas distintas** según quién pregunta: al dueño le faltan las
+claves `is_reserved` y `reserved_by_me` —no vienen en `false`, no existen—,
+porque es él justamente quien no debe enterarse. Un cliente que interprete su
+ausencia como «está libre» revienta la sorpresa.
 
 Todo viaja en json menos una cosa: la foto de perfil, que va como
 `multipart/form-data` en su propio endpoint.

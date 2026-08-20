@@ -132,7 +132,8 @@ Commits en `main`:
 | `cdcb5e9` | Auditoría del barrido de reservas: sin sesión ajena, sin huérfanas atascadas y sin avisos de más |
 | `e2bb8c3` | Rework de la interfaz: foco de teclado, tarjetas de opción arregladas, avisos coherentes y páginas de error propias |
 | `b97bb38` | Cierra la fuga de datos entre tests que hacía fallar el buscador de personas al azar |
-| (el último) | La foto de perfil se cambia por la API: `PUT`/`DELETE me/avatar` |
+| `37b033d` | La foto de perfil se cambia por la API: `PUT`/`DELETE me/avatar` |
+| (el último) | La API queda documentada en OpenAPI 3.1, con comprobador de desfase |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -409,7 +410,7 @@ Lo que sigue sin un solo test son los formularios de listas y regalos, el
 reparto de accesos y el registro, que se verificaron a mano por HTTP y con
 capturas, una vez.
 
-**No hecho todavía:** correo saliente y la documentación de la API.
+**No hecho todavía:** correo saliente.
 
 ---
 
@@ -604,7 +605,30 @@ La aplicación funciona. Lo que sigue, en orden de importancia:
    obligar a esto era otra y resultó falsa: que PHP no desarma multipart fuera
    de POST. Ver la trampa del PHP 8.4 en la sección 8.
 
-   **Falta:** documentarla (no hay OpenAPI) y el POST del catálogo. Este último
+   **Documentada: hecho.** `docs/openapi.yaml`, OpenAPI 3.1, las 41 operaciones
+   —41 y no 40 porque `PUT|PATCH /wishlists/{id}` es una ruta de Laravel pero
+   dos operaciones para OpenAPI—. Se lee con `make api-docs`, que levanta un
+   Swagger UI en el 8081.
+
+   **Y se comprueba sola:** `make api-docs-check` compara el spec con
+   `route:list` y falla si sobra o falta una ruta. La documentación de una API
+   se pudre en silencio —alguien agrega una ruta, no toca el spec, y el archivo
+   sigue pareciendo correcto—; esto lo pilla. Está verificado por mutación:
+   borrando un endpoint del spec, el comprobador lo nombra y sale con error.
+
+   Lo que el comprobador **no** puede ver es que cambie la *forma* de una
+   respuesta: si alguien agrega un campo a un `Resource`, el spec se queda
+   corto y nadie se entera. Eso sigue dependiendo de que quien lo toque lo
+   anote.
+
+   Lo más importante del spec no son las rutas sino la descripción de
+   `WishlistItem`, que documenta las **dos formas** con que sale un regalo
+   según quién pregunte, con la advertencia de que la ausencia de
+   `is_reserved` significa «estás mirando tu propia lista» y no «está libre».
+   Está comprobado contra el servidor real, no solo escrito: el mismo
+   `GET /wishlists/{id}` devuelve 7 claves por ítem a la dueña y 9 a quien mira.
+
+   **Falta:** el POST del catálogo. Este último
    no lo bloquea la moderación —eso se resolvió: se publica al instante—, sino
    una pregunta que sigue abierta: hoy **no existe forma de publicar una ficha
    sin querer el regalo**. Se publica marcando `share_with_catalog` al escribir
@@ -653,6 +677,33 @@ petición habría salvado del barrido las reservas de cualquiera sobre una lista
 que quien pulsó el botón tuviera abierta por enlace. Hoy pregunta
 `viewDurably()`, que no mira la sesión. Está fijado en
 `ReservationSweepHardeningTest`.
+
+**Si algún día el frontend se rehace en Angular (o cualquier SPA).** Se planteó
+y conviene dejar anotado lo que se vio, porque no es obvio.
+
+Lo bueno: **la protección de la sorpresa sobrevive intacta**. Vive en los
+`Resource`, del lado del servidor, decidiendo qué campos existen según quién
+pregunta. Si estuviera resuelta en las vistas Blade —un `@if` que oculta la
+reserva— migrar obligaría a reescribirla, y ahí es exactamente donde se filtra
+sin que nadie lo note. Las policies y los services tampoco se pueden saltar
+desde el navegador. El trabajo duro está en el sitio correcto.
+
+Lo que **bloquea**, y son tres cosas concretas:
+
+1. **No se puede registrar a nadie por API.** `POST /register` existe solo en la
+   web. Un cliente Angular no podría dar de alta usuarios.
+2. **El enlace secreto no funciona sin sesión.** `unlockByLink()` anota la lista
+   en `session()`, y la API es solo token. No es agregar una ruta: hay que
+   decidir cómo se sustituye ese mecanismo.
+3. **Habría que replantear la autenticación.** Hoy es solo token, a propósito
+   —«un solo camino»—. Para un SPA en el navegador eso tiene un costo: un token
+   en `localStorage` lo lee cualquier XSS. Sanctum tiene el modo cookie/sesión
+   pensado justo para eso, pero activarlo deshace esa decisión y trae CSRF y
+   CORS detrás. **Es la decisión más seria de esa migración, y va antes de
+   escribir la primera línea de Angular, no después.**
+
+Los tres están anotados también dentro de `docs/openapi.yaml`, para que quien
+lea el contrato los vea sin tener que abrir este archivo.
 
 **Visibilidad del catálogo: resuelto.** Los usuarios **sí** pueden proponer
 productos, y se publican **al instante, sin moderación**. Se pide con la casilla

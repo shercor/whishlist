@@ -1,0 +1,1742 @@
+openapi: 3.1.0
+
+info:
+  title: Whishlist API
+  version: "1.0.0"
+  summary: Listas de deseos con reservas que el dueño no puede ver.
+  description: |
+    API de la aplicación de listas de deseos. Vive bajo `/api/v1` y se
+    autentica **solo por token** (Sanctum). No hay sesión ni cookies.
+
+    ## La regla que gobierna todo: la sorpresa
+
+    El dueño de una lista **nunca** debe enterarse de que un regalo suyo está
+    reservado. Eso no es una preferencia de interfaz: está implementado en los
+    `Resource` del servidor, que **cambian los campos de la respuesta según
+    quién pregunta**.
+
+    En concreto, un regalo (`WishlistItem`) sale con dos formas distintas:
+
+    - **A su dueño**: sin `is_reserved` y sin `reserved_by_me`. No es que
+      lleguen en `false` — es que las claves **no existen** en el json.
+    - **A cualquier otro**: con `is_reserved` y `reserved_by_me`. Nunca con el
+      id de la reserva ni con quién la hizo.
+
+    Un cliente no debe deducir "si no viene `is_reserved`, está libre". Lo que
+    significa su ausencia es "estás mirando tu propia lista, y aquí no se
+    responde esa pregunta".
+
+    ## Códigos
+
+    | Código | Cuándo |
+    |--------|--------|
+    | 200 | todo bien, con cuerpo |
+    | 201 | se creó algo |
+    | 204 | todo bien, sin cuerpo |
+    | 401 | falta el token o no vale |
+    | 403 | hay token, pero no te corresponde |
+    | 404 | no existe, o no te consta que exista |
+    | 409 | el recurso cambió mientras hablábamos (te ganaron la reserva) |
+    | 422 | validación |
+
+    Un 404 puede significar "no existe" o "existe y no te lo vamos a confirmar".
+    Es deliberado: distinguirlos delataría listas privadas.
+
+    ## Lo que esta API todavía NO puede hacer
+
+    Importa si se piensa construir un cliente completo (por ejemplo un frontend
+    Angular) contra ella, porque son huecos que hoy **solo** cubre la web:
+
+    1. **No se puede registrar a nadie.** `POST /register` existe únicamente en
+       la web. No hay endpoint de alta de usuarios.
+    2. **No se puede abrir una lista por su enlace secreto.** Ese mecanismo
+       (`GET /s/{token}` en la web) anota la lista en la **sesión**, y aquí no
+       hay sesión. Un cliente de API solo llega a las listas que tiene
+       concedidas.
+    3. **No se puede pedir una lista privada que no sabes que existe.** Hace
+       falta un `wishlist_id`, y el perfil de alguien no revela las listas que
+       no puedes ver. Es una decisión de diseño, no un descuido.
+
+  contact:
+    name: Repositorio
+    url: https://github.com/
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Entorno local de desarrollo
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: Sesión
+    description: Crear y revocar tokens. Crear un token es iniciar sesión.
+  - name: Mi perfil
+    description: El usuario propio y su foto.
+  - name: Personas
+    description: Buscar gente por su arroba y ver perfiles.
+  - name: Listas
+    description: Las listas de deseos.
+  - name: Regalos
+    description: Los ítems de una lista.
+  - name: Reservas
+    description: Tomar un regalo para regalarlo. Invisible para el dueño.
+  - name: Catálogo
+    description: Productos compartidos y votos.
+  - name: Seguidores
+    description: Seguir gente y aprobar solicitudes.
+  - name: Acceso a listas
+    description: Pedir, conceder y revocar el acceso a una lista privada.
+  - name: Notificaciones
+    description: Los avisos dentro de la aplicación.
+
+components:
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        El token que devuelve `POST /tokens`, tal cual, en
+        `Authorization: Bearer <token>`. No caduca solo: se revoca con
+        `DELETE /tokens/current` o `DELETE /tokens`.
+
+  # ---------------------------------------------------------------------------
+  # Parámetros reutilizados
+  # ---------------------------------------------------------------------------
+  parameters:
+    page:
+      name: page
+      in: query
+      description: Página, empezando en 1.
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+
+    wishlistId:
+      name: wishlist
+      in: path
+      required: true
+      description: Id de la lista.
+      schema: { type: integer }
+
+    itemId:
+      name: item
+      in: path
+      required: true
+      description: Id del regalo.
+      schema: { type: integer }
+
+    productId:
+      name: product
+      in: path
+      required: true
+      description: Id del producto del catálogo.
+      schema: { type: integer }
+
+    username:
+      name: user
+      in: path
+      required: true
+      description: El arroba de la persona, **sin** el `@`.
+      schema: { type: string, examples: ["ana"] }
+
+  # ---------------------------------------------------------------------------
+  # Respuestas de error reutilizadas
+  # ---------------------------------------------------------------------------
+  responses:
+    Unauthorized:
+      description: Falta el token, o ya fue revocado.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+          example: { message: "Unauthenticated." }
+
+    Forbidden:
+      description: |
+        Hay token válido, pero esa acción no te corresponde. Es lo que responde
+        una policy al negarse.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+
+    NotFound:
+      description: |
+        No existe **o** existe y no se te va a confirmar. Los dos casos dan lo
+        mismo a propósito: distinguirlos revelaría listas ajenas.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Message' }
+
+    ValidationError:
+      description: Uno o más campos no pasaron la validación.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ValidationError' }
+
+  # ---------------------------------------------------------------------------
+  # Esquemas
+  # ---------------------------------------------------------------------------
+  schemas:
+
+    Message:
+      type: object
+      properties:
+        message: { type: string }
+
+    ValidationError:
+      type: object
+      required: [message, errors]
+      properties:
+        message:
+          type: string
+          description: El primer error, ya en español.
+          examples: ["El campo foto de perfil debe ser una imagen."]
+        errors:
+          type: object
+          description: Un array de mensajes por cada campo que falló.
+          additionalProperties:
+            type: array
+            items: { type: string }
+      example:
+        message: "El campo nombre es obligatorio."
+        errors:
+          name: ["El campo nombre es obligatorio."]
+
+    PaginationLinks:
+      type: object
+      properties:
+        first: { type: [string, "null"], format: uri }
+        last:  { type: [string, "null"], format: uri }
+        prev:  { type: [string, "null"], format: uri }
+        next:  { type: [string, "null"], format: uri }
+
+    PaginationMeta:
+      type: object
+      properties:
+        current_page: { type: integer }
+        from:         { type: [integer, "null"] }
+        last_page:    { type: integer }
+        path:         { type: string }
+        per_page:     { type: integer }
+        to:           { type: [integer, "null"] }
+        total:        { type: integer }
+        links:
+          type: array
+          description: Los botones de paginación ya armados por Laravel.
+          items:
+            type: object
+            properties:
+              url:    { type: [string, "null"] }
+              label:  { type: string }
+              page:   { type: [integer, "null"] }
+              active: { type: boolean }
+
+    # --- enums, con los valores que viajan de verdad -------------------------
+    # Ojo: en el json van en español y en minúsculas, no como el nombre del
+    # caso del enum de PHP. Es lo que `label()` devuelve.
+
+    Visibility:
+      type: string
+      enum: [publica, privada]
+      description: |
+        `privada` cubre los dos casos que antes estaban separados: se invita
+        persona a persona y además tiene enlace secreto.
+
+    Priority:
+      type: string
+      enum: [baja, media, alta]
+
+    ReservationStatus:
+      type: string
+      enum: [activa, cumplida, cancelada, expirada, revocada]
+
+    AccessStatus:
+      type: string
+      enum: [pendiente, aprobado, rechazado, revocado]
+
+    AccessSource:
+      type: string
+      description: |
+        Por dónde entró esa persona, que es lo que decide cuánto le dura el
+        acceso.
+      enum: [invitacion, solicitud, enlace]
+
+    FollowStatus:
+      type: string
+      enum: [pendiente, aceptado]
+
+    # --- personas ------------------------------------------------------------
+
+    User:
+      type: object
+      description: |
+        Una persona vista por otra. El correo no sale nunca hacia terceros, y
+        el nombre real solo si su dueño lo dejó a la vista: si lo ocultó,
+        `display_name` es su arroba.
+      properties:
+        username:     { type: string, examples: ["ana"] }
+        handle:       { type: string, description: "El arroba, siempre.", examples: ["@ana"] }
+        display_name:
+          type: string
+          description: |
+            El nombre si lo muestra, y si no el arroba. **Es el único sitio del
+            que debe salir un nombre**: no hay un campo `name` aparte.
+          examples: ["Ana Rojas", "@ana"]
+        avatar:
+          type: [string, "null"]
+          format: uri
+          description: URL de la foto, o `null` si no puso ninguna.
+        initials:
+          type: string
+          description: Las letras del placeholder cuando no hay foto.
+          examples: ["AR"]
+        email:
+          type: string
+          format: email
+          description: |
+            **Solo en el perfil propio** (`GET /me` y la respuesta de
+            `POST /tokens`). A un tercero esta clave no le llega.
+        show_name:
+          type: boolean
+          description: Solo en el perfil propio.
+        is_private:
+          type: boolean
+          description: |
+            Solo en el perfil propio. Un perfil privado aprueba a mano a quien
+            quiere seguirlo; uno público acepta solo.
+      required: [username, handle, display_name, avatar, initials]
+
+    UserProfile:
+      description: El perfil de alguien, con lo que quien pregunta puede abrir.
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            profile_open:
+              type: boolean
+              description: Si puedes ver su actividad o su perfil está cerrado para ti.
+            wishlists:
+              type: array
+              description: |
+                **Exactamente** las listas que puedes abrir de verdad. Las que
+                no, ni se cuentan ni se insinúan: decir "tiene 2 listas más que
+                no puedes ver" ya es contar algo que su dueño eligió no contar.
+              items: { $ref: '#/components/schemas/Wishlist' }
+
+    # --- catálogo ------------------------------------------------------------
+
+    Category:
+      type: object
+      properties:
+        id:   { type: integer }
+        name: { type: string }
+        slug: { type: string }
+
+    Product:
+      type: object
+      description: |
+        Una ficha de producto. Puede ser del catálogo público o privada de quien
+        la escribió a mano.
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: [string, "null"] }
+        url:         { type: [string, "null"], format: uri, description: "La tienda donde se compra." }
+        image:
+          type: [string, "null"]
+          format: uri
+          description: La foto subida si la hay, y si no la del sitio de la tienda.
+        reference_price: { type: [number, "null"] }
+        currency:        { type: [string, "null"], examples: ["CLP"] }
+        is_public:
+          type: boolean
+          description: Si la ficha está compartida con el catálogo de todos.
+        category:
+          $ref: '#/components/schemas/Category'
+          description: Presente solo cuando el endpoint carga la relación.
+        likes:
+          type: integer
+          description: Votos. Presente solo en los endpoints que los cuentan.
+        liked_by_me:
+          type: boolean
+          description: Si tú ya lo votaste. Presente solo donde se calcula.
+      required: [id, name, is_public]
+
+    NewItem:
+      type: object
+      description: |
+        Lo que se manda al agregar un regalo. **O `product_id` (del catálogo), o
+        `name` + `category_id` (escrito a mano)** — los dos campos de la segunda
+        forma son obligatorios si no mandas el primero.
+      required: [priority]
+      properties:
+        product_id:
+          type: [integer, "null"]
+          description: |
+            Un producto que **tú puedas ver**: público, o privado tuyo. Mandar
+            el id de una ficha privada ajena da 422.
+        name:
+          type: [string, "null"]
+          maxLength: 200
+          description: Obligatorio si no mandas `product_id`.
+        category_id:
+          type: [integer, "null"]
+          description: Obligatorio si no mandas `product_id`.
+        description:     { type: [string, "null"], maxLength: 1000 }
+        url:             { type: [string, "null"], format: uri, maxLength: 2048 }
+        reference_price: { type: [number, "null"], minimum: 0, maximum: 99999999 }
+        share_with_catalog:
+          type: boolean
+          default: false
+          description: |
+            Publicar la ficha en el catálogo de todos, **al instante y sin
+            moderación**. Solo tiene sentido con un producto escrito a mano.
+
+            Compartir la ficha **no cuenta que tú quieras el regalo**: tu lista
+            y tu deseo siguen siendo privados. Se retira con
+            `DELETE /products/{id}/publication`.
+        alias:
+          type: [string, "null"]
+          maxLength: 200
+          description: Cómo quieres llamarlo tú. Le gana al nombre del catálogo.
+        notes:    { type: [string, "null"], maxLength: 500 }
+        priority: { $ref: '#/components/schemas/Priority' }
+
+    # --- regalos: las dos formas --------------------------------------------
+
+    WishlistItemBase:
+      type: object
+      properties:
+        id: { type: integer }
+        name:
+          type: string
+          description: El alias que le puso el dueño, o el nombre del producto.
+        notes:    { type: [string, "null"] }
+        priority: { $ref: '#/components/schemas/Priority' }
+        position: { type: integer }
+        received:
+          type: boolean
+          description: Si ya le llegó. Esto sí lo ve todo el mundo.
+        product:
+          $ref: '#/components/schemas/Product'
+      required: [id, name, priority, position, received]
+
+    WishlistItemForOwner:
+      description: |
+        El regalo **tal como lo recibe su dueño**. Fíjate en lo que NO está:
+        no hay `is_reserved` ni `reserved_by_me`, y no porque vengan en `false`
+        sino porque las claves no existen. Es la protección de la sorpresa.
+      allOf:
+        - $ref: '#/components/schemas/WishlistItemBase'
+
+    WishlistItemForViewer:
+      description: |
+        El regalo tal como lo recibe cualquiera **que no sea el dueño**. Trae
+        si está tomado y si lo tomaste tú — nunca quién lo tomó, ni el id de la
+        reserva.
+      allOf:
+        - $ref: '#/components/schemas/WishlistItemBase'
+        - type: object
+          properties:
+            is_reserved:
+              type: boolean
+              description: Si alguien ya lo tomó. Nunca dice quién.
+            reserved_by_me:
+              type: boolean
+              description: Si quien lo tomó eres tú.
+          required: [is_reserved, reserved_by_me]
+
+    WishlistItem:
+      description: |
+        Un regalo. **La forma depende de quién pregunta** — mira las dos
+        variantes. Un cliente no debe interpretar la ausencia de `is_reserved`
+        como "está libre", sino como "estás mirando tu propia lista".
+      oneOf:
+        - $ref: '#/components/schemas/WishlistItemForOwner'
+        - $ref: '#/components/schemas/WishlistItemForViewer'
+
+    # --- listas --------------------------------------------------------------
+
+    Wishlist:
+      type: object
+      properties:
+        id:          { type: integer }
+        name:        { type: string }
+        description: { type: [string, "null"] }
+        visibility:  { $ref: '#/components/schemas/Visibility' }
+        event_date:
+          type: [string, "null"]
+          format: date
+          description: La fecha del cumpleaños o lo que sea. Solo el día.
+        items_count:
+          type: integer
+          description: Presente solo en los listados que lo cuentan.
+        owner:
+          $ref: '#/components/schemas/User'
+          description: Presente solo cuando el endpoint carga la relación.
+        is_mine: { type: boolean }
+        share_token:
+          type: [string, "null"]
+          description: |
+            La llave del enlace secreto. **Sale únicamente para el dueño**:
+            dársela a un invitado equivaldría a dejarle repartir la lista por su
+            cuenta. Para todos los demás la clave no existe. Es `null` en las
+            listas públicas, que no tienen enlace secreto.
+        items:
+          type: array
+          description: Presente solo en `GET /wishlists/{id}`.
+          items: { $ref: '#/components/schemas/WishlistItem' }
+      required: [id, name, visibility, is_mine]
+
+    # --- reservas ------------------------------------------------------------
+
+    Reservation:
+      type: object
+      description: |
+        Una reserva **tuya**. Este objeto solo aparece en tus propios endpoints
+        de reserva; jamás dentro de la lista que ve su dueño.
+      properties:
+        id:     { type: integer }
+        status: { $ref: '#/components/schemas/ReservationStatus' }
+        note:
+          type: [string, "null"]
+          description: Una nota privada tuya, para acordarte de qué ibas a comprar.
+        expires_at:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            Las reservas caducan y se sueltan solas, para que un regalo no quede
+            bloqueado para siempre por alguien que se olvidó.
+        created_at: { type: [string, "null"], format: date-time }
+        item:       { $ref: '#/components/schemas/WishlistItem' }
+
+    # --- seguidores y accesos ------------------------------------------------
+
+    Follow:
+      type: object
+      properties:
+        id:           { type: integer }
+        status:       { $ref: '#/components/schemas/FollowStatus' }
+        responded_at: { type: [string, "null"], format: date-time }
+        follower:     { $ref: '#/components/schemas/User' }
+        followed:     { $ref: '#/components/schemas/User' }
+
+    WishlistAccess:
+      type: object
+      description: El permiso de una persona sobre una lista privada.
+      properties:
+        id:           { type: integer }
+        status:       { $ref: '#/components/schemas/AccessStatus' }
+        source:       { $ref: '#/components/schemas/AccessSource' }
+        message:
+          type: [string, "null"]
+          description: Lo que escribió quien pidió el acceso.
+        responded_at: { type: [string, "null"], format: date-time }
+        created_at:   { type: [string, "null"], format: date-time }
+        user:         { $ref: '#/components/schemas/User' }
+        wishlist:     { $ref: '#/components/schemas/Wishlist' }
+
+    # --- notificaciones ------------------------------------------------------
+
+    Notification:
+      type: object
+      description: |
+        Un aviso dentro de la aplicación. Hay siete tipos, y ninguno de ellos
+        avisa al dueño de una reserva.
+      properties:
+        id:         { type: string, format: uuid }
+        title:      { type: [string, "null"] }
+        detail:     { type: [string, "null"] }
+        url:        { type: [string, "null"], description: "A dónde lleva al pulsarlo." }
+        read:       { type: boolean }
+        created_at: { type: [string, "null"], format: date-time }
+
+paths:
+
+  # ===========================================================================
+  # Sesión
+  # ===========================================================================
+  /tokens:
+    post:
+      tags: [Sesión]
+      summary: Entrar y obtener un token
+      description: |
+        Crear un token **es** iniciar sesión. No abre sesión de servidor: el
+        token es lo único que se guarda del lado del cliente.
+
+        Tiene dos frenos contra la fuerza bruta: cinco intentos por correo e ip
+        —que devuelven 422 diciendo cuántos segundos faltan—, y un tope de diez
+        peticiones por minuto por ip a secas.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password, device_name]
+              properties:
+                email:    { type: string, format: email }
+                password: { type: string, format: password }
+                device_name:
+                  type: string
+                  maxLength: 100
+                  description: |
+                    Con qué se identifica este token en la lista de aparatos.
+                    Sin esto, revocar el de un teléfono perdido es adivinar.
+                  examples: ["iPhone de Ana"]
+            example:
+              email: "ana@whishlist.test"
+              password: "password"
+              device_name: "iPhone de Ana"
+      responses:
+        '201':
+          description: Token creado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Se muestra **una sola vez**. No se puede volver a leer.
+                  user: { $ref: '#/components/schemas/User' }
+        '422':
+          description: |
+            Credenciales que no coinciden, o demasiados intentos. Los dos casos
+            llegan como error de validación sobre el campo `email`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              examples:
+                noCoinciden:
+                  value: { message: "Ese correo y esa contraseña no coinciden.", errors: { email: ["Ese correo y esa contraseña no coinciden."] } }
+                frenado:
+                  value: { message: "Demasiados intentos. Prueba de nuevo en 47 segundos.", errors: { email: ["Demasiados intentos. Prueba de nuevo en 47 segundos."] } }
+        '429': { description: "Más de diez intentos por minuto desde la misma ip." }
+
+    delete:
+      tags: [Sesión]
+      summary: Cerrar sesión en todas partes
+      description: Revoca todos los tokens. Es lo que se aprieta al perder un teléfono.
+      responses:
+        '204': { description: "Todos los tokens revocados." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /tokens/current:
+    delete:
+      tags: [Sesión]
+      summary: Cerrar sesión en este aparato
+      description: |
+        Revoca el token con el que llegó la petición, y solo ese: los demás
+        aparatos siguen dentro.
+      responses:
+        '204': { description: "Token revocado." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ===========================================================================
+  # Mi perfil
+  # ===========================================================================
+  /me:
+    get:
+      tags: [Mi perfil]
+      summary: Mi perfil
+      responses:
+        '200':
+          description: El perfil propio, con correo y ajustes de privacidad.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+    patch:
+      tags: [Mi perfil]
+      summary: Editar mi perfil
+      description: |
+        Un PATCH cambia lo que trae y deja el resto en paz: todos los campos son
+        opcionales.
+
+        **La foto no se cambia aquí**, sino en `PUT /me/avatar`.
+
+        El arroba se perdona: `@Ana`, `ana` y ` ANA ` se guardan igual, como
+        `ana`.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:     { type: string, maxLength: 255 }
+                username:
+                  type: string
+                  description: |
+                    Empieza con letra y sigue con letras, números o guion bajo.
+                    Sin espacios ni tildes. Hay nombres reservados.
+                show_name:
+                  type: boolean
+                  description: Si tu nombre real se muestra o solo tu arroba.
+                is_private:
+                  type: boolean
+                  description: |
+                    Un perfil privado aprueba a mano a quien quiere seguirlo.
+                    Ojo, es el campo **directo**: la web usa una casilla
+                    invertida llamada «perfil público», la API no.
+            example: { name: "Ana Rojas", show_name: true }
+      responses:
+        '200':
+          description: Perfil actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /me/avatar:
+    put:
+      tags: [Mi perfil]
+      summary: Cambiar mi foto de perfil
+      description: |
+        **El único endpoint de toda la API que no habla json**: la foto viaja
+        como `multipart/form-data`, porque un binario no cabe en un documento
+        json.
+
+        Va aparte de `PATCH /me` por dos razones: esa, y que quitar la foto hay
+        que poder decirlo — en un PATCH, «no mando el campo» y «bórralo» se
+        confunden. Por eso quitarla es un `DELETE` sobre esta misma ruta.
+
+        `PUT` y no `POST` porque reemplazar la foto es idempotente: mandarla dos
+        veces deja una foto, no dos. La anterior se borra del disco.
+
+        La imagen se achica en segundo plano a 320 px de lado. La respuesta
+        llega antes de que eso ocurra, así que la primera lectura de la URL
+        puede devolver todavía el archivo grande.
+
+        > **Requiere PHP 8.4 en el servidor.** Multipart en un verbo distinto de
+        > POST solo se desarma desde que existe `request_parse_body()`. En PHP
+        > 8.3 este endpoint respondería 422 diciendo que falta la foto.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+                  description: |
+                    jpeg, png o webp, hasta 4 MB. Se valida el **contenido**, no
+                    la extensión: un ejecutable renombrado a `.png` da 422.
+      responses:
+        '200':
+          description: |
+            El perfil ya actualizado. Devuelve el perfil entero y no un 204
+            porque el nombre del archivo lo inventa el servidor: sin cuerpo, el
+            cliente no sabría qué URL pintar.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    delete:
+      tags: [Mi perfil]
+      summary: Quitar mi foto de perfil
+      description: |
+        Borra la foto y el archivo del disco. Quitar una foto que no estaba
+        **no es un error**: devuelve 200 igual, porque es el estado que pedías.
+      responses:
+        '200':
+          description: El perfil, ya con `avatar` en `null`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/User' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ===========================================================================
+  # Personas
+  # ===========================================================================
+  /users:
+    get:
+      tags: [Personas]
+      summary: Buscar personas por su arroba
+      description: |
+        **Solo busca por arroba.** No encuentra a nadie por su nombre real ni
+        por su correo, a propósito: el correo no debe ser una forma de dar con
+        alguien, y el nombre puede estar oculto.
+
+        Con menos de 3 caracteres devuelve una lista **vacía**, no un error: el
+        directorio completo de la plataforma no debe poder recorrerse de
+        corrido. Tú nunca sales en tus propios resultados.
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: El arroba o parte de él. El `@` inicial se ignora.
+          schema: { type: string, examples: ["ana"] }
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          description: Las coincidencias, o vacío si el término era muy corto.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /users/{user}:
+    get:
+      tags: [Personas]
+      summary: El perfil de alguien
+      description: |
+        Trae sus datos públicos y **exactamente** las listas que tú puedes abrir
+        de verdad. Si tiene listas privadas que no te ha dado, no aparecen ni se
+        cuentan.
+      parameters:
+        - $ref: '#/components/parameters/username'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/UserProfile' }
+          description: El perfil.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ===========================================================================
+  # Listas
+  # ===========================================================================
+  /wishlists:
+    get:
+      tags: [Listas]
+      summary: Mis listas
+      description: |
+        **Solo las tuyas.** Las de otra gente se piden por su perfil
+        (`GET /users/{user}`). Ordenadas por fecha del evento y luego por las
+        más nuevas.
+      parameters:
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          description: Tus listas, con el número de regalos de cada una.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Wishlist' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+    post:
+      tags: [Listas]
+      summary: Crear una lista
+      description: |
+        Una lista `privada` nace con su `share_token` ya puesto. Una `publica`
+        no tiene enlace secreto, porque no le hace falta.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, visibility]
+              properties:
+                name:        { type: string, maxLength: 150 }
+                description: { type: [string, "null"], maxLength: 500 }
+                visibility:  { $ref: '#/components/schemas/Visibility' }
+                event_date:  { type: [string, "null"], format: date }
+            example: { name: "Cumpleaños", visibility: "privada", event_date: "2027-03-14" }
+      responses:
+        '201':
+          description: Lista creada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Wishlist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /wishlists/{wishlist}:
+    get:
+      tags: [Listas]
+      summary: Ver una lista con sus regalos
+      description: |
+        El mismo endpoint sirve para tu lista y para la de otro, y **la
+        respuesta no tiene la misma forma en los dos casos**: si la lista es
+        tuya, sus regalos vienen sin `is_reserved` ni `reserved_by_me`. Ver el
+        esquema `WishlistItem`.
+
+        Hay cuatro caminos por los que esto puede abrirse: que la lista sea
+        pública, que sea tuya, que te la hayan concedido, o que la hayas abierto
+        por su enlace (esto último **solo desde la web**, no por API). Si
+        ninguno aplica, 404.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      responses:
+        '200':
+          description: La lista con sus regalos ordenados.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Wishlist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+    put:
+      tags: [Listas]
+      summary: Editar una lista
+      description: |
+        Solo el dueño. **Cuidado con el efecto colateral**: pasar una lista de
+        `privada` a `publica` mata su enlace secreto, y quien tuviera acceso solo
+        por ese enlace lo pierde. Si además tenía una reserva en ella, se le
+        suelta y se le avisa (con hasta una hora de retraso: lo hace un barrido).
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, visibility]
+              properties:
+                name:        { type: string, maxLength: 150 }
+                description: { type: [string, "null"], maxLength: 500 }
+                visibility:  { $ref: '#/components/schemas/Visibility' }
+                event_date:  { type: [string, "null"], format: date }
+      responses:
+        '200':
+          description: Lista actualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Wishlist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    patch:
+      tags: [Listas]
+      summary: Editar una lista (alias de PUT)
+      description: Acepta el mismo cuerpo que `PUT`, con los mismos campos obligatorios.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, visibility]
+              properties:
+                name:        { type: string, maxLength: 150 }
+                description: { type: [string, "null"], maxLength: 500 }
+                visibility:  { $ref: '#/components/schemas/Visibility' }
+                event_date:  { type: [string, "null"], format: date }
+      responses:
+        '200':
+          description: Lista actualizada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Wishlist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    delete:
+      tags: [Listas]
+      summary: Borrar una lista
+      description: |
+        Borrado suave. Se lleva por delante sus regalos y suelta las reservas
+        que hubiera sobre ellos — a quien las tenía se le avisa, porque si no
+        iría a comprar un regalo que ya no tiene tomado.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      responses:
+        '204': { description: "Lista borrada." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ===========================================================================
+  # Regalos
+  # ===========================================================================
+  /wishlists/{wishlist}/items:
+    post:
+      tags: [Regalos]
+      summary: Agregar un regalo a una lista
+      description: |
+        Dos formas de pedirlo, y hay que elegir una:
+
+        - **Del catálogo**: manda `product_id`. Tiene que ser un producto que
+          tú puedas ver — público, o privado tuyo. Mandar el id de un producto
+          privado ajeno da 422, no 403: si respondiera distinto, probar ids
+          sería una forma de espiar el catálogo privado de otros.
+        - **Escrito a mano**: manda `name` y `category_id`. Nace como ficha
+          privada tuya, salvo que marques `share_with_catalog`.
+
+        Solo el dueño de la lista puede agregar. Cuelga de la lista porque un
+        regalo necesita saber en cuál va; para editarlo, en cambio, basta su id.
+
+        Acepta `multipart/form-data` para poder subir la foto.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewItem' }
+            examples:
+              delCatalogo:
+                summary: Elegido del catálogo
+                value: { product_id: 12, priority: "alta", notes: "Talla M" }
+              escritoAMano:
+                summary: Escrito a mano
+                value: { name: "Taza de cerámica", category_id: 3, priority: "media", share_with_catalog: true }
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/NewItem'
+                - type: object
+                  properties:
+                    image:
+                      type: string
+                      format: binary
+                      description: |
+                        Solo con producto escrito a mano. jpeg, png o webp hasta
+                        4 MB; se achica a 800 px en segundo plano. Nada de svg,
+                        que es xml y puede traer scripts dentro.
+      responses:
+        '201':
+          description: Regalo agregado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /items/{item}:
+    patch:
+      tags: [Regalos]
+      summary: Editar un regalo
+      description: |
+        **El producto no se cambia.** Si el regalo pasa a ser otro, se borra el
+        ítem y se agrega uno nuevo: cambiarlo por debajo confundiría a quien ya
+        lo hubiera reservado, que iría a comprar otra cosa.
+      parameters:
+        - $ref: '#/components/parameters/itemId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [priority]
+              properties:
+                alias:
+                  type: [string, "null"]
+                  maxLength: 200
+                  description: Cómo quieres llamarlo tú. Le gana al nombre del catálogo.
+                notes:    { type: [string, "null"], maxLength: 500 }
+                priority: { $ref: '#/components/schemas/Priority' }
+                position: { type: [integer, "null"], minimum: 0, maximum: 65535 }
+      responses:
+        '200':
+          description: Regalo actualizado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+    delete:
+      tags: [Regalos]
+      summary: Quitar un regalo de la lista
+      description: |
+        Borrado suave, y suelta la reserva que hubiera sobre él avisando a quien
+        la tenía.
+      parameters:
+        - $ref: '#/components/parameters/itemId'
+      responses:
+        '204': { description: "Regalo borrado." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /items/{item}/receipt:
+    put:
+      tags: [Regalos]
+      summary: Marcar que ya te llegó
+      description: |
+        «Ya me llegó» va como sub-recurso y no como un campo del regalo: un
+        PATCH con `received_at` obligaría a exponer una fecha que en realidad
+        nadie elige, y a confiar en que el cliente mande la de hoy.
+
+        Marcarlo cierra la reserva que hubiera: cumplió su función.
+
+        Solo el dueño de la lista.
+      parameters:
+        - $ref: '#/components/parameters/itemId'
+      responses:
+        '200':
+          description: Regalo marcado como recibido.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+    delete:
+      tags: [Regalos]
+      summary: Desmarcar que te llegó
+      description: |
+        Deshace lo anterior. **No resucita la reserva** que se cerró al
+        marcarlo: el regalo vuelve a estar disponible para quien sea.
+      parameters:
+        - $ref: '#/components/parameters/itemId'
+      responses:
+        '200':
+          description: Regalo desmarcado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistItem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ===========================================================================
+  # Reservas
+  # ===========================================================================
+  /reservations:
+    get:
+      tags: [Reservas]
+      summary: Mis reservas activas
+      description: |
+        Lo que tú tienes tomado, ordenado por lo que caduca antes. Nadie más ve
+        esta lista, y menos que nadie el dueño del regalo.
+      parameters:
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Reservation' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+          description: Tus reservas activas.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+    post:
+      tags: [Reservas]
+      summary: Reservar un regalo
+      description: |
+        El regalo va en el cuerpo y no en la ruta porque lo que se crea es una
+        **reserva**, y el regalo es uno de sus datos.
+
+        **El dueño de una lista no puede reservar en la suya** (403): sería
+        quitarse a sí mismo la sorpresa, y además bloquearía el regalo a los
+        demás.
+
+        Un regalo admite **una sola reserva activa**, garantizado por la base de
+        datos. Si dos personas la piden a la vez, la que pierde recibe un 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wishlist_item_id]
+              properties:
+                wishlist_item_id: { type: integer }
+                note:
+                  type: [string, "null"]
+                  maxLength: 300
+                  description: Nota privada tuya. El dueño jamás la ve.
+            example: { wishlist_item_id: 42, note: "Lo compro el viernes" }
+      responses:
+        '201':
+          description: Reservado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Reservation' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: |
+            No te corresponde: o es tu propia lista, o no tienes acceso a ella.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+        '409':
+          description: |
+            Alguien se te adelantó entre que miraste y que pulsaste. **409 y no
+            422 a propósito**: lo que mandaste era válido; lo que cambió fue el
+            estado del recurso mientras hablábamos.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+              example: { message: "Alguien se te adelantó y ya lo reservó." }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /reservations/{reservation}:
+    delete:
+      tags: [Reservas]
+      summary: Soltar una reserva mía
+      description: |
+        Solo la tuya. **Ni siquiera el dueño de la lista puede soltar la reserva
+        de otro**: podría usarlo para averiguar que existía.
+      parameters:
+        - name: reservation
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: "Reserva soltada, el regalo vuelve a estar disponible." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ===========================================================================
+  # Catálogo
+  # ===========================================================================
+  /products:
+    get:
+      tags: [Catálogo]
+      summary: Buscar en el catálogo
+      description: |
+        Devuelve el catálogo público **más** tus propias fichas privadas. Las
+        fichas privadas de otra gente no aparecen nunca.
+
+        Entre fichas repetidas del mismo producto —que las hay, porque publicar
+        no pasa por moderación— sale primero la más votada.
+
+        La búsqueda es por prefijo: «pelu» encuentra «Peluche».
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Qué buscar. Sin esto, devuelve el catálogo entero paginado.
+          schema: { type: string }
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+          description: Los productos que puedes ver, los más votados primero.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /products/{product}:
+    get:
+      tags: [Catálogo]
+      summary: Ver un producto
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Product' }
+          description: El producto.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /products/{product}/like:
+    put:
+      tags: [Catálogo]
+      summary: Votar un producto
+      description: |
+        `PUT` porque votar es **idempotente**: apretarlo dos veces deja un voto,
+        no dos. Así el cliente puede reintentar sin miedo si se le cae la red.
+
+        **Solo se vota el catálogo público.** Una ficha privada no se vota, ni
+        siquiera la tuya.
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      responses:
+        '204': { description: "Voto registrado (o ya lo estaba)." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+    delete:
+      tags: [Catálogo]
+      summary: Quitar mi voto
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      responses:
+        '204': { description: "Voto quitado (o no lo había)." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /products/{product}/publication:
+    delete:
+      tags: [Catálogo]
+      summary: Retirar del catálogo una ficha mía
+      description: |
+        La marcha atrás de `share_with_catalog`, y lo único que hay contra una
+        ficha publicada por error: publicar es directo, sin moderación.
+
+        **No borra el producto.** Sigue existiendo, privado, y las listas de
+        quienes ya lo hubieran agregado lo siguen mostrando — borrarlo les
+        vaciaría un regalo que ellos eligieron. Lo que sí se pierde son los
+        votos que juntó mientras estuvo público.
+
+        No hay `POST` hermano: publicar se pide al crear el regalo, con
+        `share_with_catalog`.
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      responses:
+        '200':
+          description: La ficha, ya con `is_public` en `false`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ===========================================================================
+  # Seguidores
+  # ===========================================================================
+  /follows:
+    get:
+      tags: [Seguidores]
+      summary: Mi gente, en los cuatro estados que importan
+      description: "No va paginado: se devuelven los cuatro grupos enteros."
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      pending_for_me:
+                        type: array
+                        description: Quienes piden seguirte y esperan tu respuesta.
+                        items: { $ref: '#/components/schemas/Follow' }
+                      followers:
+                        type: array
+                        description: Quienes ya te siguen.
+                        items: { $ref: '#/components/schemas/Follow' }
+                      following:
+                        type: array
+                        description: A quiénes sigues tú.
+                        items: { $ref: '#/components/schemas/Follow' }
+                      my_pending:
+                        type: array
+                        description: Solicitudes tuyas todavía sin responder.
+                        items: { $ref: '#/components/schemas/Follow' }
+          description: Los cuatro grupos.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /users/{user}/follow:
+    post:
+      tags: [Seguidores]
+      summary: Seguir a alguien
+      description: |
+        Si su perfil es **público**, queda `aceptado` al momento. Si es
+        **privado**, queda `pendiente` hasta que responda.
+
+        Es idempotente en la práctica: seguir a quien ya sigues devuelve el
+        seguimiento que ya había, sin duplicar ni avisarle otra vez.
+
+        Seguirte a ti mismo da 403.
+      parameters:
+        - $ref: '#/components/parameters/username'
+      responses:
+        '201':
+          description: Seguimiento creado, o el que ya existía.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Follow' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: No puedes seguirte a ti mismo.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+
+    delete:
+      tags: [Seguidores]
+      summary: Dejar de seguir a alguien
+      description: |
+        **Efecto colateral importante**: si veías alguna de sus listas privadas
+        *porque* le seguías, dejas de verla — y si tenías una reserva en ella,
+        se te suelta y se te avisa. Lo hace un barrido que corre cada hora, así
+        que no es instantáneo.
+      parameters:
+        - $ref: '#/components/parameters/username'
+      responses:
+        '204': { description: "Ya no le sigues." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /users/{user}/follower:
+    delete:
+      tags: [Seguidores]
+      summary: Echar a un seguidor
+      description: |
+        Lo mismo al revés: esa persona deja de seguirte, con el mismo efecto
+        inmediato sobre lo que podía ver. **No se le avisa** — anunciar que le
+        quitaste algo no arregla nada y sí incomoda.
+      parameters:
+        - $ref: '#/components/parameters/username'
+      responses:
+        '204': { description: "Ya no te sigue." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /follows/{follow}:
+    patch:
+      tags: [Seguidores]
+      summary: Responder una solicitud de seguimiento
+      description: |
+        Solo puedes responder las que te hicieron a ti.
+
+        **Aceptar y rechazar devuelven cosas distintas**: aceptar da 200 con el
+        seguimiento; rechazar **borra la fila** y da 204. Se borra a propósito:
+        si esa persona insiste, que sea una solicitud nueva y no el historial de
+        un rechazo viejo. Y no se le avisa del rechazo.
+      parameters:
+        - name: follow
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision]
+              properties:
+                decision:
+                  type: string
+                  enum: [aceptar, rechazar]
+      responses:
+        '200':
+          description: Aceptada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Follow' }
+        '204': { description: "Rechazada, y la solicitud se borró." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  # ===========================================================================
+  # Acceso a listas privadas
+  # ===========================================================================
+  /access:
+    get:
+      tags: [Acceso a listas]
+      summary: Los accesos que me piden y los que yo pedí
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      received:
+                        type: array
+                        description: Lo que otros piden sobre **tus** listas.
+                        items: { $ref: '#/components/schemas/WishlistAccess' }
+                      sent:
+                        type: array
+                        description: Lo que **tú** pediste sobre listas de otros.
+                        items: { $ref: '#/components/schemas/WishlistAccess' }
+          description: Los dos lados.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /wishlists/{wishlist}/access:
+    post:
+      tags: [Acceso a listas]
+      summary: Pedir acceso a una lista privada
+      description: |
+        Volver a pedir lo mismo **no duplica**: reactiva la solicitud que ya
+        había.
+
+        > **Hueco conocido**: para pedir una lista hace falta su `wishlist_id`,
+        > y el perfil de alguien no revela las listas que no puedes ver. Así que
+        > hoy no hay forma de pedir una lista privada cuya existencia solo
+        > sospechas. El camino previsto es el contrario: que su dueño te la dé.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message:
+                  type: [string, "null"]
+                  maxLength: 300
+                  description: Por qué la pides. Lo lee el dueño.
+      responses:
+        '201':
+          description: Solicitud enviada. Al dueño le llega un aviso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistAccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /access/{access}:
+    patch:
+      tags: [Acceso a listas]
+      summary: Responder una solicitud sobre una lista mía
+      description: |
+        Solo el dueño de la lista.
+
+        **Qué se avisa y qué no**: se avisa de la respuesta a una solicitud
+        —aprobada o rechazada—, y **nunca** de una revocación. El aviso de un
+        rechazo tampoco nombra la lista: decirlo sería contar algo de una lista
+        que esa persona sigue sin poder ver.
+      parameters:
+        - name: access
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [aprobado, rechazado, revocado]
+      responses:
+        '200':
+          description: Respondida.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistAccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /wishlists/{wishlist}/invitations:
+    post:
+      tags: [Acceso a listas]
+      summary: Dar una lista a alguien sin que la pida
+      description: |
+        El camino previsto para repartir una lista privada.
+
+        **Solo a tus seguidores aceptados.** No basta con que el `user_id`
+        exista: si no te sigue, da 422. Sin esa regla bastaría con mandar
+        cualquier id para colar a un desconocido en una lista privada.
+
+        Invitar a quien ya estaba invitado no duplica: actualiza lo que había.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id]
+              properties:
+                user_id:
+                  type: integer
+                  description: Id de un seguidor tuyo **ya aceptado**.
+      responses:
+        '201':
+          description: Acceso concedido. A esa persona le llega un aviso.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WishlistAccess' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /wishlists/{wishlist}/access/{access}:
+    delete:
+      tags: [Acceso a listas]
+      summary: Echar a alguien de una lista
+      description: |
+        **Borra la fila en vez de marcarla revocada**, a propósito: el índice
+        único de (lista, persona) dejaría a esa persona bloqueada para siempre
+        si algún día quisieras volver a invitarla.
+
+        No se le avisa. Y si tenía una reserva en esa lista, la pierde: el
+        barrido horario se la suelta y a ella **sí** se le avisa de eso — soltarla
+        en silencio sería peor, iría a comprar un regalo que ya no tiene tomado.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+        - name: access
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '204': { description: "Acceso retirado." }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Ese acceso no pertenece a esa lista.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Message' }
+
+  # ===========================================================================
+  # Notificaciones
+  # ===========================================================================
+  /notifications:
+    get:
+      tags: [Notificaciones]
+      summary: Mis avisos
+      description: |
+        Los siete tipos de aviso, del más nuevo al más viejo, de 30 en 30.
+
+        **Ninguno de los siete avisa al dueño de una reserva**, y eso es
+        deliberado. Tampoco se avisa de una revocación de acceso ni de un
+        rechazo de seguimiento.
+
+        Fíjate en que el `meta` de este endpoint **no es el de paginación
+        estándar** del resto de la API: es uno propio, con el número de no
+        leídos.
+      parameters:
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                  meta:
+                    type: object
+                    properties:
+                      unread:       { type: integer, description: "Cuántos sin leer. Es el número de la campana." }
+                      total:        { type: integer }
+                      per_page:     { type: integer }
+                      current_page: { type: integer }
+          description: Tus avisos.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /notifications/{notification}:
+    patch:
+      tags: [Notificaciones]
+      summary: Marcar un aviso como leído
+      description: |
+        `PATCH` y no `POST` porque cambia un campo del recurso.
+
+        Solo los tuyos: pedir el de otra persona da 404, no 403.
+      parameters:
+        - name: notification
+          in: path
+          required: true
+          description: El uuid del aviso.
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Aviso marcado como leído.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Notification' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /notifications/read-all:
+    post:
+      tags: [Notificaciones]
+      summary: Marcar todos como leídos
+      responses:
+        '204': { description: "Todos marcados." }
+        '401': { $ref: '#/components/responses/Unauthorized' }

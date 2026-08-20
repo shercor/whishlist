@@ -23,7 +23,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
         install key migrate fresh seed admin optimize test test-db \
         sh sh-root logs logs-app ps db xdebug-on xdebug-off \
         queue-status queue-logs queue-restart queue-failed queue-retry \
-        artisan composer npm
+        artisan composer npm api-docs api-docs-check
 
 ## --------------------------------------------------------------------------
 ## Puesta en marcha
@@ -207,3 +207,17 @@ xdebug-off: ## Desactiva Xdebug y reinicia php
 	  /usr/local/etc/php/conf.d/90-xdebug.ini
 	@$(DC) restart app
 	@echo "  → Xdebug apagado."
+
+## --------------------------------------------------------------------------
+## Documentación de la API
+## --------------------------------------------------------------------------
+
+api-docs: ## Abre la documentación de la API (Swagger UI) en http://localhost:8081
+	@echo "  → Swagger UI en http://localhost:8081 (Ctrl+C para parar)"
+	@docker run --rm -p 8081:8080 \
+	  -e SWAGGER_JSON=/spec/openapi.yaml \
+	  -v "$(PWD)/docs:/spec:ro" \
+	  swaggerapi/swagger-ui
+
+api-docs-check: ## Comprueba que el spec cubre todas las rutas y ninguna de más
+	@$(RUN) php artisan route:list --json | python3 docs/check-openapi.py
