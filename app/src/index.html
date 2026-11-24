@@ -7,6 +7,25 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1" />
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <!--
+      Tema elegido, antes de dibujar nada: así no se ve un destello del tema contrario al cargar.
+      Sin elección guardada manda el sistema. Después lo mantiene ThemeService.
+    -->
+    <script>
+      (function () {
+        var tema = null;
+        try {
+          tema = localStorage.getItem('whishlist.tema');
+        } catch (e) {
+          /* Almacenamiento bloqueado: manda el sistema. */
+        }
+        var oscuro =
+          tema === 'claro' || tema === 'oscuro'
+            ? tema === 'oscuro'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.classList.toggle('ion-palette-dark', oscuro);
+      })();
+    </script>
   </head>
   <body>
     <app-root></app-root>

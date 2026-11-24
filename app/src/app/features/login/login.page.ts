@@ -6,10 +6,11 @@ import { giftOutline } from 'ionicons/icons';
 import { AuthService } from '../../core/auth/auth.service';
 import { returnUrl } from '../../core/auth/return-url';
 import { errorMessage } from '../../core/http/api-error';
+import { ThemeToggle } from '../../shared/theme-toggle';
 
 @Component({
   selector: 'app-login',
-  imports: [RouterLink, IonButton, IonContent, IonIcon, IonSpinner],
+  imports: [RouterLink, ThemeToggle, IonButton, IonContent, IonIcon, IonSpinner],
   templateUrl: './login.page.html',
   styleUrl: './login.page.scss',
 })

@@ -16,6 +16,14 @@ h1 {
   margin: 0;
 }
 
+// Modo claro/oscuro en la esquina: estas pantallas no tienen menú.
+.theme-corner {
+  position: absolute;
+  top: max(0.5rem, env(safe-area-inset-top));
+  right: 0.5rem;
+  z-index: 1;
+}
+
 // Pantalla de bienvenida: sus elementos entran más espaciados que las filas de una lista.
 .login {
   --stagger: 80ms;

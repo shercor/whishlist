@@ -5,15 +5,30 @@
 @import 'tailwindcss/theme.css' layer(theme);
 @import 'tailwindcss/utilities.css';
 
+/*
+ * Modo oscuro por clase en <html> (ion-palette-dark, la misma de la paleta de Ionic) y no por la
+ * preferencia del sistema: así se puede elegir. La pone index.html antes de dibujar y la mantiene
+ * ThemeService. Los estilos oscuros de este archivo van con :where(.ion-palette-dark), que no
+ * cambia qué regla le gana a cuál.
+ */
+@custom-variant dark (&:where(.ion-palette-dark, .ion-palette-dark *));
+
+/* Barras de desplazamiento y controles nativos del mismo tema que la app. */
+:root {
+  color-scheme: light;
+}
+
+:root.ion-palette-dark {
+  color-scheme: dark;
+}
+
 /* Fondo gris en todas las vistas, para que resalten las tarjetas blancas. */
 ion-content {
   --background: var(--color-neutral-100);
 }
 
-@media (prefers-color-scheme: dark) {
-  ion-content {
-    --background: var(--color-neutral-950);
-  }
+:where(.ion-palette-dark) ion-content {
+  --background: var(--color-neutral-950);
 }
 
 /*
@@ -114,16 +129,14 @@ label.control:has(:checked) {
   background-color: color-mix(in srgb, var(--ion-color-primary) 8%, var(--color-white));
 }
 
-@media (prefers-color-scheme: dark) {
-  .control {
-    border-color: rgb(255 255 255 / 0.15);
-    background-color: var(--color-neutral-900);
-  }
+:where(.ion-palette-dark) .control {
+  border-color: rgb(255 255 255 / 0.15);
+  background-color: var(--color-neutral-900);
+}
 
-  label.control:has(:checked) {
-    border-color: var(--ion-color-primary);
-    background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
-  }
+:where(.ion-palette-dark) label.control:has(:checked) {
+  border-color: var(--ion-color-primary);
+  background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
 }
 
 /* Acción dentro de un texto o un aviso ("Limpiar filtros", "Ver cuáles"): toma el color de lo que la rodea. */
@@ -151,10 +164,8 @@ label.control:has(:checked) {
   color: var(--color-red-600);
 }
 
-@media (prefers-color-scheme: dark) {
-  .link-button.link-danger {
-    color: var(--color-red-400);
-  }
+:where(.ion-palette-dark) .link-button.link-danger {
+  color: var(--color-red-400);
 }
 
 /* Botón con aspecto de control (opciones para elegir, como las categorías del modal): mismo alto,
@@ -184,10 +195,8 @@ button.control.control-dashed {
   color: var(--ion-color-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  button.control[aria-pressed='true'] {
-    background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
-  }
+:where(.ion-palette-dark) button.control[aria-pressed='true'] {
+  background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
 }
 
 /* Muestra de color de una categoría: círculo para tocar, con un aro cuando está elegida. */
@@ -266,24 +275,22 @@ ion-modal.auto-height .modal-body {
   display: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  .gift-backdrop {
-    display: block;
-    position: absolute;
-    inset: 0 0 auto;
-    height: 22rem;
-    background: url('./patron-regalos.svg') repeat;
-    background-size: 480px;
-    opacity: 0.16;
-    mask-image: linear-gradient(to bottom, #000 30%, transparent);
-    pointer-events: none;
-  }
+:where(.ion-palette-dark) .gift-backdrop {
+  display: block;
+  position: absolute;
+  inset: 0 0 auto;
+  height: 22rem;
+  background: url('./patron-regalos.svg') repeat;
+  background-size: 480px;
+  opacity: 0.16;
+  mask-image: linear-gradient(to bottom, #000 30%, transparent);
+  pointer-events: none;
+}
 
-  /* Entrar y crear cuenta: cubre toda la pantalla. */
-  .gift-backdrop.gift-backdrop-full {
-    height: 100%;
-    mask-image: linear-gradient(to bottom, #000 55%, transparent);
-  }
+/* Entrar y crear cuenta: cubre toda la pantalla. */
+:where(.ion-palette-dark) .gift-backdrop.gift-backdrop-full {
+  height: 100%;
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
 /* Tarjeta blanca sobre el fondo gris: agrupa una lista o un formulario. */
@@ -308,6 +315,8 @@ ion-menu.app-menu ion-content {
 
 ion-menu.app-menu ion-list {
   padding-inline: 0.5rem;
+  /* Sin el gris propio de Ionic: en modo oscuro la lista se veía como un bloque más claro. */
+  background: transparent;
 }
 
 ion-menu.app-menu ion-item {
@@ -327,18 +336,16 @@ ion-menu.app-menu ion-item.selected ion-icon {
   color: var(--ion-color-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  ion-menu.app-menu ion-content {
-    --background: var(--color-neutral-900);
-  }
+:where(.ion-palette-dark) ion-menu.app-menu ion-content {
+  --background: var(--color-neutral-900);
+}
 
-  ion-menu.app-menu ion-item {
-    --background: transparent;
-  }
+:where(.ion-palette-dark) ion-menu.app-menu ion-item {
+  --background: transparent;
+}
 
-  ion-menu.app-menu ion-item.selected {
-    --background: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
-  }
+:where(.ion-palette-dark) ion-menu.app-menu ion-item.selected {
+  --background: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
 }
 
 /* Fila que se toca para abrir algo (una lista, un regalo): fondo al presionar y foco visible. */
@@ -356,10 +363,8 @@ ion-menu.app-menu ion-item.selected ion-icon {
   outline-offset: -2px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .tappable-row:active {
-    background-color: rgb(255 255 255 / 0.08);
-  }
+:where(.ion-palette-dark) .tappable-row:active {
+  background-color: rgb(255 255 255 / 0.08);
 }
 
 /* Botones de acción con el alto de los controles (40 px), sólidos o con borde: así una fila de

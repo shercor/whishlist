@@ -6,11 +6,12 @@ import { giftOutline } from 'ionicons/icons';
 import { AuthService } from '../../core/auth/auth.service';
 import { returnUrl } from '../../core/auth/return-url';
 import { errorMessage } from '../../core/http/api-error';
+import { ThemeToggle } from '../../shared/theme-toggle';
 
 /** Crear una cuenta. Sin verificar el correo: al terminar quedas dentro, como en la web. */
 @Component({
   selector: 'app-register',
-  imports: [RouterLink, IonButton, IonContent, IonIcon, IonSpinner],
+  imports: [RouterLink, ThemeToggle, IonButton, IonContent, IonIcon, IonSpinner],
   templateUrl: './register.page.html',
   styleUrl: '../login/login.page.scss',
 })

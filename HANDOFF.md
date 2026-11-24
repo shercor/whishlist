@@ -217,6 +217,17 @@ navegador contra la API real, en escritorio y en teléfono, en claro y en oscuro
 **Ya no falta ninguna pantalla.** El enlace para compartir que muestra la app ya
 apunta a la app (`environment.shareUrl`), no a la web Blade.
 
+**Modo claro y oscuro**, como en la web: un botón —en el menú, y suelto en la
+esquina de «Entrar» y «Crear cuenta»— cambia entre los dos y lo recuerda
+(`whishlist.tema` en localStorage); sin elección sigue al sistema. El oscuro es
+la clase `ion-palette-dark` en `<html>`: la pone un script de `app/src/index.html`
+antes de dibujar, para que no se vea el destello del tema contrario, y la
+mantiene `ThemeService`. Por eso los estilos oscuros van con `dark:` o con
+`:where(.ion-palette-dark)`, **nunca** con `@media (prefers-color-scheme: dark)`,
+que no se entera de lo que eligió la persona. En modo oscuro, «Mis listas»,
+«Descubrir», «Entrar» y «Crear cuenta» llevan de fondo un patrón de regalos
+naranjas (`app/src/patron-regalos.svg`, clase `.gift-backdrop`).
+
 «Solicitudes» muestra en «Te pidieron una lista» solo lo que te pidieron; a
 diferencia de Blade, deja fuera a quien invitaste o entró con el enlace, que
 están en «Quién la ve».

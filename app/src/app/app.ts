@@ -21,11 +21,14 @@ import {
   giftOutline,
   logOutOutline,
   mailUnreadOutline,
+  moonOutline,
   notificationsOutline,
   peopleOutline,
   searchOutline,
+  sunnyOutline,
 } from 'ionicons/icons';
 import { AuthService } from './core/auth/auth.service';
+import { ThemeService } from './core/theme/theme.service';
 import { Avatar } from './shared/avatar';
 import { SECTIONS } from './shared/navigation';
 
@@ -99,6 +102,15 @@ import { SECTIONS } from './shared/navigation';
                   </ion-item>
                 </ion-menu-toggle>
               }
+              <!-- Sin ion-menu-toggle: en el teléfono el menú queda abierto y se ve el cambio. -->
+              <ion-item button [detail]="false" (click)="theme.toggle()">
+                <ion-icon
+                  slot="start"
+                  [name]="theme.isDark() ? 'sunny-outline' : 'moon-outline'"
+                  aria-hidden="true"
+                />
+                <ion-label>{{ theme.isDark() ? 'Modo claro' : 'Modo oscuro' }}</ion-label>
+              </ion-item>
               <ion-menu-toggle [autoHide]="false">
                 <ion-item button [detail]="false" (click)="logout()">
                   <ion-icon slot="start" name="log-out-outline" aria-hidden="true" />
@@ -115,6 +127,8 @@ import { SECTIONS } from './shared/navigation';
 })
 export class App {
   protected readonly auth = inject(AuthService);
+  /** Se crea al arrancar: mantiene la clase del tema y sigue al sistema si no hay elección. */
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   protected readonly sections = SECTIONS;
 
@@ -125,9 +139,11 @@ export class App {
       giftOutline,
       logOutOutline,
       mailUnreadOutline,
+      moonOutline,
       notificationsOutline,
       peopleOutline,
       searchOutline,
+      sunnyOutline,
     });
 
     // Al cambiar de pantalla, los contadores del menú se ponen al día.
