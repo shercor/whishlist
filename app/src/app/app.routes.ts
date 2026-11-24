@@ -62,5 +62,32 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/reservations/reservations.page').then((m) => m.ReservationsPage),
   },
+  {
+    path: 'listas/:id/acceso',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/access/wishlist-access.page').then((m) => m.WishlistAccessPage),
+  },
+  {
+    path: 'mi-gente',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/follows/follows.page').then((m) => m.FollowsPage),
+  },
+  {
+    path: 'solicitudes',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/access/requests.page').then((m) => m.RequestsPage),
+  },
+  {
+    path: 'avisos',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/notifications/notifications.page').then((m) => m.NotificationsPage),
+  },
+  {
+    path: 'perfil',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/profile/my-profile.page').then((m) => m.MyProfilePage),
+  },
   { path: '**', redirectTo: 'listas' },
 ];

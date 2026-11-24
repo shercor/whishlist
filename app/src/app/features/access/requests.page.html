@@ -1,0 +1,183 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button />
+    </ion-buttons>
+    <ion-title>Solicitudes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
+    <div class="enter-up mb-4 md:mb-6">
+      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Solicitudes</h1>
+      <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+        Lo que espera tu respuesta: quién quiere seguirte, quién quiere ver tus listas privadas, y
+        qué pasó con lo que pediste tú.
+      </p>
+    </div>
+
+    @if (error(); as message) {
+      <div
+        role="alert"
+        animate.enter="enter-down"
+        class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300"
+      >
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div role="status" aria-label="Cargando las solicitudes" class="card overflow-hidden">
+        @for (row of [1, 2, 3]; track row) {
+          <div
+            aria-hidden="true"
+            class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 md:px-5 dark:border-white/5"
+          >
+            <ion-skeleton-text animated class="skeleton-round m-0 size-10 shrink-0 md:size-9" />
+            <div class="flex flex-1 flex-col gap-2">
+              <ion-skeleton-text animated class="m-0 h-4 w-1/3" />
+              <ion-skeleton-text animated class="m-0 h-3 w-1/4" />
+            </div>
+          </div>
+        }
+      </div>
+    } @else {
+      @if (followRequests().length > 0) {
+        <h2 class="section-title enter-up">Quieren seguirte ({{ followRequests().length }})</h2>
+        <div role="list" aria-label="Quieren seguirte" class="card enter-up mb-2 overflow-hidden">
+          @for (follow of followRequests(); track follow.id) {
+            @if (follow.follower; as person) {
+              <app-person-row [user]="person" subtitle="Quiere seguirte.">
+                <button
+                  type="button"
+                  class="link-button text-sm"
+                  [disabled]="busy()"
+                  (click)="answerFollow(follow, 'rechazar')"
+                >
+                  Rechazar
+                </button>
+                <ion-button
+                  class="pressable m-0"
+                  [disabled]="busy()"
+                  (click)="answerFollow(follow, 'aceptar')"
+                >
+                  Aceptar
+                </ion-button>
+              </app-person-row>
+            }
+          }
+        </div>
+        <p class="hint mt-0 mb-6">
+          Aceptarlos les deja ver tus listas públicas, y recién ahí puedes darles una privada.
+        </p>
+      }
+
+      <h2 class="section-title enter-up">Te pidieron una lista</h2>
+      @if (received().length > 0) {
+        <div
+          role="list"
+          aria-label="Te pidieron una lista"
+          class="card enter-up mb-6 overflow-hidden"
+        >
+          @for (request of received(); track request.id) {
+            @if (request.user; as person) {
+              <app-person-row
+                [user]="person"
+                [title]="person.display_name + ' · «' + (request.wishlist?.name ?? '') + '»'"
+                [subtitle]="request.message || 'Sin mensaje.'"
+              >
+                @if (request.status === 'pendiente') {
+                  <button
+                    type="button"
+                    class="link-button link-danger text-sm"
+                    [disabled]="busy()"
+                    (click)="answerAccess(request, 'rechazado')"
+                  >
+                    Rechazar
+                  </button>
+                  <ion-button
+                    class="pressable m-0"
+                    [disabled]="busy()"
+                    (click)="answerAccess(request, 'aprobado')"
+                  >
+                    Aprobar
+                  </ion-button>
+                } @else {
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                    [class]="statuses[request.status].chip"
+                  >
+                    {{ statuses[request.status].title }}
+                  </span>
+                  @if (request.status === 'aprobado') {
+                    <button
+                      type="button"
+                      class="link-button link-danger text-sm"
+                      [disabled]="busy()"
+                      (click)="answerAccess(request, 'revocado')"
+                    >
+                      Quitar acceso
+                    </button>
+                  }
+                }
+              </app-person-row>
+            }
+          }
+        </div>
+      } @else {
+        <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
+          <p class="m-0 text-neutral-500 dark:text-neutral-400">Nadie te ha pedido acceso.</p>
+        </div>
+      }
+
+      <h2 class="section-title enter-up">Pediste tú</h2>
+      @if (sent().length > 0) {
+        <div role="list" aria-label="Pediste tú" class="card enter-up overflow-hidden">
+          @for (request of sent(); track request.id) {
+            @if (request.wishlist?.owner; as owner) {
+              <!-- El nombre de la lista solo llega si te la dieron. -->
+              <app-person-row
+                [user]="owner"
+                [title]="
+                  request.wishlist?.name
+                    ? '«' + request.wishlist?.name + '»'
+                    : 'Lista de ' + owner.display_name
+                "
+                [subtitle]="
+                  request.responded_at
+                    ? 'Respondió el ' + formatDay(request.responded_at) + '.'
+                    : 'Todavía sin respuesta.'
+                "
+              >
+                <span
+                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                  [class]="statuses[request.status].chip"
+                >
+                  {{ statuses[request.status].title }}
+                </span>
+                @if (request.status === 'aprobado' && request.wishlist; as wishlist) {
+                  <a
+                    class="text-sm font-medium text-[var(--ion-color-primary)]"
+                    [routerLink]="['/regalar', wishlist.id]"
+                    >Ver la lista</a
+                  >
+                }
+              </app-person-row>
+            }
+          }
+        </div>
+      } @else {
+        <div class="card enter-up px-4 py-6 text-center text-sm md:px-5">
+          <p class="m-0 text-neutral-500 dark:text-neutral-400">
+            No has pedido acceso a ninguna lista.
+          </p>
+        </div>
+      }
+    }
+  </main>
+</ion-content>

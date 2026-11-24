@@ -1,0 +1,136 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/listas/' + id()" text="" aria-label="Volver a la lista" />
+    </ion-buttons>
+    <ion-title>Quién la ve</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
+    <div class="enter-up mb-4 md:mb-6">
+      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">
+        Quién ve «{{ wishlist()?.name ?? '…' }}»
+      </h1>
+      <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+        Los que entraron, por dónde entraron, y a quién más puedes dársela.
+      </p>
+    </div>
+
+    @if (error(); as message) {
+      <div
+        role="alert"
+        animate.enter="enter-down"
+        class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300"
+      >
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div role="status" aria-label="Cargando quién ve la lista" class="card overflow-hidden">
+        @for (row of [1, 2]; track row) {
+          <div
+            aria-hidden="true"
+            class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 md:px-5 dark:border-white/5"
+          >
+            <ion-skeleton-text animated class="skeleton-round m-0 size-10 shrink-0 md:size-9" />
+            <div class="flex flex-1 flex-col gap-2">
+              <ion-skeleton-text animated class="m-0 h-4 w-1/3" />
+              <ion-skeleton-text animated class="m-0 h-3 w-1/4" />
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (wishlist(); as wishlist) {
+      @if (wishlist.visibility === 'publica') {
+        <div role="status" class="notice notice-info enter-up">
+          <span>
+            Esta lista es pública: la ve cualquiera que pueda ver tu perfil, sin pedirla. Lo de
+            abajo solo cuenta si la vuelves privada.
+          </span>
+        </div>
+      }
+
+      <h2 class="section-title enter-up">Con acceso ({{ accesses().length }})</h2>
+      @if (accesses().length > 0) {
+        <div role="list" aria-label="Con acceso" class="card enter-up mb-6 overflow-hidden">
+          @for (access of accesses(); track access.id) {
+            @if (access.user; as person) {
+              <app-person-row
+                [user]="person"
+                [subtitle]="
+                  sources[access.source] + (access.message ? ' · «' + access.message + '»' : '')
+                "
+              >
+                <span
+                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                  [class]="statuses[access.status].chip"
+                >
+                  {{ statuses[access.status].title }}
+                </span>
+                <button
+                  type="button"
+                  class="link-button link-danger text-sm"
+                  [disabled]="busy()"
+                  (click)="revoke(access)"
+                >
+                  Quitar
+                </button>
+                @if (access.status === 'pendiente') {
+                  <ion-button class="pressable m-0" [disabled]="busy()" (click)="approve(access)">
+                    Darle acceso
+                  </ion-button>
+                }
+              </app-person-row>
+            }
+          }
+        </div>
+      } @else {
+        <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
+          <p class="m-0 text-neutral-500 dark:text-neutral-400">
+            Nadie ha entrado a esta lista todavía.
+          </p>
+        </div>
+      }
+
+      <h2 class="section-title enter-up">Dársela a alguien</h2>
+      @if (invitable().length > 0) {
+        <div role="list" aria-label="Dársela a alguien" class="card enter-up mb-2 overflow-hidden">
+          @for (follower of invitable(); track follower.username) {
+            <app-person-row [user]="follower">
+              <ion-button
+                fill="outline"
+                class="pressable m-0"
+                [disabled]="busy()"
+                (click)="invite(follower)"
+              >
+                Darle la lista
+              </ion-button>
+            </app-person-row>
+          }
+        </div>
+        <p class="hint mt-0">
+          Solo aparecen tus seguidores: una lista privada no se reparte entre desconocidos.
+        </p>
+      } @else {
+        <div
+          class="card enter-up flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
+        >
+          <p class="m-0 text-neutral-500 dark:text-neutral-400">
+            No te queda ningún seguidor a quien dársela. Solo tus seguidores pueden recibir una
+            lista privada.
+          </p>
+          <ion-button fill="outline" class="pressable m-0" routerLink="/mi-gente">
+            Ver mi gente
+          </ion-button>
+        </div>
+      }
+    }
+  </main>
+</ion-content>

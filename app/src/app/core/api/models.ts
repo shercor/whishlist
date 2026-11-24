@@ -9,9 +9,69 @@ export interface User {
   display_name: string;
   avatar: string | null;
   initials: string;
+  /** Solo en el perfil propio: el nombre real, el correo y los ajustes de privacidad. */
+  name?: string;
   email?: string;
   show_name?: boolean;
   is_private?: boolean;
+}
+
+/** Lo que el menú cuenta: avisos sin leer y solicitudes por responder. */
+export interface Counts {
+  unread_notifications: number;
+  pending_requests: number;
+}
+
+export interface ProfileChanges {
+  name?: string;
+  username?: string;
+  show_name?: boolean;
+  is_private?: boolean;
+}
+
+export interface AppNotification {
+  id: string;
+  title: string | null;
+  detail: string | null;
+  /** Enlace a la pantalla de la web; la app lo traduce con appPathFor(). */
+  url: string | null;
+  read: boolean;
+  created_at: string | null;
+}
+
+export interface Follow {
+  id: number;
+  status: FollowStatus;
+  follower?: User;
+  followed?: User;
+}
+
+export interface FollowLists {
+  pending_for_me: Follow[];
+  followers: Follow[];
+  following: Follow[];
+  my_pending: Follow[];
+}
+
+export type AccessStatus = 'pendiente' | 'aprobado' | 'rechazado' | 'revocado';
+export type AccessSource = 'invitacion' | 'solicitud' | 'enlace';
+
+/** Un permiso sobre una lista privada. En lo que pedí yo, sin nombre de lista si no me la dieron. */
+export interface WishlistAccess {
+  id: number;
+  status: AccessStatus;
+  source: AccessSource;
+  message: string | null;
+  responded_at: string | null;
+  user?: User;
+  wishlist?: Pick<Wishlist, 'id' | 'owner'> & Partial<Wishlist>;
+}
+
+/** El cuerpo del 403 de una lista privada que no puedo ver. Nunca trae su nombre. */
+export interface LockedWishlist {
+  owner: User;
+  access_status: AccessStatus | null;
+  can_request: boolean;
 }
 
 export interface LoginResponse {

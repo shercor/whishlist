@@ -1,4 +1,4 @@
-import { formatEventDate, formatShortEventDate, giftCount } from './format';
+import { formatAgo, formatEventDate, formatShortEventDate, giftCount } from './format';
 
 describe('formatEventDate', () => {
   it('escribe la fecha del evento en español sin correrse de día', () => {
@@ -13,5 +13,15 @@ describe('giftCount', () => {
     expect(giftCount(0)).toBe('Vacía todavía');
     expect(giftCount(1)).toBe('1 regalo');
     expect(giftCount(3)).toBe('3 regalos');
+  });
+});
+
+describe('formatAgo', () => {
+  it('dice hace cuánto, con la unidad más grande que cabe', () => {
+    const now = Date.parse('2026-11-24T12:00:00Z');
+    expect(formatAgo('2026-11-24T11:59:40Z', now)).toBe('ahora');
+    expect(formatAgo('2026-11-24T11:55:00Z', now)).toBe('hace 5 minutos');
+    expect(formatAgo('2026-11-23T12:00:00Z', now)).toBe('ayer');
+    expect(formatAgo('2026-11-03T12:00:00Z', now)).toBe('hace 3 semanas');
   });
 });

@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 243 passed
+make test                                                     # 247 passed
 curl -o /dev/null -w '%{http_code}\n' http://localhost:4202   # 200: la app Angular
 make test-web                                                 # 20 passed
 ```
@@ -138,14 +138,15 @@ Commits en `main`:
 | `3c1eb3a` | La API queda documentada en OpenAPI 3.1, con comprobador de desfase |
 | `b95eceb` | El remoto pasa de HTTPS a SSH                                |
 | `09258fe` | Compose sin repetir los servicios php, `make db` con mariadb y hook `post-merge` |
-| (el último) | Base de la app Angular + Ionic: entrar, «Mis listas» y «Nueva lista» |
+| `3afcd05` | Base de la app Angular + Ionic: entrar, «Mis listas» y «Nueva lista» |
+| `f6c374a` al último | La app Angular suma las demás pantallas, salvo registrarse, el enlace secreto y las páginas de error; la API agrega lo que les faltaba |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **243 passed**.
+`make test` → **247 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -198,15 +199,34 @@ agregar un regalo del catálogo o escrito a mano con foto
 seguir, pedir seguirlo o dejar de seguir (`/u/:username`), la lista de otra
 persona para reservar o soltar un regalo (`/regalar/:id`, la misma pantalla
 que `/listas/:id` con otra ruta para que el menú no marque «Mis listas») y
-«Voy a regalar» (`/reservas`). Probadas en el navegador contra la API real, en
-escritorio y en teléfono, en claro y en oscuro.
-`make test-web` → **20 passed**.
+«Voy a regalar» (`/reservas`). Y las de la gente y los accesos: «Mi gente»
+(`/mi-gente`: quién te sigue y a quién sigues), «Solicitudes» (`/solicitudes`:
+seguirte, pedirte una lista y lo que pediste tú), «Avisos» (`/avisos`), «Quién
+la ve» de una lista privada (`/listas/:id/acceso`: aprobar, quitar y dársela a
+un seguidor), la lista privada ajena que no puedes ver, con «Pedir acceso», y
+«Mi perfil» (`/perfil`: foto, usuario, nombre, mostrar el nombre y perfil
+público). El menú muestra cuántas solicitudes y avisos esperan. Probadas en el
+navegador contra la API real, en escritorio y en teléfono, en claro y en oscuro.
+`make test-web` → **24 passed**.
+
+«Solicitudes» muestra en «Te pidieron una lista» solo lo que te pidieron; a
+diferencia de Blade, deja fuera a quien invitaste o entró con el enlace, que
+están en «Quién la ve».
 
 Para estas pantallas la API ganó `GET /discover`, `is_private` y
 `follow_status` en `GET /users/{user}`, `my_reservation_id` en cada regalo que
 ve quien regala (solo el id de **su** reserva, para soltarla) y la lista con
 su dueño en cada reserva de `GET /reservations`. Todo con pruebas en
 `tests/Feature/Api/ApiGiverTest.php` y documentado en `docs/openapi.yaml`.
+
+Y para las de la gente y los accesos: el 403 de una lista privada dice de quién
+es, si ya pediste acceso y si puedes pedirlo (`owner`, `access_status`,
+`can_request`), **nunca su nombre**; `GET /access` tampoco nombra las listas
+que pediste y no te dieron; dar una lista se hace por usuario
+(`POST /wishlists/{id}/invitations` con `username`) y solo a un seguidor;
+`GET /me` trae lo pendiente en `meta` (`unread_notifications`,
+`pending_requests`), y `name` sale solo en tu propio perfil. Pruebas en
+`tests/Feature/Api/ApiAccessTest.php`.
 
 **La app corre en <http://localhost:4202>** (contenedor `web`). La API se le
 indica en `app/src/environments/environment.development.ts`: si cambias
@@ -585,9 +605,8 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
-0. **Seguir pasando pantallas a la app Angular.** Faltan notificaciones,
-   seguidores, accesos (pedir acceso a una lista privada y «Quién la ve»), mi
-   perfil y las páginas de error. Dos necesitan API antes de poder migrarse:
+0. **Seguir pasando pantallas a la app Angular.** Faltan las páginas de
+   error. Dos necesitan API antes de poder migrarse:
    **registrarse** (no hay endpoint) y el **enlace secreto** `/s/{token}`
    (depende de la sesión web). Ver la sección 6.
 

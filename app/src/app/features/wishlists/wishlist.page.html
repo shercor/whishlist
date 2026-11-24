@@ -23,7 +23,9 @@
       </div>
     }
 
-    @if (loading()) {
+    @if (locked(); as locked) {
+      <app-locked-wishlist [wishlistId]="numericId()" [locked]="locked" (requested)="load()" />
+    } @else if (loading()) {
       <div role="status" aria-label="Cargando la lista">
         <ion-skeleton-text animated class="mb-3 h-8 w-1/2" />
         <ion-skeleton-text animated class="mb-6 h-4 w-2/3" />
@@ -135,6 +137,27 @@
               Quien lo tenga entra aunque no te siga, y queda anotado en «Quién la ve».
             </p>
           </div>
+        }
+
+        @if (wishlist.visibility === 'privada') {
+          <a
+            class="card tappable-row enter-up mb-4 flex items-center gap-3 px-4 py-3 text-inherit no-underline md:px-5"
+            style="--i: 3"
+            [routerLink]="['/listas', wishlist.id, 'acceso']"
+          >
+            <ion-icon
+              name="people-outline"
+              aria-hidden="true"
+              class="shrink-0 text-xl text-neutral-500"
+            />
+            <span class="min-w-0 flex-1">
+              <span class="block font-medium">Quién la ve</span>
+              <span class="block truncate text-sm text-neutral-500 dark:text-neutral-400">
+                Quién entró, quién te la pidió y a qué seguidor más dársela.
+              </span>
+            </span>
+            <ion-icon name="chevron-forward" aria-hidden="true" class="shrink-0 text-neutral-400" />
+          </a>
         }
       }
 

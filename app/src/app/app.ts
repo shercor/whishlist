@@ -1,5 +1,7 @@
 import { Component, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { filter } from 'rxjs';
 import {
   IonApp,
   IonContent,
@@ -18,7 +20,10 @@ import {
   compassOutline,
   giftOutline,
   logOutOutline,
+  mailUnreadOutline,
+  notificationsOutline,
   peopleOutline,
+  searchOutline,
 } from 'ionicons/icons';
 import { AuthService } from './core/auth/auth.service';
 import { Avatar } from './shared/avatar';
@@ -53,15 +58,22 @@ import { SECTIONS } from './shared/navigation';
             <div class="px-4 pt-6 pb-4">
               <p class="m-0 text-xl font-semibold tracking-tight">whishlist</p>
               @if (auth.user(); as user) {
-                <div class="mt-4 flex items-center gap-3">
-                  <app-avatar [user]="user" class="size-10" />
-                  <div class="min-w-0">
-                    <p class="m-0 truncate font-medium">{{ user.display_name }}</p>
-                    <p class="m-0 truncate text-sm text-neutral-500 dark:text-neutral-400">
-                      {{ user.handle }}
-                    </p>
-                  </div>
-                </div>
+                <ion-menu-toggle [autoHide]="false">
+                  <a
+                    routerLink="/perfil"
+                    routerDirection="root"
+                    class="tappable-row -mx-2 mt-3 flex items-center gap-3 rounded-lg px-2 py-1.5 text-inherit no-underline"
+                    aria-label="Mi perfil"
+                  >
+                    <app-avatar [user]="user" class="size-10" />
+                    <div class="min-w-0">
+                      <p class="m-0 truncate font-medium">{{ user.display_name }}</p>
+                      <p class="m-0 truncate text-sm text-neutral-500 dark:text-neutral-400">
+                        {{ user.handle }} · Mi perfil
+                      </p>
+                    </div>
+                  </a>
+                </ion-menu-toggle>
               }
             </div>
             <ion-list lines="none">
@@ -75,6 +87,14 @@ import { SECTIONS } from './shared/navigation';
                   >
                     <ion-icon slot="start" [name]="section.icon" aria-hidden="true" />
                     <ion-label>{{ section.title }}</ion-label>
+                    @if (section.count && auth.counts()[section.count]; as count) {
+                      <span
+                        slot="end"
+                        class="min-w-5 rounded-full bg-[var(--ion-color-primary)] px-1.5 text-center text-xs leading-5 font-semibold text-white"
+                        [attr.aria-label]="count + ' por ver'"
+                        >{{ count }}</span
+                      >
+                    }
                   </ion-item>
                 </ion-menu-toggle>
               }
@@ -98,7 +118,24 @@ export class App {
   protected readonly sections = SECTIONS;
 
   constructor() {
-    addIcons({ bagHandleOutline, compassOutline, giftOutline, logOutOutline, peopleOutline });
+    addIcons({
+      bagHandleOutline,
+      compassOutline,
+      giftOutline,
+      logOutOutline,
+      mailUnreadOutline,
+      notificationsOutline,
+      peopleOutline,
+      searchOutline,
+    });
+
+    // Al cambiar de pantalla, los contadores del menú se ponen al día.
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => void this.auth.refresh());
   }
 
   protected async logout(): Promise<void> {

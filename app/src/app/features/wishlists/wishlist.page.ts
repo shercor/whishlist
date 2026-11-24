@@ -21,14 +21,16 @@ import { addIcons } from 'ionicons';
 import {
   addOutline,
   checkmarkCircleOutline,
+  chevronForward,
   copyOutline,
   createOutline,
   giftOutline,
   globeOutline,
   lockClosedOutline,
+  peopleOutline,
   starOutline,
 } from 'ionicons/icons';
-import { Wishlist, WishlistItem } from '../../core/api/models';
+import { LockedWishlist, Wishlist, WishlistItem } from '../../core/api/models';
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { environment } from '../../../environments/environment';
@@ -37,6 +39,7 @@ import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
 import { Notify } from '../../shared/notify';
 import { priorityOf } from '../../shared/priority';
 import { visibilityOf } from '../../shared/visibility';
+import { LockedWishlistView } from '../access/locked-wishlist';
 import { GiftSheet } from './gift-sheet';
 import { ItemSheet } from './item-sheet';
 
@@ -49,6 +52,7 @@ import { ItemSheet } from './item-sheet';
   imports: [
     RouterLink,
     GiftSheet,
+    LockedWishlistView,
     ItemSheet,
     IonBackButton,
     IonButton,
@@ -71,11 +75,14 @@ export class WishlistPage implements ViewWillEnter {
 
   /** El :id de la ruta. */
   readonly id = input.required<string>();
+  protected readonly numericId = computed(() => Number(this.id()));
 
   protected readonly wishlist = signal<Wishlist | null>(null);
   protected readonly items = signal<WishlistItem[]>([]);
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
+  /** Lista privada que no puedo ver: de quién es y si puedo pedirla. */
+  protected readonly locked = signal<LockedWishlist | null>(null);
 
   /** Sin historial, «Volver» lleva a la sección de la que suele venir cada una. */
   protected readonly backHref = computed(() =>
@@ -106,11 +113,13 @@ export class WishlistPage implements ViewWillEnter {
     addIcons({
       addOutline,
       checkmarkCircleOutline,
+      chevronForward,
       copyOutline,
       createOutline,
       giftOutline,
       globeOutline,
       lockClosedOutline,
+      peopleOutline,
       starOutline,
     });
   }
@@ -162,8 +171,9 @@ export class WishlistPage implements ViewWillEnter {
     return Math.min(index, 10);
   }
 
-  private async load(): Promise<void> {
+  protected async load(): Promise<void> {
     this.error.set(null);
+    this.locked.set(null);
     try {
       const wishlist = await this.api.show(Number(this.id()));
       const items = wishlist.items ?? [];
@@ -172,7 +182,11 @@ export class WishlistPage implements ViewWillEnter {
       // Si el modal está abierto, que muestre el regalo al día.
       this.editing.update((current) => items.find((item) => item.id === current?.id) ?? current);
     } catch (error) {
-      this.error.set(loadError(error));
+      if (error instanceof HttpErrorResponse && error.status === 403 && error.error?.owner) {
+        this.locked.set(error.error as LockedWishlist);
+      } else {
+        this.error.set(loadError(error));
+      }
     } finally {
       this.loading.set(false);
     }
@@ -180,9 +194,6 @@ export class WishlistPage implements ViewWillEnter {
 }
 
 function loadError(error: unknown): string {
-  if (error instanceof HttpErrorResponse && error.status === 403) {
-    return 'Esta lista es privada: solo la ve quien su dueño invita o quien tiene su enlace.';
-  }
   if (error instanceof HttpErrorResponse && error.status === 404) {
     return 'Esta lista no existe o ya la borraron.';
   }

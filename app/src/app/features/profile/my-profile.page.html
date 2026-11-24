@@ -1,0 +1,155 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button />
+    </ion-buttons>
+    <ion-title>Mi perfil</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
+    <div class="enter-up mb-4 md:mb-6">
+      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Mi perfil</h1>
+      <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+        Con qué te encuentran los demás, y cuánto de ti ven.
+      </p>
+    </div>
+
+    @if (auth.user(); as user) {
+      <div class="card enter-up mb-4 flex flex-wrap items-center gap-4 p-4 md:p-5">
+        <app-avatar [user]="user" class="size-16 text-xl" />
+        <div class="flex min-w-0 flex-1 flex-col gap-2">
+          <p class="m-0 text-sm font-medium">Foto de perfil</p>
+          <div class="flex flex-wrap items-center gap-3">
+            <label class="control pressable w-fit" [class.opacity-60]="avatarBusy()">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="sr-only"
+                [disabled]="avatarBusy()"
+                (change)="pickAvatar($event)"
+              />
+              @if (avatarBusy()) {
+                <ion-spinner name="crescent" class="size-4" aria-label="Subiendo" />
+              } @else {
+                <ion-icon name="image-outline" aria-hidden="true" />
+              }
+              {{ user.avatar ? 'Cambiar foto' : 'Subir una foto' }}
+            </label>
+            @if (user.avatar) {
+              <button
+                type="button"
+                class="link-button link-danger text-sm"
+                [disabled]="avatarBusy()"
+                (click)="removeAvatar()"
+              >
+                Quitar foto
+              </button>
+            }
+          </div>
+          <p class="hint m-0">jpg, png o webp, hasta 4 MB.</p>
+        </div>
+      </div>
+
+      <form
+        class="card enter-up flex flex-col gap-4 p-4 md:p-5"
+        style="--i: 1"
+        (submit)="save($event)"
+      >
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          Tu usuario
+          <input
+            type="text"
+            class="control w-full md:w-80"
+            maxlength="30"
+            required
+            autocapitalize="none"
+            autocomplete="username"
+            spellcheck="false"
+            [value]="username()"
+            (input)="username.set(valueOf($event))"
+          />
+          <span class="hint font-normal">
+            Es lo único por lo que se te puede buscar. Si lo cambias, el enlace de tu perfil cambia
+            con él y el anterior deja de funcionar.
+          </span>
+        </label>
+
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          Tu nombre
+          <input
+            type="text"
+            class="control w-full"
+            maxlength="255"
+            required
+            autocomplete="name"
+            [value]="name()"
+            (input)="name.set(valueOf($event))"
+          />
+        </label>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="control pressable w-fit max-w-full">
+            <input
+              type="checkbox"
+              [checked]="showName()"
+              (change)="showName.set(checkedOf($event))"
+            />
+            Mostrar mi nombre a los demás
+          </label>
+          <p class="hint m-0">
+            Apagado, el resto te ve solo como {{ '@' + (username().trim() || user.username) }}.
+            Nadie puede buscarte por tu nombre en ningún caso.
+          </p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="control pressable w-fit max-w-full">
+            <input
+              type="checkbox"
+              [checked]="isPublic()"
+              (change)="isPublic.set(checkedOf($event))"
+            />
+            Perfil público
+          </label>
+          <p class="hint m-0">
+            Público: cualquiera ve tus listas públicas y puede seguirte sin pedirte permiso.
+            Privado: no se ve ninguna lista tuya hasta que aceptes a esa persona como seguidora, y
+            tus listas no salen en «Descubrir».
+          </p>
+        </div>
+
+        <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+          Tu correo, {{ user.email }}, no lo ve nadie más.
+        </p>
+
+        @if (error(); as message) {
+          <p
+            role="alert"
+            animate.enter="enter-down"
+            class="m-0 text-sm text-red-600 dark:text-red-400"
+          >
+            {{ message }}
+          </p>
+        }
+
+        <div class="flex flex-wrap items-center justify-end gap-4">
+          <a
+            class="text-sm font-medium text-[var(--ion-color-primary)]"
+            [routerLink]="['/u', user.username]"
+          >
+            Ver cómo me ven
+          </a>
+          <ion-button type="submit" class="pressable m-0" [disabled]="!canSave()">
+            @if (saving()) {
+              <ion-spinner name="crescent" aria-label="Guardando" />
+            } @else {
+              Guardar
+            }
+          </ion-button>
+        </div>
+      </form>
+    }
+  </main>
+</ion-content>
