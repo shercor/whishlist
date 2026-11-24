@@ -365,13 +365,34 @@ ion-skeleton-text.skeleton-round {
   --border: 1px solid color-mix(in srgb, var(--gift-amber) 28%, transparent);
 }
 
+/*
+ * Fondo: un resplandor ámbar suave que nace arriba, detrás del logo, y se apaga hacia abajo, como
+ * si el regalo diera luz. Abajo termina en el casi negro de la página, para que menú y contenido se
+ * lean como una sola superficie. En modo claro, apenas un tinte crema.
+ */
 ion-menu.app-menu ion-content {
-  --background: var(--color-white);
+  --background:
+    radial-gradient(
+      130% 40% at 10% 0%,
+      color-mix(in srgb, var(--gift-amber) 10%, transparent),
+      transparent 75%
+    ),
+    var(--color-white);
 }
 
 :where(.ion-palette-dark) ion-menu.app-menu ion-content {
-  /* En el teléfono el menú se abre encima de la pantalla: de vidrio, como la barra superior. */
-  --background: color-mix(in srgb, var(--color-neutral-900) 88%, transparent);
+  /* En el teléfono el menú se abre encima de la pantalla: además es de vidrio, como la barra
+     superior, y se adivina la página detrás. */
+  --background:
+    radial-gradient(
+      130% 45% at 10% 0%,
+      color-mix(in srgb, var(--gift-amber) 13%, transparent),
+      transparent 75%
+    ),
+    linear-gradient(
+      color-mix(in srgb, var(--color-neutral-900) 88%, transparent),
+      color-mix(in srgb, var(--color-neutral-950) 92%, transparent)
+    );
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
 }
