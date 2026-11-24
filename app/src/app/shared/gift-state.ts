@@ -28,7 +28,7 @@ export const GIFT_STATES: Record<GiftState, { title: string; chip: string }> = {
   },
   taken: {
     title: 'Ya lo reservaron',
-    chip: 'bg-amber-50 text-amber-800 dark:bg-amber-500/15 dark:text-amber-200',
+    chip: 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300',
   },
   received: {
     title: 'Ya lo tiene',

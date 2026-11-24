@@ -22,6 +22,43 @@
   color-scheme: dark;
 }
 
+/*
+ * Color de la marca: el ámbar de los regalos (patron-regalos.svg). Es el primario de Ionic, así
+ * que lo toman los botones sólidos, las casillas, el cargando y lo marcado. Sobre ámbar va texto
+ * oscuro: el blanco no se lee.
+ *
+ * El ámbar puro sobre blanco no se lee como texto (2:1). Para letras, enlaces y contornos de foco
+ * está --accent-text: más oscuro en modo claro y más claro en modo oscuro. Nunca
+ * text-[var(--ion-color-primary)] para un texto.
+ */
+:root {
+  --gift-amber: #f59e0b;
+  --accent-text: var(--color-amber-700);
+  --ion-color-primary: #f59e0b;
+  --ion-color-primary-rgb: 245, 158, 11;
+  --ion-color-primary-contrast: #1c1917;
+  --ion-color-primary-contrast-rgb: 28, 25, 23;
+  --ion-color-primary-shade: #d88b0a;
+  --ion-color-primary-tint: #f6a823;
+}
+
+/* Lo mismo con más peso que la paleta oscura de Ionic (.ion-palette-dark), que trae su azul. */
+:root.ion-palette-dark {
+  --accent-text: var(--color-amber-400);
+  --ion-color-primary: #f59e0b;
+  --ion-color-primary-rgb: 245, 158, 11;
+  --ion-color-primary-contrast: #1c1917;
+  --ion-color-primary-contrast-rgb: 28, 25, 23;
+  --ion-color-primary-shade: #d88b0a;
+  --ion-color-primary-tint: #f6a823;
+}
+
+/* Los enlaces sueltos, con el ámbar que se lee. ion-app delante: le gana al `a` de Ionic, y una
+   utilidad (text-inherit) le sigue ganando a esto. */
+ion-app a {
+  color: var(--accent-text);
+}
+
 /* Fondo gris en todas las vistas, para que resalten las tarjetas blancas. */
 ion-content {
   --background: var(--color-neutral-100);
@@ -74,7 +111,7 @@ ion-content {
 }
 
 .control:focus-visible {
-  outline: 2px solid var(--ion-color-primary);
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
 }
 
@@ -120,7 +157,7 @@ label.control input[type='radio'] {
 }
 
 label.control:has(:focus-visible) {
-  outline: 2px solid var(--ion-color-primary);
+  outline: 2px solid var(--accent-text);
   outline-offset: 1px;
 }
 
@@ -192,7 +229,7 @@ button.control[aria-pressed='true'] {
 button.control.control-dashed {
   border-style: dashed;
   background-color: transparent;
-  color: var(--ion-color-primary);
+  color: var(--accent-text);
 }
 
 :where(.ion-palette-dark) button.control[aria-pressed='true'] {
@@ -261,8 +298,16 @@ ion-modal.auto-height .modal-body {
   @apply bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200;
 }
 
+/* Informativo: tranquilo y neutro, de vidrio como las tarjetas. El ámbar queda para la marca y
+   para lo que pide atención. */
 .notice-info {
-  @apply bg-blue-50 text-blue-800 dark:bg-blue-500/10 dark:text-blue-200;
+  @apply bg-white text-neutral-700 ring-1 ring-black/5 dark:text-neutral-300 dark:ring-white/10;
+}
+
+:where(.ion-palette-dark) .notice-info {
+  background-color: color-mix(in srgb, var(--color-neutral-900) 62%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 /*
@@ -280,9 +325,24 @@ ion-modal.auto-height .modal-body {
     url('./patron-regalos.svg') 0 0 / 480px repeat, var(--color-neutral-950);
 }
 
-/* Tarjeta blanca sobre el fondo gris: agrupa una lista o un formulario. */
+/*
+ * Tarjeta: agrupa una lista o un formulario. Blanca sobre el gris en modo claro; en el oscuro, de
+ * vidrio como la barra superior, para que los regalos del fondo se adivinen detrás en vez de
+ * quedar tapados por un bloque gris.
+ */
 .card {
-  @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10;
+  @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:ring-white/10;
+}
+
+:where(.ion-palette-dark) .card {
+  background-color: color-mix(in srgb, var(--color-neutral-900) 62%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* Los campos dentro del vidrio, algo translúcidos también: un bloque opaco ahí se ve pegado. */
+:where(.ion-palette-dark) .card .control {
+  background-color: rgb(0 0 0 / 0.25);
 }
 
 /* Título pequeño de una sección dentro de una tarjeta o un modal. */
@@ -295,44 +355,87 @@ ion-skeleton-text.skeleton-round {
   --border-radius: 9999px;
 }
 
-/* Menú de secciones (app.ts): fondo blanco, filas redondeadas y la sección actual teñida. */
+/*
+ * Menú de secciones (app.ts). Filas a todo el ancho y sin fondo teñido: la sección actual se marca
+ * con una barrita ámbar encendida en el borde izquierdo, y su ícono y texto en ámbar. El resto, en
+ * gris tenue. Del borde que lo separa del contenido sale la misma línea ámbar de la barra superior.
+ */
+/* :root delante: Ionic define --border con una clase, que le gana a una regla de solo elemento. */
+:root ion-split-pane {
+  --border: 1px solid color-mix(in srgb, var(--gift-amber) 28%, transparent);
+}
+
 ion-menu.app-menu ion-content {
   --background: var(--color-white);
 }
 
+:where(.ion-palette-dark) ion-menu.app-menu ion-content {
+  /* En el teléfono el menú se abre encima de la pantalla: de vidrio, como la barra superior. */
+  --background: color-mix(in srgb, var(--color-neutral-900) 88%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
 ion-menu.app-menu ion-list {
-  padding-inline: 0.5rem;
+  padding: 0;
   /* Sin el gris propio de Ionic: en modo oscuro la lista se veía como un bloque más claro. */
   background: transparent;
 }
 
 ion-menu.app-menu ion-item {
-  --border-radius: var(--radius-lg);
-  --min-height: var(--control-height);
-  margin-bottom: 0.125rem;
+  --background: transparent;
+  --background-hover: var(--color-neutral-900);
+  --background-hover-opacity: 0.04;
+  --color: var(--color-neutral-600);
+  --min-height: 2.75rem;
+  --padding-start: 1.25rem;
   font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+ion-menu.app-menu ion-item ion-icon {
+  /* Ionic deja 32 px entre ícono y texto: con filas angostas se ven desconectados. */
+  margin-inline-end: 0.875rem;
+  color: inherit;
+  transition: transform 0.2s var(--ease-out);
+}
+
+:where(.ion-palette-dark) ion-menu.app-menu ion-item {
+  --background-hover: var(--color-white);
+  --background-hover-opacity: 0.05;
+  --color: var(--color-neutral-400);
 }
 
 ion-menu.app-menu ion-item.selected {
-  --background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--color-white));
-  --color: var(--ion-color-primary);
+  --color: var(--accent-text);
   font-weight: 600;
 }
 
 ion-menu.app-menu ion-item.selected ion-icon {
-  color: var(--ion-color-primary);
+  color: var(--accent-text);
 }
 
-:where(.ion-palette-dark) ion-menu.app-menu ion-content {
-  --background: var(--color-neutral-900);
+/* La barrita: pegada al borde, del alto de la fila menos un respiro, con un brillo suave.
+   z-index: el fondo de la fila (dentro de ion-item) se pintaría encima. */
+ion-menu.app-menu ion-item.selected::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.375rem;
+  inset-inline-start: 0;
+  z-index: 1;
+  width: 3px;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  background: var(--gift-amber);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--gift-amber) 55%, transparent);
+  animation: menu-bar-in 0.3s var(--ease-out) both;
 }
 
-:where(.ion-palette-dark) ion-menu.app-menu ion-item {
-  --background: transparent;
-}
-
-:where(.ion-palette-dark) ion-menu.app-menu ion-item.selected {
-  --background: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
+@keyframes menu-bar-in {
+  from {
+    opacity: 0;
+    transform: scaleY(0.3);
+  }
 }
 
 /* Fila que se toca para abrir algo (una lista, un regalo): fondo al presionar y foco visible. */
@@ -346,7 +449,7 @@ ion-menu.app-menu ion-item.selected ion-icon {
 }
 
 .tappable-row:focus-visible {
-  outline: 2px solid var(--ion-color-primary);
+  outline: 2px solid var(--accent-text);
   outline-offset: -2px;
 }
 
@@ -361,16 +464,58 @@ ion-button:not([fill='clear']):not(.in-toolbar) {
   --border-width: 1px;
 }
 
+/* Sin las mayúsculas ni la sombra de Material: el texto como se escribe y la esquina de los
+   controles, así un botón y un campo lado a lado se ven de la misma familia. */
+ion-button {
+  --border-radius: var(--radius-lg);
+  --box-shadow: none;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+}
+
+/* Botón secundario (Editar, Compartir): neutro y con borde tenue, para que el único ámbar de la
+   fila sea la acción principal. Los que traen color (Borrar, en rojo) quedan como estaban. */
+ion-button[fill='outline']:not([color]) {
+  --color: var(--color-neutral-800);
+  --border-color: rgb(0 0 0 / 0.15);
+  --background: var(--color-white);
+  --background-hover: var(--color-neutral-900);
+  --background-hover-opacity: 0.04;
+}
+
+:where(.ion-palette-dark) ion-button[fill='outline']:not([color]) {
+  --color: var(--color-neutral-100);
+  --border-color: rgb(255 255 255 / 0.15);
+  --background: color-mix(in srgb, var(--color-neutral-900) 62%, transparent);
+  --background-hover: var(--color-white);
+  --background-hover-opacity: 0.06;
+}
+
+/* En el teléfono solo el ícono (con aria-label en el botón), para que quepan junto a la acción
+   principal: <ion-button class="compact-mobile">ícono <span class="button-label">Texto</span>. */
+@media (max-width: 47.99rem) {
+  ion-button.compact-mobile {
+    --padding-start: 0;
+    --padding-end: 0;
+    width: var(--control-height);
+  }
+
+  ion-button.compact-mobile ion-icon {
+    margin-inline: 0;
+  }
+
+  ion-button.compact-mobile .button-label {
+    display: none;
+  }
+}
+
 /*
  * Barra superior de vidrio: semitransparente y con desenfoque, para que al desplazar el contenido
  * (y en modo oscuro, los regalos del fondo) se vea pasar por debajo. Necesita que el ion-content
  * de la página lleve [fullscreen]="true", así el contenido llega hasta detrás de la barra. La
  * línea de abajo es del ámbar de los regalos, en vez del borde gris o la sombra de Ionic.
  */
-:root {
-  --gift-amber: #f59e0b;
-}
-
 ion-header.header-md,
 ion-header.header-ios {
   box-shadow: none;
@@ -389,7 +534,15 @@ ion-header ion-toolbar {
   --border-color: color-mix(in srgb, var(--gift-amber) 28%, transparent);
 }
 
-/* El regalo de patron-regalos.svg, chico y ámbar, antes del título: la marca en cada pantalla. */
+/* El regalo de patron-regalos.svg, en ámbar. Con tamaño propio: <span class="gift-mark size-6">. */
+.gift-mark {
+  display: inline-block;
+  background-color: var(--gift-amber);
+  -webkit-mask: var(--gift-icon) center / contain no-repeat;
+  mask: var(--gift-icon) center / contain no-repeat;
+}
+
+/* El mismo regalo, chico, antes del título de la barra: la marca en cada pantalla. */
 .title-gift {
   display: inline-block;
   width: 1.1em;

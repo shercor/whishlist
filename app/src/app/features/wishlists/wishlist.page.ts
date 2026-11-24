@@ -21,13 +21,12 @@ import { addIcons } from 'ionicons';
 import {
   addOutline,
   checkmarkCircleOutline,
-  chevronForward,
-  copyOutline,
   createOutline,
+  eyeOffOutline,
   giftOutline,
   globeOutline,
   lockClosedOutline,
-  peopleOutline,
+  shareSocialOutline,
   starOutline,
 } from 'ionicons/icons';
 import { LockedWishlist, Wishlist, WishlistItem } from '../../core/api/models';
@@ -36,12 +35,12 @@ import { errorMessage } from '../../core/http/api-error';
 import { environment } from '../../../environments/environment';
 import { formatEventDate } from '../../shared/format';
 import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
-import { Notify } from '../../shared/notify';
 import { priorityOf } from '../../shared/priority';
 import { visibilityOf } from '../../shared/visibility';
 import { LockedWishlistView } from '../access/locked-wishlist';
 import { GiftSheet } from './gift-sheet';
 import { ItemSheet } from './item-sheet';
+import { ShareSheet } from './share-sheet';
 
 /**
  * Una lista con sus regalos. Si es mía, para editarla y compartirla (sin una palabra sobre
@@ -54,6 +53,7 @@ import { ItemSheet } from './item-sheet';
     GiftSheet,
     LockedWishlistView,
     ItemSheet,
+    ShareSheet,
     IonBackButton,
     IonButton,
     IonButtons,
@@ -71,7 +71,6 @@ import { ItemSheet } from './item-sheet';
 })
 export class WishlistPage implements ViewWillEnter {
   private readonly api = inject(WishlistsService);
-  private readonly notify = inject(Notify);
 
   /** El :id de la ruta. */
   readonly id = input.required<string>();
@@ -99,6 +98,8 @@ export class WishlistPage implements ViewWillEnter {
   /** El regalo del modal. Se conserva al cerrarlo, para que no se vacíe mientras se anima. */
   protected readonly editing = signal<WishlistItem | null>(null);
   protected readonly modalOpen = signal(false);
+  /** La hoja con el enlace para compartir y «Quién la ve». */
+  protected readonly shareOpen = signal(false);
   /** En el teléfono el modal es una hoja que sube desde abajo. 48rem = md de Tailwind. */
   protected readonly sheet =
     typeof matchMedia === 'function' && matchMedia('(max-width: 47.99rem)').matches;
@@ -114,13 +115,12 @@ export class WishlistPage implements ViewWillEnter {
     addIcons({
       addOutline,
       checkmarkCircleOutline,
-      chevronForward,
-      copyOutline,
       createOutline,
+      eyeOffOutline,
       giftOutline,
       globeOutline,
       lockClosedOutline,
-      peopleOutline,
+      shareSocialOutline,
       starOutline,
     });
   }
@@ -152,20 +152,6 @@ export class WishlistPage implements ViewWillEnter {
   protected onRemoved(id: number): void {
     this.modalOpen.set(false);
     this.items.update((list) => list.filter((item) => item.id !== id));
-  }
-
-  protected async copyLink(): Promise<void> {
-    const link = this.shareLink();
-    if (!link) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(link);
-      await this.notify.toast('Enlace copiado.');
-    } catch {
-      await this.notify.toast('No se pudo copiar. Selecciona el enlace y cópialo a mano.');
-    }
   }
 
   protected staggerIndex(index: number): number {

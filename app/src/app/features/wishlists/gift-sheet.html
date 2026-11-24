@@ -39,7 +39,7 @@
             [href]="product.url"
             target="_blank"
             rel="noopener noreferrer"
-            class="mt-2 inline-flex items-center gap-1 font-medium text-[var(--ion-color-primary)]"
+            class="mt-2 inline-flex items-center gap-1 font-medium text-[var(--accent-text)]"
           >
             Ver dónde se consigue
             <ion-icon name="open-outline" aria-hidden="true" />
@@ -53,7 +53,7 @@
     <dt class="text-neutral-500 dark:text-neutral-400">Cuánto lo quiere</dt>
     <dd class="m-0 inline-flex items-center gap-1">
       @if (item().priority === 'alta') {
-        <ion-icon name="star-outline" aria-hidden="true" class="text-blue-700 dark:text-blue-300" />
+        <ion-icon name="star-outline" aria-hidden="true" class="text-amber-700 dark:text-amber-300" />
       }
       {{ priority().title }}
     </dd>
@@ -115,7 +115,7 @@
   @if (wishlistId(); as id) {
     <!-- Se cierra al navegar: si no, la hoja quedaría abierta en la pantalla anterior. -->
     <a
-      class="mt-4 inline-flex text-sm font-medium text-[var(--ion-color-primary)]"
+      class="mt-4 inline-flex text-sm font-medium text-[var(--accent-text)]"
       [routerLink]="['/regalar', id]"
       (click)="closed.emit()"
     >

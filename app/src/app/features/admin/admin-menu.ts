@@ -35,7 +35,7 @@ import { SECTIONS } from '../../shared/navigation';
             <label
               class="tappable-row flex cursor-pointer items-start gap-3 rounded-lg px-2 py-2"
               [class]="
-                option.id === transitions.current().id ? 'bg-blue-50 dark:bg-blue-500/15' : ''
+                option.id === transitions.current().id ? 'bg-amber-50 dark:bg-amber-500/15' : ''
               "
             >
               <input

@@ -68,7 +68,8 @@
         </p>
 
         @if (wishlist.is_mine) {
-          <!-- En el teléfono los botones van debajo del chip y «Agregar regalo» llena la fila; desde md, a su derecha. -->
+          <!-- En el teléfono los botones van debajo del chip: Editar y Compartir solo con su ícono y
+               «Agregar regalo» llena la fila. Desde md, con texto y a la derecha del chip. -->
           <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             @if (visibilityOf(wishlist.visibility); as visibility) {
               <span
@@ -82,12 +83,25 @@
             <div class="flex gap-2">
               <ion-button
                 fill="outline"
-                class="pressable m-0"
+                class="pressable compact-mobile m-0"
+                aria-label="Editar la lista"
                 [routerLink]="['/listas', wishlist.id, 'editar']"
               >
                 <ion-icon slot="start" name="create-outline" aria-hidden="true" />
-                Editar
+                <span class="button-label">Editar</span>
               </ion-button>
+              @if (shareLink()) {
+                <ion-button
+                  fill="outline"
+                  class="pressable compact-mobile m-0"
+                  aria-label="Compartir la lista"
+                  aria-haspopup="dialog"
+                  (click)="shareOpen.set(true)"
+                >
+                  <ion-icon slot="start" name="share-social-outline" aria-hidden="true" />
+                  <span class="button-label">Compartir</span>
+                </ion-button>
+              }
               <ion-button
                 class="pressable m-0 flex-1 md:flex-none"
                 [routerLink]="['/listas', wishlist.id, 'regalos', 'nuevo']"
@@ -100,71 +114,10 @@
         }
       </div>
 
-      @if (!wishlist.is_mine) {
-        <div role="status" class="notice notice-info enter-up" style="--i: 1">
-          <span>
-            {{ ownerName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
-          </span>
-        </div>
-      }
-
-      @if (wishlist.is_mine) {
-        <!-- Nada en esta pantalla habla de reservas: es lo que impide que el dueño se entere. -->
-        <div role="status" class="notice notice-info enter-up" style="--i: 1">
-          <span>
-            Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.
-          </span>
-        </div>
-
-        @if (shareLink(); as link) {
-          <div class="card enter-up mb-4 p-4 md:p-5" style="--i: 2">
-            <h2 class="section-title">Enlace para compartir</h2>
-            <div class="flex gap-2">
-              <input
-                type="text"
-                class="control min-w-0 flex-1"
-                readonly
-                aria-label="Enlace para compartir"
-                [value]="link"
-                (focus)="$any($event.target).select()"
-              />
-              <button type="button" class="control pressable shrink-0" (click)="copyLink()">
-                <ion-icon name="copy-outline" aria-hidden="true" />
-                Copiar
-              </button>
-            </div>
-            <p class="hint mt-2 mb-0">
-              Quien lo tenga entra aunque no te siga, y queda anotado en «Quién la ve».
-            </p>
-          </div>
-        }
-
-        @if (wishlist.visibility === 'privada') {
-          <a
-            class="card tappable-row enter-up mb-4 flex items-center gap-3 px-4 py-3 text-inherit no-underline md:px-5"
-            style="--i: 3"
-            [routerLink]="['/listas', wishlist.id, 'acceso']"
-          >
-            <ion-icon
-              name="people-outline"
-              aria-hidden="true"
-              class="shrink-0 text-xl text-neutral-500"
-            />
-            <span class="min-w-0 flex-1">
-              <span class="block font-medium">Quién la ve</span>
-              <span class="block truncate text-sm text-neutral-500 dark:text-neutral-400">
-                Quién entró, quién te la pidió y a qué seguidor más dársela.
-              </span>
-            </span>
-            <ion-icon name="chevron-forward" aria-hidden="true" class="shrink-0 text-neutral-400" />
-          </a>
-        }
-      }
-
       @if (items().length === 0) {
         <div class="card enter-up flex flex-col items-center gap-2 px-6 py-12 text-center">
           <div
-            class="icon-float flex size-12 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+            class="icon-float flex size-12 items-center justify-center rounded-full bg-amber-50 text-2xl text-amber-700 dark:bg-amber-500/15 dark:text-amber-300"
           >
             <ion-icon name="gift-outline" aria-hidden="true" />
           </div>
@@ -188,6 +141,23 @@
           }
         </div>
       } @else {
+        <div class="enter-up mb-3" style="--i: 1">
+          <h2 class="section-title" style="margin-bottom: 0.25rem">Regalos · {{ items().length }}</h2>
+          <p class="m-0 flex items-start gap-1.5 text-sm text-neutral-500 dark:text-neutral-400">
+            <ion-icon name="eye-off-outline" aria-hidden="true" class="mt-0.5 shrink-0" />
+            @if (wishlist.is_mine) {
+              <!-- Nada en esta pantalla habla de reservas: es lo que impide que el dueño se entere. -->
+              <span>
+                Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.
+              </span>
+            } @else {
+              <span>
+                {{ ownerName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
+              </span>
+            }
+          </p>
+        </div>
+
         <div role="list" aria-label="Regalos" class="card overflow-hidden">
           @for (item of items(); track item.id) {
             <!--
@@ -215,11 +185,12 @@
                   class="row-span-2 size-12 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
                 />
               } @else {
+                <!-- Sin foto, el regalo de la marca en vez de una inicial gris. -->
                 <span
                   aria-hidden="true"
-                  class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-neutral-100 text-base font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                  class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/10"
                 >
-                  {{ item.name.charAt(0) }}
+                  <span class="gift-mark size-6"></span>
                 </span>
               }
               <div class="truncate font-medium" [title]="item.name">{{ item.name }}</div>
@@ -228,7 +199,7 @@
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
                   [class]="
                     item.priority === 'alta'
-                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+                      ? 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
                       : 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300'
                   "
                   [title]="priorityOf(item.priority).hint"
@@ -293,6 +264,27 @@
             (changed)="onChanged($event)"
             (stale)="onStale()"
             (closed)="modalOpen.set(false)"
+          />
+        }
+      }
+    </ng-template>
+  </ion-modal>
+
+  <ion-modal
+    class="auto-height"
+    [isOpen]="shareOpen()"
+    [breakpoints]="sheet ? [0, 1] : undefined"
+    [initialBreakpoint]="sheet ? 1 : undefined"
+    (didDismiss)="shareOpen.set(false)"
+  >
+    <ng-template>
+      @if (wishlist(); as wishlist) {
+        @if (shareLink(); as link) {
+          <app-share-sheet
+            [link]="link"
+            [wishlistId]="wishlist.id"
+            [isPrivate]="wishlist.visibility === 'privada'"
+            (closed)="shareOpen.set(false)"
           />
         }
       }

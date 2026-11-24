@@ -62,7 +62,9 @@ import { SECTIONS } from './shared/navigation';
         <ion-menu contentId="main" class="app-menu" [disabled]="!auth.isAuthenticated()">
           <ion-content>
             <div class="px-4 pt-6 pb-4">
-              <p class="m-0 text-xl font-semibold tracking-tight">whishlist</p>
+              <p class="m-0 text-xl font-semibold tracking-tight">
+                <span class="title-gift" aria-hidden="true"></span>whishlist
+              </p>
               @if (auth.user(); as user) {
                 <ion-menu-toggle [autoHide]="false">
                   <a
@@ -97,7 +99,7 @@ import { SECTIONS } from './shared/navigation';
                     @if (section.count && auth.counts()[section.count]; as count) {
                       <span
                         slot="end"
-                        class="min-w-5 rounded-full bg-[var(--ion-color-primary)] px-1.5 text-center text-xs leading-5 font-semibold text-white"
+                        class="min-w-5 rounded-full bg-[var(--ion-color-primary)] px-1.5 text-center text-xs leading-5 font-semibold text-[var(--ion-color-primary-contrast)]"
                         [attr.aria-label]="count + ' por ver'"
                         >{{ count }}</span
                       >
