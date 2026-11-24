@@ -228,6 +228,14 @@ que no se entera de lo que eligió la persona. En modo oscuro, «Mis listas»,
 «Descubrir», «Entrar» y «Crear cuenta» llevan de fondo un patrón de regalos
 naranjas (`app/src/patron-regalos.svg`, clase `.gift-backdrop`).
 
+**Menú de administrador** (botón abajo a la derecha, `features/admin/admin-menu.ts`):
+solo aparece mientras se desarrolla (`isDevMode()`), no en el build de
+producción. Por ahora sirve para elegir la animación al cambiar de pantalla
+entre «La de ahora» (la de Ionic), ocho propias y «Sin animación»; están en
+`core/transitions/page-transitions.ts` y la elegida se guarda en
+`whishlist.animacion`. Cuando haya una elegida conviene dejarla fija para todos,
+porque en producción, sin el menú, rige la de Ionic.
+
 «Solicitudes» muestra en «Te pidieron una lista» solo lo que te pidieron; a
 diferencia de Blade, deja fuera a quien invitaste o entró con el enlace, que
 están en «Quién la ve».

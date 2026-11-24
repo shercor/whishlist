@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, isDevMode } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { filter } from 'rxjs';
@@ -29,6 +29,8 @@ import {
 } from 'ionicons/icons';
 import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
+import { PageTransitionService } from './core/transitions/page-transition.service';
+import { AdminMenu } from './features/admin/admin-menu';
 import { Avatar } from './shared/avatar';
 import { SECTIONS } from './shared/navigation';
 
@@ -41,6 +43,7 @@ import { SECTIONS } from './shared/navigation';
   imports: [
     RouterLink,
     RouterLinkActive,
+    AdminMenu,
     Avatar,
     IonApp,
     IonContent,
@@ -120,8 +123,14 @@ import { SECTIONS } from './shared/navigation';
             </ion-list>
           </ion-content>
         </ion-menu>
-        <ion-router-outlet id="main" />
+        <ion-router-outlet id="main" [animation]="transitions.builder()" />
       </ion-split-pane>
+
+      @if (devMode && auth.isAuthenticated()) {
+        <app-admin-menu
+          class="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-[999] flex flex-col items-end"
+        />
+      }
     </ion-app>
   `,
 })
@@ -129,6 +138,10 @@ export class App {
   protected readonly auth = inject(AuthService);
   /** Se crea al arrancar: mantiene la clase del tema y sigue al sistema si no hay elección. */
   protected readonly theme = inject(ThemeService);
+  /** La animación al cambiar de pantalla. Sin elegir, la de Ionic de siempre. */
+  protected readonly transitions = inject(PageTransitionService);
+  /** El menú de administrador no llega a producción. */
+  protected readonly devMode = isDevMode();
   private readonly router = inject(Router);
   protected readonly sections = SECTIONS;
 
