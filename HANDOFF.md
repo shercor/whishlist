@@ -12,9 +12,11 @@ no arruinar la sorpresa. Ese detalle es el que manda sobre todo el diseño.
 ## 1. Puesta en marcha en el equipo nuevo
 
 ```bash
-git clone https://github.com/shercor/whishlist.git
+git clone git@github.com:shercor/whishlist.git
 cd whishlist
 ```
+
+Va por SSH. Si el clon falla, ver «Autenticación con GitHub» más abajo.
 
 ### Antes del primer commit: la identidad git
 
@@ -39,17 +41,10 @@ git config user.email    # debe decir sebastian.herreracor@gmail.com
 
 ### Autenticación con GitHub
 
-El remoto es HTTPS. En el equipo nuevo no existe `~/.git-credentials`, así que
-el primer `push` pedirá usuario y token:
-
-- usuario: `shercor`
-- contraseña: un **Personal Access Token** de GitHub (no la contraseña de la
-  cuenta). Necesita scope `repo`.
-
-Para que quede guardado: `git config --global credential.helper store`.
-
-`gh` CLI no estaba instalado en el equipo anterior; si lo instalas, `gh auth
-login` resuelve todo esto de una.
+El remoto es SSH, así que no hay usuario ni token que escribir: basta con que
+la llave SSH del equipo nuevo esté agregada en GitHub (Settings → SSH and GPG
+keys de la cuenta `shercor`). `ssh -T git@github.com` debe responder
+`Hi shercor!`. Si responde otro usuario, esa llave es de otra cuenta.
 
 ### Levantar el entorno
 
