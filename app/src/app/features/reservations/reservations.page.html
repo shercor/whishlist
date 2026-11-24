@@ -3,11 +3,11 @@
     <ion-buttons slot="start">
       <ion-menu-button />
     </ion-buttons>
-    <ion-title>Voy a regalar</ion-title>
+    <ion-title><span class="title-gift" aria-hidden="true"></span>Voy a regalar</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="gift-background">
+<ion-content class="gift-background" [fullscreen]="true">
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content />
   </ion-refresher>

@@ -42,11 +42,11 @@ import { errorMessage } from '../../core/http/api-error';
         <ion-buttons slot="start">
           <ion-menu-button />
         </ion-buttons>
-        <ion-title>Lista compartida</ion-title>
+        <ion-title><span class="title-gift" aria-hidden="true"></span>Lista compartida</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="gift-background">
+    <ion-content class="gift-background" [fullscreen]="true">
       <main class="mx-auto w-full max-w-xl px-4 py-5 md:px-6 md:py-8">
         @if (error(); as message) {
           <div

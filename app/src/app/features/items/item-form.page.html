@@ -3,11 +3,11 @@
     <ion-buttons slot="start">
       <ion-back-button [defaultHref]="'/listas/' + id()" text="" aria-label="Volver a la lista" />
     </ion-buttons>
-    <ion-title>Agregar regalo</ion-title>
+    <ion-title><span class="title-gift" aria-hidden="true"></span>Agregar regalo</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="gift-background">
+<ion-content class="gift-background" [fullscreen]="true">
   <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
     <h1 class="enter-up mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">
       Agregar un regalo

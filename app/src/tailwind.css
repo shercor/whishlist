@@ -360,3 +360,47 @@ ion-button:not([fill='clear']):not(.in-toolbar) {
   height: var(--control-height);
   --border-width: 1px;
 }
+
+/*
+ * Barra superior de vidrio: semitransparente y con desenfoque, para que al desplazar el contenido
+ * (y en modo oscuro, los regalos del fondo) se vea pasar por debajo. Necesita que el ion-content
+ * de la página lleve [fullscreen]="true", así el contenido llega hasta detrás de la barra. La
+ * línea de abajo es del ámbar de los regalos, en vez del borde gris o la sombra de Ionic.
+ */
+:root {
+  --gift-amber: #f59e0b;
+}
+
+ion-header.header-md,
+ion-header.header-ios {
+  box-shadow: none;
+}
+
+ion-header ion-toolbar {
+  --background: color-mix(in srgb, var(--color-white) 72%, transparent);
+  --border-color: color-mix(in srgb, var(--gift-amber) 35%, transparent);
+  --border-width: 0 0 1px;
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+}
+
+:where(.ion-palette-dark) ion-header ion-toolbar {
+  --background: color-mix(in srgb, var(--color-neutral-950) 62%, transparent);
+  --border-color: color-mix(in srgb, var(--gift-amber) 28%, transparent);
+}
+
+/* El regalo de patron-regalos.svg, chico y ámbar, antes del título: la marca en cada pantalla. */
+.title-gift {
+  display: inline-block;
+  width: 1.1em;
+  height: 1.1em;
+  margin-inline-end: 0.45em;
+  vertical-align: -0.17em;
+  background-color: var(--gift-amber);
+  -webkit-mask: var(--gift-icon) center / contain no-repeat;
+  mask: var(--gift-icon) center / contain no-repeat;
+}
+
+:root {
+  --gift-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='6 10 88 86'%3E%3Crect x='8' y='34' width='38' height='14' rx='1.5'/%3E%3Crect x='54' y='34' width='38' height='14' rx='1.5'/%3E%3Crect x='13' y='51' width='33' height='42' rx='1.5'/%3E%3Crect x='54' y='51' width='33' height='42' rx='1.5'/%3E%3Cpath d='M50 31C42 14 23 13 25 25c1.5 8 15 8 25 6Z M50 31C58 14 77 13 75 25c-1.5 8-15 8-25 6Z' fill='none' stroke='black' stroke-width='5' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='31' r='4'/%3E%3C/svg%3E");
+}
