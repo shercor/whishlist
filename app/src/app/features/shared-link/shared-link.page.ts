@@ -46,7 +46,7 @@ import { errorMessage } from '../../core/http/api-error';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="gift-background">
       <main class="mx-auto w-full max-w-xl px-4 py-5 md:px-6 md:py-8">
         @if (error(); as message) {
           <div

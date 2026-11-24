@@ -224,9 +224,10 @@ la clase `ion-palette-dark` en `<html>`: la pone un script de `app/src/index.htm
 antes de dibujar, para que no se vea el destello del tema contrario, y la
 mantiene `ThemeService`. Por eso los estilos oscuros van con `dark:` o con
 `:where(.ion-palette-dark)`, **nunca** con `@media (prefers-color-scheme: dark)`,
-que no se entera de lo que eligió la persona. En modo oscuro, «Mis listas»,
-«Descubrir», «Entrar» y «Crear cuenta» llevan de fondo un patrón de regalos
-naranjas (`app/src/patron-regalos.svg`, clase `.gift-background` en `ion-content`, que cubre toda la pantalla).
+que no se entera de lo que eligió la persona. En modo oscuro, todas las pantallas
+llevan de fondo un patrón de regalos naranjas que se oscurece hacia abajo
+(`app/src/patron-regalos.svg`, clase `.gift-background` en el `ion-content` de cada
+pantalla). Para darle otra imagen a una pantalla, se le cambia esa clase por una nueva.
 
 **Menú de administrador** (botón abajo a la derecha, `features/admin/admin-menu.ts`):
 solo aparece mientras se desarrolla (`isDevMode()`), no en el build de

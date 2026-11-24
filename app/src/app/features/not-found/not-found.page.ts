@@ -37,7 +37,7 @@ import { compassOutline } from 'ionicons/icons';
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="gift-background">
       <main class="mx-auto w-full max-w-xl px-4 py-5 md:px-6 md:py-8">
         <div class="card enter-up flex flex-col items-center gap-2 px-6 py-10 text-center">
           <div
