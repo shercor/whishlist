@@ -2,10 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\AccessRequestStatus;
-use App\Enums\AccessSource;
 use App\Http\Requests\WishlistRequest;
-use App\Models\User;
 use App\Models\Wishlist;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -127,34 +124,8 @@ class WishlistController extends Controller
 
         $wishlist->unlockByLink();
 
-        if ($wishlist->user_id !== $request->user()->id) {
-            $this->recordLinkAccess($wishlist, $request->user());
-        }
+        $wishlist->recordLinkAccess($request->user());
 
         return redirect()->route('gifts.show', $wishlist);
-    }
-
-    /**
-     * Deja anotado que esta persona entró con el enlace.
-     *
-     * Antes el enlace solo desbloqueaba la sesión, y eso lo hacía invisible e
-     * irrevocable: el dueño no tenía forma de saber quién había entrado ni de
-     * echarlo. Anotado, aparece en la pantalla de accesos de la lista y se le
-     * puede quitar.
-     *
-     * No pisa un acceso que ya exista: si a alguien lo invitaron y además abre
-     * el enlace, el origen sigue siendo la invitación, que es la que manda
-     * sobre cuánto dura.
-     */
-    private function recordLinkAccess(Wishlist $wishlist, User $user): void
-    {
-        $wishlist->accesses()->firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'status' => AccessRequestStatus::APPROVED->label(),
-                'source' => AccessSource::LINK->label(),
-                'responded_at' => now(),
-            ]
-        );
     }
 }

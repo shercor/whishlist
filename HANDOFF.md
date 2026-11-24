@@ -69,7 +69,7 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 247 passed
+make test                                                     # 253 passed
 curl -o /dev/null -w '%{http_code}\n' http://localhost:4202   # 200: la app Angular
 make test-web                                                 # 20 passed
 ```
@@ -146,7 +146,7 @@ datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **247 passed**.
+`make test` → **253 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -205,9 +205,17 @@ seguirte, pedirte una lista y lo que pediste tú), «Avisos» (`/avisos`), «Qui
 la ve» de una lista privada (`/listas/:id/acceso`: aprobar, quitar y dársela a
 un seguidor), la lista privada ajena que no puedes ver, con «Pedir acceso», y
 «Mi perfil» (`/perfil`: foto, usuario, nombre, mostrar el nombre y perfil
-público). El menú muestra cuántas solicitudes y avisos esperan. Probadas en el
+público). El menú muestra cuántas solicitudes y avisos esperan. Y las de
+entrada: crear una cuenta (`/registro`), el enlace secreto de una lista
+(`/s/:token`, que la abre y lleva a ella) y «Esta página no existe» para
+cualquier dirección desconocida. Sin sesión, toda pantalla manda a entrar
+recordando adónde ibas (`/login?volver=...`): el enlace secreto abierto por
+alguien sin cuenta sigue funcionando después de crearla. Probadas en el
 navegador contra la API real, en escritorio y en teléfono, en claro y en oscuro.
-`make test-web` → **24 passed**.
+`make test-web` → **26 passed**.
+
+**Ya no falta ninguna pantalla.** El enlace para compartir que muestra la app ya
+apunta a la app (`environment.shareUrl`), no a la web Blade.
 
 «Solicitudes» muestra en «Te pidieron una lista» solo lo que te pidieron; a
 diferencia de Blade, deja fuera a quien invitaste o entró con el enlace, que
@@ -227,6 +235,11 @@ que pediste y no te dieron; dar una lista se hace por usuario
 `GET /me` trae lo pendiente en `meta` (`unread_notifications`,
 `pending_requests`), y `name` sale solo en tu propio perfil. Pruebas en
 `tests/Feature/Api/ApiAccessTest.php`.
+
+Y para las de entrada: `POST /users` crea la cuenta y responde como
+`POST /tokens` (quedas dentro, sin verificar el correo, como en la web), y
+`POST /shared/{token}` abre una lista con su enlace secreto. Pruebas en
+`ApiRegistrationTest` y `ApiSharedLinkTest`.
 
 **La app corre en <http://localhost:4202>** (contenedor `web`). La API se le
 indica en `app/src/environments/environment.development.ts`: si cambias
@@ -354,6 +367,15 @@ app— sin obligar al dueño a abrirle todo.
 `source = enlace`, que es lo que le permite al dueño ver quién entró y echarlo
 desde «Quién la ve». Un acceso que solo existiera en la sesión del visitante
 sería invisible e irrevocable.
+
+Esa fila es también lo que abre la lista desde la app, que no tiene sesión:
+`POST /shared/{token}` la anota y después la lista se pide como cualquier otra.
+La regla vive en `Wishlist::recordLinkAccess()`, que usan la web y la API: no
+pisa un acceso aprobado (si te invitaron, sigues invitado), y uno pendiente,
+rechazado o quitado **pasa a aprobado**. Es lo mismo que la web ya hacía en la
+práctica —la sesión dejaba entrar igual—, pero ahora queda a la vista en «Quién
+la ve». Para cerrarle la puerta a alguien que tiene el enlace hay que cambiar
+el enlace (volver la lista pública y otra vez privada genera uno nuevo).
 
 **No vuelvas a agregar un nivel «por enlace».** Ya existió y se quitó por
 redundante; `EnumTest::test_a_wishlist_is_public_or_private_and_nothing_else`
@@ -605,10 +627,12 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
-0. **Seguir pasando pantallas a la app Angular.** Faltan las páginas de
-   error. Dos necesitan API antes de poder migrarse:
-   **registrarse** (no hay endpoint) y el **enlace secreto** `/s/{token}`
-   (depende de la sesión web). Ver la sección 6.
+0. **Retirar la web Blade.** La app Angular ya tiene todas las pantallas. Lo
+   que queda: decidir cómo se sirve la app en producción (desde el mismo
+   dominio que la API, con `/s/` y las demás rutas llevando a la app), borrar
+   las vistas, rutas web y controladores web, y mover a la API las pruebas
+   que hoy recorren la web (como `AuditProbeTest` y `AuditFlowTest`) para no
+   perder lo que fijan.
 
 1. **Los tests que faltaban: hechos.** Los cinco que estaban en esta lista ya
    están escritos y verificados por mutación —`AvatarStorageTest`,
@@ -776,10 +800,13 @@ Lo que **bloquea**, y son tres cosas concretas:
 **Decidido el 2026-11-24 y en marcha** (ver «La app Angular» en la sección 2):
 el punto 3 se resolvió con el token, como tracker-gastos, aceptando el riesgo de
 que un script inyectado en la página lo lea; al empaquetar con Capacitor conviene
-moverlo al almacenamiento seguro del teléfono. Los puntos 1 y 2 siguen abiertos.
+moverlo al almacenamiento seguro del teléfono. Los puntos 1 y 2 también están
+resueltos: `POST /users` para registrarse, y `POST /shared/{token}`, que anota
+el acceso por enlace en vez de la sesión (ver «Quién ve la lista de quién»).
 
-Los tres están anotados también dentro de `docs/openapi.yaml`, para que quien
-lea el contrato los vea sin tener que abrir este archivo.
+Lo único que la API sigue sin poder hacer —pedir una lista privada que no sabes
+que existe, a propósito— está anotado también dentro de `docs/openapi.yaml`,
+para que quien lea el contrato lo vea sin tener que abrir este archivo.
 
 **Visibilidad del catálogo: resuelto.** Los usuarios **sí** pueden proponer
 productos, y se publican **al instante, sin moderación**. Se pide con la casilla

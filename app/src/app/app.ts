@@ -67,7 +67,8 @@ import { SECTIONS } from './shared/navigation';
                   >
                     <app-avatar [user]="user" class="size-10" />
                     <div class="min-w-0">
-                      <p class="m-0 truncate font-medium">{{ user.display_name }}</p>
+                      <!-- Tu nombre aunque no se lo muestres a nadie: el menú solo lo ves tú. -->
+                      <p class="m-0 truncate font-medium">{{ user.name || user.display_name }}</p>
                       <p class="m-0 truncate text-sm text-neutral-500 dark:text-neutral-400">
                         {{ user.handle }} · Mi perfil
                       </p>

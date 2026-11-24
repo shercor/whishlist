@@ -106,6 +106,19 @@ class WishlistController extends Controller
         return response()->json(['data' => WishlistResource::make($wishlist)->resolve($request)]);
     }
 
+    /**
+     * Abrir una lista con su enlace secreto. Devuelve la lista sin sus regalos:
+     * la app la pide después por su id, como cualquier otra.
+     */
+    public function openByLink(Request $request, string $token): JsonResponse
+    {
+        $wishlist = Wishlist::where('share_token', $token)->firstOrFail();
+
+        $wishlist->recordLinkAccess($request->user());
+
+        return response()->json(['data' => WishlistResource::make($wishlist->load('user'))->resolve($request)]);
+    }
+
     public function update(WishlistRequest $request, Wishlist $wishlist): JsonResponse
     {
         $this->authorize('update', $wishlist);

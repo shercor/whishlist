@@ -9,6 +9,18 @@ export const routes: Routes = [
     loadComponent: () => import('./features/login/login.page').then((m) => m.LoginPage),
   },
   {
+    path: 'registro',
+    canActivate: [guestGuard],
+    loadComponent: () => import('./features/register/register.page').then((m) => m.RegisterPage),
+  },
+  {
+    // El enlace secreto de una lista. Sin sesión, el guard lo recuerda para después de entrar.
+    path: 's/:token',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/shared-link/shared-link.page').then((m) => m.SharedLinkPage),
+  },
+  {
     path: 'listas',
     canActivate: [authGuard],
     loadComponent: () => import('./features/wishlists/wishlists.page').then((m) => m.WishlistsPage),
@@ -89,5 +101,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/profile/my-profile.page').then((m) => m.MyProfilePage),
   },
-  { path: '**', redirectTo: 'listas' },
+  {
+    path: '**',
+    loadComponent: () => import('./features/not-found/not-found.page').then((m) => m.NotFoundPage),
+  },
 ];

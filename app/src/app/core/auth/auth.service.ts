@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Counts, LoginResponse, User } from '../api/models';
+import { Counts, LoginResponse, NewAccount, User } from '../api/models';
 
 export const TOKEN_KEY = 'whishlist.token';
 
@@ -37,7 +37,21 @@ export class AuthService {
         device_name: DEVICE_NAME,
       }),
     );
+    this.start(response);
+  }
 
+  /** Crear una cuenta deja dentro, como entrar. */
+  async register(account: NewAccount): Promise<void> {
+    const response = await firstValueFrom(
+      this.http.post<LoginResponse>(`${environment.apiUrl}/users`, {
+        ...account,
+        device_name: DEVICE_NAME,
+      }),
+    );
+    this.start(response);
+  }
+
+  private start(response: LoginResponse): void {
     localStorage.setItem(TOKEN_KEY, response.token);
     this.currentToken.set(response.token);
     this.currentUser.set(response.user);

@@ -29,6 +29,20 @@ export class WishlistsService {
     return response.data;
   }
 
+  /**
+   * Abre una lista con su enlace secreto: la API anota el acceso y devuelve la lista sin
+   * sus regalos. Después se pide por su id, como cualquier otra.
+   */
+  async openByLink(token: string): Promise<Wishlist> {
+    const response = await firstValueFrom(
+      this.http.post<{ data: Wishlist }>(
+        `${environment.apiUrl}/shared/${encodeURIComponent(token)}`,
+        {},
+      ),
+    );
+    return response.data;
+  }
+
   async create(input: WishlistInput): Promise<Wishlist> {
     const response = await firstValueFrom(this.http.post<{ data: Wishlist }>(this.base, input));
     return response.data;

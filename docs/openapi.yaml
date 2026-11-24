@@ -48,15 +48,12 @@ info:
     Importa para la app Angular de `app/`, que se está construyendo contra
     ella, porque son huecos que hoy **solo** cubre la web:
 
-    1. **No se puede registrar a nadie.** `POST /register` existe únicamente en
-       la web. No hay endpoint de alta de usuarios.
-    2. **No se puede abrir una lista por su enlace secreto.** Ese mecanismo
-       (`GET /s/{token}` en la web) anota la lista en la **sesión**, y aquí no
-       hay sesión. Un cliente de API solo llega a las listas que tiene
-       concedidas.
-    3. **No se puede pedir una lista privada que no sabes que existe.** Hace
-       falta un `wishlist_id`, y el perfil de alguien no revela las listas que
-       no puedes ver. Es una decisión de diseño, no un descuido.
+    **No se puede pedir una lista privada que no sabes que existe.** Hace
+    falta un `wishlist_id`, y el perfil de alguien no revela las listas que
+    no puedes ver. Es una decisión de diseño, no un descuido.
+
+    Registrarse (`POST /users`) y abrir una lista por su enlace secreto
+    (`POST /shared/{token}`) ya están: eran los otros dos huecos.
 
   contact:
     name: Repositorio
@@ -178,6 +175,25 @@ components:
   # Esquemas
   # ---------------------------------------------------------------------------
   schemas:
+
+    NewAccount:
+      type: object
+      required: [name, username, email, password, password_confirmation, device_name]
+      properties:
+        name: { type: string, maxLength: 255 }
+        username:
+          type: string
+          description: |
+            Empieza con una letra y sigue con letras, números o guion bajo. El
+            `@` inicial se quita y se pasa a minúsculas.
+          examples: ["marta_t"]
+        email: { type: string, format: email, maxLength: 255 }
+        password: { type: string, format: password, minLength: 8 }
+        password_confirmation: { type: string, format: password }
+        device_name:
+          type: string
+          maxLength: 100
+          description: Con qué se identifica el token en la lista de aparatos.
 
     Message:
       type: object
@@ -810,6 +826,65 @@ paths:
   # Personas
   # ===========================================================================
   /users:
+    post:
+      tags: [Sesión]
+      summary: Crear una cuenta
+      description: |
+        Registrarse es crear un usuario, y responde igual que `POST /tokens`:
+        quien se registra queda dentro. **No se verifica el correo**, igual que
+        en la web.
+
+        El `@` inicial del usuario se quita y se pasa a minúsculas antes de
+        validar: «@Ana» y «ana» son lo mismo. Tope de diez peticiones por
+        minuto por ip.
+
+        Puede traer foto de perfil: entonces va como `multipart/form-data` en
+        vez de json, con los mismos campos.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewAccount' }
+            example:
+              name: "Tía Marta"
+              username: "marta_t"
+              email: "marta@ejemplo.test"
+              password: "una-clave-larga"
+              password_confirmation: "una-clave-larga"
+              device_name: "Navegador web"
+          multipart/form-data:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/NewAccount'
+                - type: object
+                  properties:
+                    avatar:
+                      type: string
+                      format: binary
+                      description: jpg, png o webp, hasta 4 MB.
+      responses:
+        '201':
+          description: Cuenta creada, y el token para seguir.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: Se muestra **una sola vez**. No se puede volver a leer.
+                  user: { $ref: '#/components/schemas/User' }
+        '422':
+          description: Algún campo no sirve, o el usuario o el correo ya están tomados.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ValidationError' }
+              example:
+                message: "Ese usuario ya está tomado. Prueba con otro."
+                errors: { username: ["Ese usuario ya está tomado. Prueba con otro."] }
+        '429': { description: "Más de diez intentos por minuto desde la misma ip." }
+
     get:
       tags: [Personas]
       summary: Buscar personas por su arroba
@@ -949,6 +1024,39 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '422': { $ref: '#/components/responses/ValidationError' }
 
+  /shared/{token}:
+    post:
+      tags: [Listas]
+      summary: Abrir una lista con su enlace secreto
+      description: |
+        Conocer el enlace es el permiso: no hace falta seguir a su dueño. Abrirlo
+        deja anotado un acceso de origen `enlace`, y es ese acceso el que abre
+        la lista después con `GET /wishlists/{wishlist}`. El dueño lo ve en
+        «Quién la ve» y puede quitarlo.
+
+        No pisa un acceso aprobado (si te invitaron, sigues invitado). Uno
+        pendiente, rechazado o quitado pasa a aprobado. Si la lista es tuya no
+        anota nada.
+
+        Devuelve la lista sin sus regalos: se piden después por su id.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: Lo que va después de `/s/` en el enlace.
+          schema: { type: string }
+      responses:
+        '200':
+          description: La lista, sin regalos. `share_token` solo si es tuya.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Wishlist' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
   /wishlists/{wishlist}:
     get:
       tags: [Listas]
@@ -961,7 +1069,7 @@ paths:
 
         Hay cuatro caminos por los que esto puede abrirse: que la lista sea
         pública, que sea tuya, que te la hayan concedido, o que la hayas abierto
-        por su enlace (esto último **solo desde la web**, no por API). Si
+        por su enlace (`POST /shared/{token}`, que deja anotado el acceso). Si
         ninguno aplica, 403 con lo necesario para pedirla: de quién es, si ya
         la pediste y si puedes pedirla. **Nunca su nombre**: probando ids se
         sabría qué listas privadas tiene cada persona.

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\ProductLikeController;
 use App\Http\Controllers\Api\V1\ProductPublicationController;
 use App\Http\Controllers\Api\V1\ProfileController;
+use App\Http\Controllers\Api\V1\RegistrationController;
 use App\Http\Controllers\Api\V1\ReservationController;
 use App\Http\Controllers\Api\V1\TokenController;
 use App\Http\Controllers\Api\V1\UserController;
@@ -43,6 +44,11 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // ip a secas, para que nadie use la API como ariete.
         ->middleware('throttle:10,1');
 
+    // Registrarse es crear un usuario, y deja dentro con su token.
+    Route::post('users', [RegistrationController::class, 'store'])
+        ->name('users.store')
+        ->middleware('throttle:10,1');
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::delete('tokens/current', [TokenController::class, 'destroy'])->name('tokens.destroy');
         Route::delete('tokens', [TokenController::class, 'destroyAll'])->name('tokens.destroy-all');
@@ -66,6 +72,9 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Listas públicas de otra gente: la pantalla «Descubrir».
         Route::get('discover', [WishlistController::class, 'discover'])->name('discover');
         Route::apiResource('wishlists', WishlistController::class)->names('wishlists');
+        // Abrir una lista con su enlace secreto: conocer el token es el permiso.
+        // Deja anotado el acceso, que es lo que la abre después sin sesión.
+        Route::post('shared/{token}', [WishlistController::class, 'openByLink'])->name('shared.open');
 
         // Los regalos cuelgan de su lista para crearlos, y van en plano para
         // editarlos: el id del regalo ya lo identifica sin ambigüedad.

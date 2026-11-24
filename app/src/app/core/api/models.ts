@@ -79,6 +79,15 @@ export interface LoginResponse {
   user: User;
 }
 
+/** Lo que pide `POST /users` para crear una cuenta (sin el nombre del dispositivo). */
+export interface NewAccount {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  password_confirmation: string;
+}
+
 export type WishlistVisibility = 'publica' | 'privada';
 
 export interface Wishlist {

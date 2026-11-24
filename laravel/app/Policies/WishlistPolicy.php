@@ -45,7 +45,7 @@ class WishlistPolicy
      * el día que alguien llame al barrido desde una petición, sí.
      *
      * No pierde a nadie por el camino: entrar con el enlace deja anotado un
-     * acceso de origen `enlace` (ver `WishlistController::recordLinkAccess`),
+     * acceso de origen `enlace` (ver `Wishlist::recordLinkAccess`),
      * que es un hecho guardado y lo ve `hasLiveAccess()`. La sesión solo
      * ahorra volver a pegar el token.
      *

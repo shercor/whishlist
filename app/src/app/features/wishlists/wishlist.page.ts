@@ -92,7 +92,8 @@ export class WishlistPage implements ViewWillEnter {
 
   protected readonly shareLink = computed(() => {
     const token = this.wishlist()?.share_token;
-    return token ? `${environment.shareUrl}${token}` : null;
+    // En producción shareUrl es relativa, y lo que se copia tiene que ser la dirección completa.
+    return token ? new URL(`${environment.shareUrl}${token}`, location.origin).href : null;
   });
 
   /** El regalo del modal. Se conserva al cerrarlo, para que no se vacíe mientras se anima. */
