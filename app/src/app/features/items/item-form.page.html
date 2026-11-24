@@ -1,0 +1,339 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="'/listas/' + id()" text="" aria-label="Volver a la lista" />
+    </ion-buttons>
+    <ion-title>Agregar regalo</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
+    <h1 class="enter-up mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">
+      Agregar un regalo
+    </h1>
+    <p class="enter-up mt-0 mb-4 text-sm text-neutral-500 md:mb-6 dark:text-neutral-400">
+      @if (wishlistName()) {
+        A «{{ wishlistName() }}».
+      }
+      Elige algo del catálogo o escríbelo tú.
+    </p>
+
+    <ion-segment
+      class="enter-up mb-4"
+      style="--i: 1"
+      [value]="mode()"
+      (ionChange)="setMode($event.detail.value)"
+    >
+      <ion-segment-button value="catalogo">
+        <ion-label>Del catálogo</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="manual">
+        <ion-label>Escribirlo yo</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+
+    @if (mode() === 'catalogo') {
+      <!-- El margen va en un contenedor: .control lo pone en 0 y le gana a mb-3. -->
+      <div class="enter-up mb-3" style="--i: 2">
+        <input
+          type="search"
+          class="control w-full"
+          placeholder="peluche, audífonos, libro..."
+          aria-label="Buscar en el catálogo"
+          [value]="query()"
+          (input)="typed(valueOf($event))"
+        />
+      </div>
+
+      @if (searchError(); as message) {
+        <div
+          role="alert"
+          animate.enter="enter-down"
+          class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300"
+        >
+          {{ message }}
+        </div>
+      }
+
+      @if (searching() && results().length === 0) {
+        <div role="status" aria-label="Buscando en el catálogo" class="card overflow-hidden">
+          @for (width of skeletonRows; track $index) {
+            <div
+              aria-hidden="true"
+              class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 md:px-5 dark:border-white/5"
+            >
+              <ion-skeleton-text animated class="m-0 size-12 shrink-0 rounded-lg" />
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <ion-skeleton-text animated class="m-0 h-4" [style.width]="width" />
+                <ion-skeleton-text animated class="m-0 h-3 w-1/4" />
+              </div>
+            </div>
+          }
+        </div>
+      } @else if (results().length === 0 && !searchError()) {
+        <div class="card enter-up flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <div
+            class="icon-float flex size-12 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+          >
+            <ion-icon name="search-outline" aria-hidden="true" />
+          </div>
+          @if (query().trim()) {
+            <h2 class="mt-2 mb-0 text-lg font-semibold">Nada calzó con «{{ query().trim() }}»</h2>
+            <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+              La búsqueda ignora las palabras de menos de tres letras. Si no está en el catálogo,
+              escríbelo tú.
+            </p>
+          } @else {
+            <h2 class="mt-2 mb-0 text-lg font-semibold">El catálogo está vacío</h2>
+            <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+              Escribe el regalo tú.
+            </p>
+          }
+          <ion-button class="pressable mt-3" (click)="mode.set('manual')">Escribirlo yo</ion-button>
+        </div>
+      } @else if (results().length > 0) {
+        <div
+          role="list"
+          aria-label="Productos del catálogo"
+          class="card overflow-hidden transition-opacity"
+          [class.opacity-60]="searching()"
+          [attr.aria-busy]="searching()"
+        >
+          @for (product of results(); track product.id) {
+            <div
+              role="listitem"
+              tabindex="0"
+              aria-haspopup="dialog"
+              animate.enter="enter-up"
+              class="tappable-row grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+              (click)="choose(product)"
+              (keydown.enter)="choose(product)"
+            >
+              @if (product.image; as image) {
+                <img
+                  [src]="image"
+                  alt=""
+                  loading="lazy"
+                  class="row-span-2 size-12 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
+                />
+              } @else {
+                <span
+                  aria-hidden="true"
+                  class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-neutral-100 text-base font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                >
+                  {{ product.name.charAt(0) }}
+                </span>
+              }
+              <div class="truncate font-medium" [title]="product.name">{{ product.name }}</div>
+              <div
+                class="row-span-2 inline-flex items-center gap-1 justify-self-end text-sm text-neutral-500 tabular-nums dark:text-neutral-400"
+                [attr.aria-label]="(product.likes ?? 0) + ' me gusta'"
+              >
+                @if (product.is_public) {
+                  <ion-icon
+                    name="heart"
+                    aria-hidden="true"
+                    [class.text-red-500]="product.liked_by_me"
+                  />
+                  {{ product.likes ?? 0 }}
+                }
+              </div>
+              <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
+                {{ product.category?.name }}
+                @if (!product.is_public) {
+                  · Solo tú la ves
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    } @else {
+      <form class="card enter-up flex flex-col gap-4 p-4 md:p-5" (submit)="save($event)">
+        <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+          Queda como producto privado: solo lo ves tú y quien mire esta lista. Si quieres, puedes
+          compartir la ficha con el catálogo para que le sirva a más gente.
+        </p>
+
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          Qué es
+          <input
+            type="text"
+            class="control w-full"
+            maxlength="200"
+            placeholder="Taza de greca de la feria de Valparaíso"
+            required
+            [value]="name()"
+            (input)="name.set(valueOf($event))"
+          />
+        </label>
+
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          Categoría
+          <select class="control w-full md:w-72" required (change)="pickCategory($event)">
+            <option value="" [selected]="categoryId() === null">Elige una</option>
+            @for (category of categories(); track category.id) {
+              <option [value]="category.id" [selected]="category.id === categoryId()">
+                {{ category.name }}
+              </option>
+            }
+          </select>
+        </label>
+
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          <span>
+            Cómo es
+            <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+          </span>
+          <textarea
+            class="control w-full"
+            maxlength="1000"
+            [value]="description()"
+            (input)="description.set(valueOf($event))"
+          ></textarea>
+        </label>
+
+        <div class="grid gap-4 md:grid-cols-[minmax(0,1fr)_12rem]">
+          <label class="flex flex-col gap-1.5 text-sm font-medium">
+            <span>
+              Dónde se consigue
+              <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+            </span>
+            <input
+              type="url"
+              class="control w-full"
+              maxlength="2048"
+              placeholder="https://..."
+              [value]="url()"
+              (input)="url.set(valueOf($event))"
+            />
+          </label>
+          <label class="flex flex-col gap-1.5 text-sm font-medium">
+            <span>
+              Precio
+              <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+            </span>
+            <input
+              type="number"
+              inputmode="numeric"
+              min="0"
+              class="control w-full"
+              placeholder="12990"
+              [value]="price()"
+              (input)="price.set(valueOf($event))"
+            />
+          </label>
+        </div>
+
+        <div class="flex flex-col gap-1.5 text-sm font-medium">
+          <span>
+            Una foto
+            <span class="font-normal text-neutral-500 dark:text-neutral-400"
+              >(opcional, jpg, png o webp hasta 4 MB)</span
+            >
+          </span>
+          <label class="control pressable w-fit max-w-full">
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="sr-only"
+              (change)="pickImage($event)"
+            />
+            <ion-icon name="image-outline" aria-hidden="true" />
+            <span class="truncate">{{ image()?.name ?? 'Elegir foto' }}</span>
+          </label>
+        </div>
+
+        <label class="flex flex-col gap-1.5 text-sm font-medium">
+          <span>
+            Notas para quien lo compre
+            <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+          </span>
+          <input
+            type="text"
+            class="control w-full"
+            maxlength="500"
+            placeholder="Talla M, ojalá azul"
+            [value]="notes()"
+            (input)="notes.set(valueOf($event))"
+          />
+        </label>
+
+        <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
+          <legend class="mb-1.5 p-0 text-sm font-medium">Cuánto lo quieres</legend>
+          <div class="grid grid-cols-3 gap-2 md:flex">
+            @for (option of priorities; track option.value) {
+              <label class="control pressable">
+                <input
+                  type="radio"
+                  name="priority"
+                  [checked]="option.value === priority()"
+                  (change)="priority.set(option.value)"
+                />
+                {{ option.title }}
+              </label>
+            }
+          </div>
+          <p class="hint m-0">{{ chosenPriority().hint }}</p>
+        </fieldset>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="control pressable w-fit max-w-full">
+            <input
+              type="checkbox"
+              [checked]="shareWithCatalog()"
+              (change)="shareWithCatalog.set(checkedOf($event))"
+            />
+            Compartir esta ficha con el catálogo
+          </label>
+          <p class="hint m-0">
+            La ficha (el nombre, la foto y el precio) pasa a estar visible para todos y cualquiera
+            puede agregarla a su lista. Tu lista y tu regalo siguen siendo tuyos: lo que se comparte
+            es la ficha, no que tú lo quieras. Puedes retirarla cuando quieras desde el catálogo.
+          </p>
+        </div>
+
+        @if (saveError(); as message) {
+          <p
+            role="alert"
+            animate.enter="enter-down"
+            class="m-0 text-sm text-red-600 dark:text-red-400"
+          >
+            {{ message }}
+          </p>
+        }
+
+        <div class="flex justify-end">
+          <ion-button type="submit" class="pressable m-0" [disabled]="!canSave()">
+            @if (saving()) {
+              <ion-spinner name="crescent" aria-label="Agregando" />
+            } @else {
+              Agregar a la lista
+            }
+          </ion-button>
+        </div>
+      </form>
+    }
+  </main>
+
+  <ion-modal
+    class="auto-height"
+    [isOpen]="modalOpen()"
+    [breakpoints]="sheet ? [0, 1] : undefined"
+    [initialBreakpoint]="sheet ? 1 : undefined"
+    (didDismiss)="modalOpen.set(false)"
+  >
+    <ng-template>
+      @if (selected(); as product) {
+        <app-product-sheet
+          [product]="product"
+          [wishlistId]="wishlistId()"
+          (added)="onAdded()"
+          (productChanged)="onProductChanged($event)"
+          (closed)="modalOpen.set(false)"
+        />
+      }
+    </ng-template>
+  </ion-modal>
+</ion-content>

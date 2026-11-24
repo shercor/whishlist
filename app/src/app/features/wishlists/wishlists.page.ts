@@ -1,5 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import {
   InfiniteScrollCustomEvent,
   IonButton,
@@ -9,6 +9,7 @@ import {
   IonIcon,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
+  IonMenuButton,
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
@@ -18,16 +19,9 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import {
-  addOutline,
-  giftOutline,
-  globeOutline,
-  lockClosedOutline,
-  logOutOutline,
-} from 'ionicons/icons';
+import { addOutline, giftOutline, globeOutline, lockClosedOutline } from 'ionicons/icons';
 import { Wishlist } from '../../core/api/models';
 import { WishlistsService } from '../../core/api/wishlists.service';
-import { AuthService } from '../../core/auth/auth.service';
 import { errorMessage } from '../../core/http/api-error';
 import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
 import { visibilityOf } from '../../shared/visibility';
@@ -43,6 +37,7 @@ import { visibilityOf } from '../../shared/visibility';
     IonIcon,
     IonInfiniteScroll,
     IonInfiniteScrollContent,
+    IonMenuButton,
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
@@ -53,8 +48,6 @@ import { visibilityOf } from '../../shared/visibility';
 })
 export class WishlistsPage implements ViewWillEnter {
   private readonly api = inject(WishlistsService);
-  private readonly auth = inject(AuthService);
-  private readonly router = inject(Router);
 
   protected readonly wishlists = signal<Wishlist[]>([]);
   /** Primera carga: la vista aún no tiene nada que mostrar. */
@@ -74,7 +67,7 @@ export class WishlistsPage implements ViewWillEnter {
   protected readonly visibilityOf = visibilityOf;
 
   constructor() {
-    addIcons({ addOutline, giftOutline, globeOutline, lockClosedOutline, logOutOutline });
+    addIcons({ addOutline, giftOutline, globeOutline, lockClosedOutline });
   }
 
   /** Al volver de crear una lista, la nueva ya aparece. */
@@ -90,15 +83,6 @@ export class WishlistsPage implements ViewWillEnter {
   protected async loadMore(event: InfiniteScrollCustomEvent): Promise<void> {
     await this.loadPage(this.page() + 1);
     await event.target.complete();
-  }
-
-  protected async logout(): Promise<void> {
-    try {
-      await this.auth.logout();
-    } catch {
-      // La sesión local ya se borró: el token que quedó en la API vence solo.
-    }
-    await this.router.navigateByUrl('/login', { replaceUrl: true });
   }
 
   /** Limita el escalonado de la entrada, para que una lista larga no tarde en aparecer. */

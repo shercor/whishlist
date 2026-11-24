@@ -19,5 +19,21 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/wishlists/wishlist-form.page').then((m) => m.WishlistFormPage),
   },
+  {
+    path: 'listas/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/wishlists/wishlist.page').then((m) => m.WishlistPage),
+  },
+  {
+    path: 'listas/:id/editar',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/wishlists/wishlist-form.page').then((m) => m.WishlistFormPage),
+  },
+  {
+    path: 'listas/:id/regalos/nuevo',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/items/item-form.page').then((m) => m.ItemFormPage),
+  },
   { path: '**', redirectTo: 'listas' },
 ];

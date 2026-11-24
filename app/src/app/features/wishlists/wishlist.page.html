@@ -1,0 +1,232 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/listas" text="" aria-label="Volver" />
+    </ion-buttons>
+    <ion-title>{{ wishlist()?.name ?? 'Lista' }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  <main class="mx-auto w-full max-w-5xl px-4 py-5 md:px-6 md:py-8">
+    @if (error(); as message) {
+      <div
+        role="alert"
+        animate.enter="enter-down"
+        class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300"
+      >
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div role="status" aria-label="Cargando la lista">
+        <ion-skeleton-text animated class="mb-3 h-8 w-1/2" />
+        <ion-skeleton-text animated class="mb-6 h-4 w-2/3" />
+        <div class="card overflow-hidden">
+          @for (width of skeletonRows; track $index) {
+            <div
+              aria-hidden="true"
+              class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3.5 last:border-b-0 md:px-5 dark:border-white/5"
+            >
+              <ion-skeleton-text animated class="m-0 size-12 shrink-0 rounded-lg" />
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <ion-skeleton-text animated class="m-0 h-4" [style.width]="width" />
+                <ion-skeleton-text animated class="m-0 h-3 w-1/4" />
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (wishlist(); as wishlist) {
+      <div class="enter-up mb-4 md:mb-6">
+        <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">
+          {{ wishlist.name }}
+        </h1>
+        <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+          {{ wishlist.description || 'Sin descripción.' }}
+          @if (wishlist.event_date; as date) {
+            <br />Para el {{ formatEventDate(date) }}.
+          }
+        </p>
+
+        @if (wishlist.is_mine) {
+          <!-- En el teléfono los botones van debajo del chip y «Agregar regalo» llena la fila; desde md, a su derecha. -->
+          <div class="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            @if (visibilityOf(wishlist.visibility); as visibility) {
+              <span
+                class="inline-flex items-center gap-1 self-start rounded-full md:self-center bg-neutral-200/70 px-2 py-0.5 text-xs font-medium text-neutral-700 dark:bg-white/10 dark:text-neutral-300"
+                [title]="visibility.description"
+              >
+                <ion-icon [name]="visibility.icon" aria-hidden="true" />
+                {{ visibility.title }}
+              </span>
+            }
+            <div class="flex gap-2">
+              <ion-button
+                fill="outline"
+                class="pressable m-0"
+                [routerLink]="['/listas', wishlist.id, 'editar']"
+              >
+                <ion-icon slot="start" name="create-outline" aria-hidden="true" />
+                Editar
+              </ion-button>
+              <ion-button
+                class="pressable m-0 flex-1 md:flex-none"
+                [routerLink]="['/listas', wishlist.id, 'regalos', 'nuevo']"
+              >
+                <ion-icon slot="start" name="add-outline" aria-hidden="true" />
+                Agregar regalo
+              </ion-button>
+            </div>
+          </div>
+        }
+      </div>
+
+      @if (wishlist.is_mine) {
+        <!-- Nada en esta pantalla habla de reservas: es lo que impide que el dueño se entere. -->
+        <div role="status" class="notice notice-info enter-up" style="--i: 1">
+          <span>
+            Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.
+          </span>
+        </div>
+
+        @if (shareLink(); as link) {
+          <div class="card enter-up mb-4 p-4 md:p-5" style="--i: 2">
+            <h2 class="section-title">Enlace para compartir</h2>
+            <div class="flex gap-2">
+              <input
+                type="text"
+                class="control min-w-0 flex-1"
+                readonly
+                aria-label="Enlace para compartir"
+                [value]="link"
+                (focus)="$any($event.target).select()"
+              />
+              <button type="button" class="control pressable shrink-0" (click)="copyLink()">
+                <ion-icon name="copy-outline" aria-hidden="true" />
+                Copiar
+              </button>
+            </div>
+            <p class="hint mt-2 mb-0">
+              Quien lo tenga entra aunque no te siga, y queda anotado en «Quién la ve».
+            </p>
+          </div>
+        }
+      }
+
+      @if (items().length === 0) {
+        <div class="card enter-up flex flex-col items-center gap-2 px-6 py-12 text-center">
+          <div
+            class="icon-float flex size-12 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+          >
+            <ion-icon name="gift-outline" aria-hidden="true" />
+          </div>
+          <h2 class="mt-2 mb-0 text-lg font-semibold">Esta lista está vacía</h2>
+          @if (wishlist.is_mine) {
+            <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+              Elige algo del catálogo o escríbelo tú. Hasta que no tenga regalos, compartirla no le
+              sirve a nadie.
+            </p>
+            <ion-button
+              class="pressable mt-3"
+              [routerLink]="['/listas', wishlist.id, 'regalos', 'nuevo']"
+            >
+              Agregar el primer regalo
+            </ion-button>
+          }
+        </div>
+      } @else {
+        <div role="list" aria-label="Regalos" class="card overflow-hidden">
+          @for (item of items(); track item.id) {
+            <!--
+              [foto] nombre                      | prioridad
+              [    ] categoría · notas · recibido
+            -->
+            <div
+              role="listitem"
+              tabindex="0"
+              aria-haspopup="dialog"
+              animate.enter="enter-up"
+              class="tappable-row grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+              [class.opacity-60]="item.received"
+              [style.--i]="staggerIndex($index)"
+              (click)="open(item)"
+              (keydown.enter)="open(item)"
+            >
+              @if (item.product?.image; as image) {
+                <img
+                  [src]="image"
+                  alt=""
+                  loading="lazy"
+                  class="row-span-2 size-12 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
+                />
+              } @else {
+                <span
+                  aria-hidden="true"
+                  class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-neutral-100 text-base font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+                >
+                  {{ item.name.charAt(0) }}
+                </span>
+              }
+              <div class="truncate font-medium" [title]="item.name">{{ item.name }}</div>
+              <div class="row-span-2 justify-self-end">
+                <span
+                  class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                  [class]="
+                    item.priority === 'alta'
+                      ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
+                      : 'bg-neutral-100 text-neutral-600 dark:bg-white/10 dark:text-neutral-300'
+                  "
+                  [title]="priorityOf(item.priority).hint"
+                >
+                  @if (item.priority === 'alta') {
+                    <ion-icon name="star-outline" aria-hidden="true" />
+                  }
+                  {{ priorityOf(item.priority).title }}
+                </span>
+              </div>
+              <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
+                {{ item.product?.category?.name }}
+                @if (item.notes) {
+                  · {{ item.notes }}
+                }
+                @if (item.received) {
+                  ·
+                  <span class="inline-flex items-center gap-0.5 font-medium">
+                    <ion-icon name="checkmark-circle-outline" aria-hidden="true" />
+                    Recibido
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
+  </main>
+
+  <!-- En el teléfono es una hoja que sube desde abajo; en escritorio, una tarjeta al centro. -->
+  <ion-modal
+    class="auto-height"
+    [isOpen]="modalOpen()"
+    [breakpoints]="sheet ? [0, 1] : undefined"
+    [initialBreakpoint]="sheet ? 1 : undefined"
+    (didDismiss)="modalOpen.set(false)"
+  >
+    <ng-template>
+      @if (editing(); as item) {
+        <app-item-sheet
+          [item]="item"
+          (changed)="onChanged($event)"
+          (removed)="onRemoved($event)"
+          (closed)="modalOpen.set(false)"
+        />
+      }
+    </ng-template>
+  </ion-modal>
+</ion-content>

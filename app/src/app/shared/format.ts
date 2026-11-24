@@ -31,3 +31,12 @@ export function giftCount(count: number): string {
 
   return count === 1 ? '1 regalo' : `${count} regalos`;
 }
+
+/** «$12.990» o «US$12,50». La API manda el precio en la unidad normal de la moneda. */
+export function formatPrice(amount: number | string, currency: string | null): string {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: currency ?? 'CLP',
+    maximumFractionDigits: (currency ?? 'CLP') === 'CLP' ? 0 : 2,
+  }).format(Number(amount));
+}

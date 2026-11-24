@@ -5,7 +5,7 @@ import {
   provideAppInitializer,
   provideBrowserGlobalErrorListeners,
 } from '@angular/core';
-import { RouteReuseStrategy, provideRouter } from '@angular/router';
+import { RouteReuseStrategy, provideRouter, withComponentInputBinding } from '@angular/router';
 import { IonicRouteStrategy, provideIonicAngular } from '@ionic/angular';
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
@@ -17,7 +17,8 @@ export const appConfig: ApplicationConfig = {
     // Ionic conserva las páginas anteriores para animar el regreso, como una app nativa.
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },
     provideIonicAngular(),
-    provideRouter(routes),
+    // Los parámetros de la ruta (:id) llegan a las páginas como input().
+    provideRouter(routes, withComponentInputBinding()),
     provideHttpClient(withFetch(), withInterceptors([authInterceptor])),
     // Recupera el perfil del token guardado antes de resolver la primera ruta.
     provideAppInitializer(() => inject(AuthService).restore()),

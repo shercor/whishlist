@@ -1,0 +1,127 @@
+<div class="modal-body p-4 md:p-5">
+  <div class="mb-3 flex items-start justify-between gap-3">
+    <h2 class="m-0 text-lg font-semibold">{{ product().name }}</h2>
+    <ion-button
+      fill="clear"
+      color="medium"
+      class="-mt-1 -mr-2 shrink-0"
+      (click)="closed.emit()"
+      aria-label="Cerrar"
+    >
+      <ion-icon slot="icon-only" name="close-outline" />
+    </ion-button>
+  </div>
+
+  <div class="mb-4 flex gap-4">
+    @if (product().image; as image) {
+      <img
+        [src]="image"
+        alt=""
+        class="size-24 shrink-0 rounded-xl object-cover ring-1 ring-black/5 dark:ring-white/10"
+      />
+    }
+    <div class="min-w-0 text-sm">
+      <p class="m-0 text-neutral-500 dark:text-neutral-400">
+        {{ product().category?.name }}
+        @if (product().reference_price; as price) {
+          · {{ formatPrice(price, product().currency) }}
+        }
+      </p>
+      @if (product().description) {
+        <p class="mt-1 mb-0">{{ product().description }}</p>
+      }
+      @if (product().url) {
+        <a
+          [href]="product().url"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="mt-2 inline-flex items-center gap-1 font-medium text-[var(--ion-color-primary)]"
+        >
+          Ver dónde se consigue
+          <ion-icon name="open-outline" aria-hidden="true" />
+        </a>
+      }
+    </div>
+  </div>
+
+  @if (product().is_public) {
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <button
+        type="button"
+        class="control pressable"
+        [attr.aria-pressed]="product().liked_by_me ?? false"
+        [disabled]="busy()"
+        (click)="toggleLike()"
+      >
+        <ion-icon
+          [name]="product().liked_by_me ? 'heart' : 'heart-outline'"
+          [class.text-red-500]="product().liked_by_me"
+          aria-hidden="true"
+        />
+        {{ product().likes ?? 0 }}
+        <span class="sr-only">me gusta{{ product().liked_by_me ? ', ya lo votaste' : '' }}</span>
+      </button>
+      @if (product().is_mine) {
+        <button
+          type="button"
+          class="link-button link-danger text-sm"
+          [disabled]="busy()"
+          (click)="unpublish()"
+        >
+          Retirar del catálogo
+        </button>
+      }
+    </div>
+  }
+
+  <form class="flex flex-col gap-3" (submit)="add($event)">
+    <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
+      <legend class="mb-1.5 p-0 text-sm font-medium">Cuánto lo quieres</legend>
+      <div class="grid grid-cols-3 gap-2">
+        @for (option of priorities; track option.value) {
+          <label class="control pressable">
+            <input
+              type="radio"
+              name="priority"
+              [checked]="option.value === priority()"
+              (change)="priority.set(option.value)"
+            />
+            {{ option.title }}
+          </label>
+        }
+      </div>
+      <p class="hint m-0">{{ chosenPriority().hint }}</p>
+    </fieldset>
+
+    <label class="flex flex-col gap-1.5 text-sm font-medium">
+      <span>
+        Notas para quien lo compre
+        <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+      </span>
+      <input
+        type="text"
+        class="control w-full"
+        maxlength="500"
+        placeholder="Talla M, ojalá azul"
+        [value]="notes()"
+        (input)="notes.set(valueOf($event))"
+      />
+    </label>
+
+    @if (error(); as message) {
+      <p role="alert" animate.enter="enter-down" class="m-0 text-sm text-red-600 dark:text-red-400">
+        {{ message }}
+      </p>
+    }
+
+    <div class="flex justify-end">
+      <ion-button type="submit" class="pressable m-0" [disabled]="busy()">
+        @if (busy()) {
+          <ion-spinner name="crescent" aria-label="Agregando" />
+        } @else {
+          Agregar a mi lista
+        }
+      </ion-button>
+    </div>
+  </form>
+</div>
