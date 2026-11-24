@@ -155,7 +155,7 @@ class NotificationEventsTest extends TestCase
         Sanctum::actingAs($duenio);
 
         $this->postJson(route('api.v1.access.invite', $lista), [
-            'user_id' => $curioso->id,
+            'username' => $curioso->username,
         ])->assertCreated();
 
         Notification::assertSentTo($curioso, WishlistShared::class);

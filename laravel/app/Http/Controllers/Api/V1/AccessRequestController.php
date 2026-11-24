@@ -4,9 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Enums\AccessRequestStatus;
 use App\Enums\AccessSource;
-use App\Enums\FollowStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Http\Resources\WishlistAccessResource;
+use App\Http\Resources\WishlistResource;
 use App\Models\Wishlist;
 use App\Models\WishlistAccess;
 use App\Notifications\AccessAnswered;
@@ -15,6 +16,7 @@ use App\Notifications\WishlistShared;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * El reparto de acceso a listas privadas.
@@ -39,9 +41,18 @@ class AccessRequestController extends Controller
                         ->latest()
                         ->get()
                 )->resolve($request),
-                'sent' => WishlistAccessResource::collection(
-                    $usuario->accessRequests()->with('wishlist.user')->latest()->get()
-                )->resolve($request),
+                // De una lista que no te dieron solo se dice de quién es, igual
+                // que en la web: su nombre es cosa de su dueño.
+                'sent' => $usuario->accessRequests()->with('wishlist.user')->latest()->get()
+                    ->map(fn ($acceso) => [
+                        ...WishlistAccessResource::make($acceso)->resolve($request),
+                        'wishlist' => $acceso->statusEnum()->grantsAccess()
+                            ? WishlistResource::make($acceso->wishlist)->resolve($request)
+                            : [
+                                'id' => $acceso->wishlist->id,
+                                'owner' => UserResource::make($acceso->wishlist->user)->resolve($request),
+                            ],
+                    ]),
             ],
         ]);
     }
@@ -116,19 +127,25 @@ class AccessRequestController extends Controller
     {
         $this->authorize('manageAccess', $wishlist);
 
+        // Por usuario y no por id: la API nunca entrega ids de personas.
         $datos = $request->validate([
-            // exists no basta: hay que exigir que sea seguidor aceptado, o
-            // bastaría con mandar cualquier id para colarse en la lista.
-            'user_id' => [
-                'required',
-                Rule::exists('follows', 'follower_id')
-                    ->where('followed_id', $request->user()->id)
-                    ->where('status', FollowStatus::ACCEPTED->label()),
-            ],
-        ], [], ['user_id' => 'persona']);
+            'username' => ['required', 'string'],
+        ], [], ['username' => 'persona']);
+
+        // Solo un seguidor aceptado: si no, bastaría con nombrar a cualquiera
+        // para colarlo en la lista.
+        $invitado = $request->user()->followers()
+            ->where('username', $datos['username'])
+            ->first();
+
+        if ($invitado === null) {
+            throw ValidationException::withMessages([
+                'username' => 'Solo puedes darle una lista privada a alguien que te sigue.',
+            ]);
+        }
 
         $acceso = $wishlist->accesses()->updateOrCreate(
-            ['user_id' => $datos['user_id']],
+            ['user_id' => $invitado->id],
             [
                 'status' => AccessRequestStatus::APPROVED->label(),
                 'source' => AccessSource::INVITATION->label(),

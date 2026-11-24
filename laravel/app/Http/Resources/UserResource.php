@@ -30,6 +30,7 @@ class UserResource extends JsonResource
             // Solo en el propio perfil: a un tercero no le corresponde saber
             // el correo de nadie, ni si oculta su nombre.
             'email' => $this->when($esElMismo, fn () => $this->email),
+            'name' => $this->when($esElMismo, fn () => $this->name),
             'show_name' => $this->when($esElMismo, fn () => (bool) $this->show_name),
             'is_private' => $this->when($esElMismo, fn () => (bool) $this->is_private),
         ];

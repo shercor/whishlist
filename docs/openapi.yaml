@@ -297,6 +297,11 @@ components:
           description: |
             **Solo en el perfil propio** (`GET /me` y la respuesta de
             `POST /tokens`). A un tercero esta clave no le llega.
+        name:
+          type: string
+          description: |
+            El nombre real. **Solo en el perfil propio**: a los demás les llega
+            `display_name`, que es el nombre solo si `show_name` está activo.
         show_name:
           type: boolean
           description: Solo en el perfil propio.
@@ -670,13 +675,21 @@ paths:
       summary: Mi perfil
       responses:
         '200':
-          description: El perfil propio, con correo y ajustes de privacidad.
+          description: |
+            El perfil propio, con correo y ajustes de privacidad. En `meta`, lo
+            que un menú cuenta: avisos sin leer y solicitudes por responder
+            (seguimientos pendientes más accesos pedidos a tus listas).
           content:
             application/json:
               schema:
                 type: object
                 properties:
                   data: { $ref: '#/components/schemas/User' }
+                  meta:
+                    type: object
+                    properties:
+                      unread_notifications: { type: integer }
+                      pending_requests: { type: integer }
         '401': { $ref: '#/components/responses/Unauthorized' }
 
     patch:
@@ -949,7 +962,9 @@ paths:
         Hay cuatro caminos por los que esto puede abrirse: que la lista sea
         pública, que sea tuya, que te la hayan concedido, o que la hayas abierto
         por su enlace (esto último **solo desde la web**, no por API). Si
-        ninguno aplica, 404.
+        ninguno aplica, 403 con lo necesario para pedirla: de quién es, si ya
+        la pediste y si puedes pedirla. **Nunca su nombre**: probando ids se
+        sabría qué listas privadas tiene cada persona.
       parameters:
         - $ref: '#/components/parameters/wishlistId'
       responses:
@@ -962,7 +977,25 @@ paths:
                 properties:
                   data: { $ref: '#/components/schemas/Wishlist' }
         '401': { $ref: '#/components/responses/Unauthorized' }
-        '403': { $ref: '#/components/responses/Forbidden' }
+        '403':
+          description: Lista privada que no puedes ver.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, examples: ["Esta lista es privada."] }
+                  owner: { $ref: '#/components/schemas/User' }
+                  access_status:
+                    description: Cómo está lo que pediste, o `null` si no pediste nada.
+                    oneOf:
+                      - $ref: '#/components/schemas/AccessStatus'
+                      - type: 'null'
+                  can_request:
+                    type: boolean
+                    description: |
+                      Si puedes pedirla con `POST /wishlists/{wishlist}/access`:
+                      hace falta seguir a su dueño y no haberla pedido antes.
         '404': { $ref: '#/components/responses/NotFound' }
 
     put:
@@ -1594,7 +1627,10 @@ paths:
                         items: { $ref: '#/components/schemas/WishlistAccess' }
                       sent:
                         type: array
-                        description: Lo que **tú** pediste sobre listas de otros.
+                        description: |
+                          Lo que **tú** pediste sobre listas de otros. Si no
+                          te la dieron, `wishlist` trae solo `id` y `owner`:
+                          el nombre de la lista es cosa de su dueño.
                         items: { $ref: '#/components/schemas/WishlistAccess' }
           description: Los dos lados.
         '401': { $ref: '#/components/responses/Unauthorized' }
@@ -1683,9 +1719,9 @@ paths:
       description: |
         El camino previsto para repartir una lista privada.
 
-        **Solo a tus seguidores aceptados.** No basta con que el `user_id`
-        exista: si no te sigue, da 422. Sin esa regla bastaría con mandar
-        cualquier id para colar a un desconocido en una lista privada.
+        **Solo a tus seguidores aceptados.** No basta con que el usuario
+        exista: si no te sigue, da 422. Sin esa regla bastaría con nombrar a
+        cualquiera para colar a un desconocido en una lista privada.
 
         Invitar a quien ya estaba invitado no duplica: actualiza lo que había.
       parameters:
@@ -1696,11 +1732,11 @@ paths:
           application/json:
             schema:
               type: object
-              required: [user_id]
+              required: [username]
               properties:
-                user_id:
-                  type: integer
-                  description: Id de un seguidor tuyo **ya aceptado**.
+                username:
+                  type: string
+                  description: El usuario de un seguidor tuyo **ya aceptado**, sin arroba.
       responses:
         '201':
           description: Acceso concedido. A esa persona le llega un aviso.

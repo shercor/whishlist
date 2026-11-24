@@ -49,7 +49,7 @@ class ApiAuthorizationTest extends TestCase
             'borrar el regalo' => ['deleteJson', route('api.v1.items.destroy', $item), []],
             'marcarlo recibido' => ['putJson', route('api.v1.items.receipt.store', $item), []],
             'desmarcarlo' => ['deleteJson', route('api.v1.items.receipt.destroy', $item), []],
-            'invitar a alguien' => ['postJson', route('api.v1.access.invite', $lista), ['user_id' => $extranio->id]],
+            'invitar a alguien' => ['postJson', route('api.v1.access.invite', $lista), ['username' => $extranio->username]],
             'quitar un acceso' => ['deleteJson', route('api.v1.access.revoke', [$lista, $acceso]), []],
             'responder el acceso' => ['patchJson', route('api.v1.access.update', $acceso), ['status' => 'aprobada']],
             'responder el seguimiento' => ['patchJson', route('api.v1.follows.update', $follow), ['decision' => 'aceptar']],

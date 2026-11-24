@@ -23,10 +23,20 @@ use Illuminate\Support\Str;
  */
 class ProfileController extends Controller
 {
+    /**
+     * El perfil propio, con lo que el menú cuenta en cada pantalla: avisos sin
+     * leer y solicitudes que esperan respuesta.
+     */
     public function show(Request $request): JsonResponse
     {
+        $usuario = $request->user();
+
         return response()->json([
-            'data' => UserResource::make($request->user())->resolve($request),
+            'data' => UserResource::make($usuario)->resolve($request),
+            'meta' => [
+                'unread_notifications' => $usuario->unreadNotifications()->count(),
+                'pending_requests' => $usuario->pendingRequestsCount(),
+            ],
         ]);
     }
 

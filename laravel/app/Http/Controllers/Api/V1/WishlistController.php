@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WishlistRequest;
+use App\Http\Resources\UserResource;
 use App\Http\Resources\WishlistResource;
 use App\Models\Wishlist;
 use Illuminate\Http\JsonResponse;
@@ -71,7 +72,18 @@ class WishlistController extends Controller
 
     public function show(Request $request, Wishlist $wishlist): JsonResponse
     {
-        $this->authorize('view', $wishlist);
+        $yo = $request->user();
+
+        // Igual que la pantalla de la web: de quién es y si se le puede pedir,
+        // pero nunca su nombre, o probando ids se sabría qué listas tiene.
+        if ($yo->cannot('view', $wishlist)) {
+            return response()->json([
+                'message' => 'Esta lista es privada.',
+                'owner' => UserResource::make($wishlist->user)->resolve($request),
+                'access_status' => $wishlist->accesses()->where('user_id', $yo->id)->value('status'),
+                'can_request' => $yo->can('requestAccess', $wishlist),
+            ], 403);
+        }
 
         $esMia = $wishlist->user_id === $request->user()->id;
 
