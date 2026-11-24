@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Después de un git pull: instala las dependencias si cambió composer.lock y
-# avisa si llegaron migraciones. Nunca hace fallar el pull.
+# Después de un git pull: instala las dependencias si cambió composer.lock o
+# app/package-lock.json, y avisa si llegaron migraciones. Nunca hace fallar el pull.
 
 cd "$(git rev-parse --show-toplevel)" || exit 0
 
@@ -14,6 +14,17 @@ if grep -qx 'laravel/composer.lock' <<<"$cambios"; then
   else
     echo "post-merge: cambió composer.lock y los contenedores están apagados."
     echo "            Al encenderlos: make up && make install"
+  fi
+fi
+
+# El contenedor web corre npm install al arrancar: basta con reiniciarlo.
+if grep -qx 'app/package-lock.json' <<<"$cambios"; then
+  if [ -n "$(docker compose ps --status running -q web 2>/dev/null)" ]; then
+    echo "post-merge: cambió app/package-lock.json, reiniciando la app para instalar..."
+    docker compose restart web \
+      || echo "post-merge: no se pudo reiniciar la app. Repítelo con: docker compose restart web"
+  else
+    echo "post-merge: cambió app/package-lock.json. Se instala solo al levantar: make up"
   fi
 fi
 

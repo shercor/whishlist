@@ -1,0 +1,101 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/listas" text="" aria-label="Volver a mis listas" />
+    </ion-buttons>
+    <ion-title>Nueva lista</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <main class="mx-auto w-full max-w-2xl px-4 py-5 md:px-6 md:py-8">
+    <h1 class="enter-up mt-0 mb-4 text-2xl font-semibold tracking-tight md:mb-6 md:text-3xl">
+      Nueva lista
+    </h1>
+
+    <form
+      class="card enter-up flex flex-col gap-4 p-4 md:p-5"
+      style="--i: 1"
+      (submit)="submit($event)"
+    >
+      <label class="flex flex-col gap-1.5 text-sm font-medium">
+        Nombre
+        <input
+          type="text"
+          class="control w-full"
+          maxlength="150"
+          placeholder="Mi cumpleaños 2026"
+          required
+          [value]="name()"
+          (input)="name.set(valueOf($event))"
+        />
+      </label>
+
+      <label class="flex flex-col gap-1.5 text-sm font-medium">
+        <span>
+          Descripción
+          <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+        </span>
+        <textarea
+          class="control w-full"
+          maxlength="500"
+          [value]="description()"
+          (input)="description.set(valueOf($event))"
+        ></textarea>
+      </label>
+
+      <label class="flex flex-col gap-1.5 text-sm font-medium">
+        <span>
+          Fecha del evento
+          <span class="font-normal text-neutral-500 dark:text-neutral-400">(opcional)</span>
+        </span>
+        <input
+          type="date"
+          class="control w-full md:w-56"
+          [value]="eventDate()"
+          (input)="eventDate.set(valueOf($event))"
+        />
+      </label>
+
+      <fieldset class="m-0 flex flex-col gap-1.5 border-0 p-0">
+        <legend class="mb-1.5 p-0 text-sm font-medium">Quién puede verla</legend>
+        <div class="grid grid-cols-2 gap-2 md:flex">
+          @for (option of visibilities; track option.value) {
+            <label class="control pressable">
+              <input
+                type="radio"
+                name="visibility"
+                [checked]="option.value === visibility()"
+                (change)="visibility.set(option.value)"
+              />
+              <ion-icon [name]="option.icon" aria-hidden="true" />
+              {{ option.title }}
+            </label>
+          }
+        </div>
+        <p class="hint m-0">{{ chosen().description }}</p>
+      </fieldset>
+
+      @if (error(); as message) {
+        <p
+          role="alert"
+          animate.enter="enter-down"
+          class="m-0 text-sm text-red-600 dark:text-red-400"
+        >
+          {{ message }}
+        </p>
+      }
+
+      <div class="flex justify-end gap-2">
+        <ion-button fill="clear" color="medium" routerLink="/listas">Cancelar</ion-button>
+        <ion-button type="submit" class="pressable" [disabled]="!canSave()">
+          @if (saving()) {
+            <ion-spinner name="crescent" aria-label="Creando la lista" />
+          } @else {
+            Crear lista
+          }
+        </ion-button>
+      </div>
+    </form>
+  </main>
+</ion-content>

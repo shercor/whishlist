@@ -53,6 +53,27 @@ services:
     depends_on:
       - app
 
+  # App Angular + Ionic con ng serve; recarga sola al guardar. Usa el mismo
+  # app/node_modules que el host, así el editor y los tests ven las mismas
+  # dependencias.
+  web:
+    image: node:24-slim
+    container_name: "${APP_NAME}_web"
+    restart: unless-stopped
+    # Sin esto, `make down` espera 10 s: sh no le pasa la señal de parada a ng serve.
+    init: true
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /app
+    environment:
+      # npm necesita un HOME escribible aunque el UID no exista en la imagen.
+      HOME: /tmp
+    volumes:
+      - ./app:/app
+    # npm install tarda segundos si no cambió package-lock.json.
+    command: sh -c "npm install --no-audit --no-fund && npm start -- --host 0.0.0.0"
+    ports:
+      - "127.0.0.1:${WEB_PORT:-4202}:4200"
+
   db:
     image: mariadb:11.4
     container_name: "${APP_NAME}_db"

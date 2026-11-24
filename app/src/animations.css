@@ -1,0 +1,124 @@
+/*
+ * Animaciones de la app. Solo animan transform y opacity: la tarjeta gráfica las mueve sin
+ * recalcular la página, y así van fluidas también en el WebView del teléfono.
+ */
+:root {
+  /* Sale rápido y frena suave, como los elementos nativos. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  /* Se pasa un poco y vuelve: para elementos que "saltan" al aparecer. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Separación entre elementos de una lista que entran uno tras otro. */
+  --stagger: 35ms;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+    transform: translateX(-0.75rem);
+  }
+}
+
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes float {
+  50% {
+    transform: translateY(-0.25rem);
+  }
+}
+
+/*
+ * Entrada de un elemento. Con --i (su posición en la lista) entran escalonados:
+ * [style.--i]="$index". La posición se limita en la vista para que una lista larga no tarde.
+ */
+.enter-up {
+  animation: fade-up 0.45s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* Avisos que aparecen arriba de la lista: bajan desde su borde. */
+.enter-down {
+  animation: fade-down 0.35s var(--ease-out) both;
+}
+
+.enter-pop {
+  animation: pop 0.5s var(--ease-spring) both;
+  animation-delay: calc(var(--i, 0) * var(--stagger));
+}
+
+/* Elemento que se va de una lista (animate.leave): se desliza y desaparece antes de quitarse. */
+.leave-fade {
+  animation: fade-out 0.25s var(--ease-out) both;
+}
+
+/*
+ * Barra de progreso: crece desde la izquierda al aparecer y luego sigue suave cada cambio de valor
+ * (transform: scaleX(...) en línea). "backwards" para que, terminada, no tape la transición.
+ */
+.grow-bar {
+  transform-origin: left;
+  transition: transform 0.7s var(--ease-out);
+  animation: grow-x 0.8s var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * var(--stagger) + 0.15s);
+}
+
+/* Ícono de un estado vacío: aparece y luego flota suave para que la vista no se sienta muerta. */
+.icon-float {
+  animation:
+    pop 0.5s var(--ease-spring) 0.1s both,
+    float 3s ease-in-out 0.6s infinite;
+}
+
+/* Botones y chips: se hunden un poco al tocarlos. */
+:where(.pressable) {
+  transition: transform 0.15s var(--ease-out);
+}
+
+.pressable:active {
+  transform: scale(0.96);
+}
+
+/* Listas que se reordenan al filtrar u ordenar (View Transitions). */
+::view-transition-group(*) {
+  animation-duration: 0.4s;
+  animation-timing-function: var(--ease-out);
+}
+
+/* Quien pidió menos movimiento en el sistema no ve animaciones. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

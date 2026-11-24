@@ -21,7 +21,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 
 .PHONY: help setup env build up down restart rebuild destroy \
         hooks install key storage migrate fresh seed admin optimize test test-db \
-        sh sh-root logs logs-app ps db xdebug-on xdebug-off \
+        sh sh-root logs logs-app logs-web test-web ps db xdebug-on xdebug-off \
         queue-status queue-logs queue-restart queue-failed queue-retry \
         artisan composer npm api-docs api-docs-check
 
@@ -49,6 +49,7 @@ setup: ## Instalación completa desde cero (el único comando que necesitas)
 	@set -a; . ./.env; set +a; \
 	 echo ""; \
 	 echo "  ✔ Listo -> http://localhost:$$HTTP_PORT"; \
+	 echo "    App:    http://localhost:$${WEB_PORT:-4202}  (Angular, se va completando)"; \
 	 echo "    Admin:  $$(grep -E '^ADMIN_EMAIL=' laravel/.env | cut -d= -f2-)" \
 	      "/ $$(grep -E '^ADMIN_PASSWORD=' laravel/.env | cut -d= -f2-)"; \
 	 echo "    BD:     localhost:$$DB_PORT  usuario=$$DB_USERNAME  base=$$DB_DATABASE"; \
@@ -119,6 +120,9 @@ logs: ## Logs de todos los contenedores (Ctrl-C para salir)
 
 logs-app: ## Logs de Laravel en vivo
 	@$(EXE) php artisan pail --timeout=0
+
+logs-web: ## Salida de ng serve: errores de compilación de la app (Ctrl-C para salir)
+	@$(DC) logs -f web
 
 ## --------------------------------------------------------------------------
 ## Cola de trabajos
@@ -197,6 +201,9 @@ test: ## Corre la suite de tests (contra MariaDB, no SQLite)
 	@$(MAKE) --no-print-directory test-db
 	@$(RUN) php artisan config:clear
 	@$(RUN) php artisan test
+
+test-web: ## Corre los tests de la app Angular (Vitest) dentro del contenedor web
+	@$(DC) exec -T web npx ng test --watch=false
 
 optimize: ## Limpia todas las cachés de Laravel
 	@$(RUN) php artisan optimize:clear

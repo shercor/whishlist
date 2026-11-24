@@ -44,8 +44,8 @@ info:
 
     ## Lo que esta API todavía NO puede hacer
 
-    Importa si se piensa construir un cliente completo (por ejemplo un frontend
-    Angular) contra ella, porque son huecos que hoy **solo** cubre la web:
+    Importa para la app Angular de `app/`, que se está construyendo contra
+    ella, porque son huecos que hoy **solo** cubre la web:
 
     1. **No se puede registrar a nadie.** `POST /register` existe únicamente en
        la web. No hay endpoint de alta de usuarios.

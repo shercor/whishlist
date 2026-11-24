@@ -1,0 +1,255 @@
+/*
+ * Sin el reset de Tailwind (preflight): pisaría los estilos de Ionic.
+ * Utilidades sin layer: el CSS de Ionic no usa layers y le ganaría a cualquier clase dentro de uno.
+ */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css';
+
+/* Fondo gris en todas las vistas, para que resalten las tarjetas blancas. */
+ion-content {
+  --background: var(--color-neutral-100);
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-content {
+    --background: var(--color-neutral-950);
+  }
+}
+
+/*
+ * Controles de formulario (buscador, selects). Todos con el mismo alto, radio y fuente,
+ * para que una fila de controles quede pareja. Clase de componente: no usar utilidades
+ * de alto o padding encima.
+ */
+:root {
+  /* 40 px: cómodo para tocar en el teléfono. */
+  --control-height: 2.5rem;
+  --control-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23737373'%3E%3Cpath fill-rule='evenodd' d='M5.2 7.7a.75.75 0 0 1 1.06.04L10 11.7l3.74-3.96a.75.75 0 1 1 1.1 1.02l-4.3 4.5a.75.75 0 0 1-1.08 0l-4.3-4.5a.75.75 0 0 1 .04-1.06Z'/%3E%3C/svg%3E");
+  --control-search-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23737373'%3E%3Cpath fill-rule='evenodd' d='M9 3.5a5.5 5.5 0 1 0 3.4 9.83l3.13 3.14a.75.75 0 1 0 1.06-1.06l-3.13-3.14A5.5 5.5 0 0 0 9 3.5ZM5 9a4 4 0 1 1 8 0 4 4 0 0 1-8 0Z'/%3E%3C/svg%3E");
+}
+
+.control {
+  box-sizing: border-box;
+  height: var(--control-height);
+  min-width: 0;
+  margin: 0;
+  padding: 0 0.75rem;
+  border: 1px solid var(--color-neutral-300);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-white);
+  background-repeat: no-repeat;
+  background-size: 1.125rem;
+  color: inherit;
+  font: inherit;
+  /* 16 px en el teléfono: con menos, iOS hace zoom al tocar el campo. */
+  font-size: 1rem;
+  line-height: 1.25;
+  /* Al marcar una casilla o enfocar un campo, el color cambia suave en vez de saltar. */
+  transition:
+    border-color 0.2s,
+    background-color 0.2s,
+    box-shadow 0.2s,
+    transform 0.15s var(--ease-out);
+}
+
+@media (min-width: 48rem) {
+  .control {
+    font-size: var(--text-sm);
+  }
+}
+
+.control:focus-visible {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 1px;
+}
+
+select.control {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: var(--control-icon);
+  background-position: right 0.625rem center;
+  text-overflow: ellipsis;
+}
+
+input.control[type='search'] {
+  padding-left: 2.25rem;
+  background-image: var(--control-search-icon);
+  background-position: left 0.625rem center;
+}
+
+/* Texto de varias líneas (la descripción de una lista): mismo borde, radio y fuente, pero crece en alto. */
+textarea.control {
+  height: auto;
+  min-height: 6rem;
+  padding: 0.5rem 0.75rem;
+  resize: vertical;
+}
+
+/* Casilla con su texto (filtros de varias opciones): mismo alto, radio y fuente; marcada, se tiñe. */
+label.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+label.control input[type='checkbox'],
+label.control input[type='radio'] {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--ion-color-primary);
+  cursor: inherit;
+}
+
+label.control:has(:focus-visible) {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 1px;
+}
+
+label.control:has(:checked) {
+  border-color: var(--ion-color-primary);
+  background-color: color-mix(in srgb, var(--ion-color-primary) 8%, var(--color-white));
+}
+
+@media (prefers-color-scheme: dark) {
+  .control {
+    border-color: rgb(255 255 255 / 0.15);
+    background-color: var(--color-neutral-900);
+  }
+
+  label.control:has(:checked) {
+    border-color: var(--ion-color-primary);
+    background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
+  }
+}
+
+/* Acción dentro de un texto o un aviso ("Limpiar filtros", "Ver cuáles"): toma el color de lo que la rodea. */
+.link-button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* Botón con aspecto de control (opciones para elegir, como las categorías del modal): mismo alto,
+   radio y fuente que .control. Elegido, se tiñe igual que una casilla marcada. */
+button.control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+button.control:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+button.control[aria-pressed='true'] {
+  border-color: var(--ion-color-primary);
+  background-color: color-mix(in srgb, var(--ion-color-primary) 8%, var(--color-white));
+}
+
+/* "Nueva categoría": la misma forma, con borde punteado para que se lea como acción y no como opción. */
+button.control.control-dashed {
+  border-style: dashed;
+  background-color: transparent;
+  color: var(--ion-color-primary);
+}
+
+@media (prefers-color-scheme: dark) {
+  button.control[aria-pressed='true'] {
+    background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
+  }
+}
+
+/* Muestra de color de una categoría: círculo para tocar, con un aro cuando está elegida. */
+.color-swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Llena su columna de la grilla, hasta el alto de los controles: los 9 colores caben en una fila
+     también en el teléfono. */
+  width: 100%;
+  max-width: var(--control-height);
+  aspect-ratio: 1;
+  border-radius: 9999px;
+  color: var(--color-white);
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.color-swatch:active {
+  transform: scale(0.9);
+}
+
+.color-swatch:has(:checked),
+.color-swatch:has(:focus-visible) {
+  box-shadow:
+    0 0 0 2px var(--ion-background-color, var(--color-white)),
+    0 0 0 4px var(--ion-color-primary);
+}
+
+/* Modal que mide lo que su contenido (categorizar un movimiento): hoja en el teléfono, tarjeta en escritorio.
+   Patrón "auto height" de Ionic: el contenido no usa ion-content y hace scroll por su cuenta. */
+ion-modal.auto-height {
+  --height: auto;
+  --border-radius: 1rem;
+}
+
+ion-modal.auto-height .ion-page {
+  position: relative;
+  display: block;
+  contain: content;
+}
+
+ion-modal.auto-height .modal-body {
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+@media (min-width: 48rem) {
+  ion-modal.auto-height {
+    --width: 28rem;
+  }
+}
+
+/* Aviso sobre una lista (correos sin leer, movimientos sin categoría, un filtro puesto): texto a la
+   izquierda y su acción a la derecha. Ámbar si algo requiere atención; azul si solo informa. */
+.notice {
+  @apply mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl px-4 py-3 text-sm;
+}
+
+.notice-warning {
+  @apply bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-200;
+}
+
+.notice-info {
+  @apply bg-blue-50 text-blue-800 dark:bg-blue-500/10 dark:text-blue-200;
+}
+
+/* Tarjeta blanca sobre el fondo gris: agrupa una lista o un formulario. */
+.card {
+  @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10;
+}
+
+/* Título pequeño de una sección dentro de una tarjeta o un modal. */
+.section-title {
+  @apply mt-0 mb-3 text-xs font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400;
+}
+
+/* Esqueleto de carga redondo (la inicial de una fila). */
+ion-skeleton-text.skeleton-round {
+  --border-radius: 9999px;
+}

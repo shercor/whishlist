@@ -69,7 +69,9 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 225 passed
+make test                                                     # 235 passed
+curl -o /dev/null -w '%{http_code}\n' http://localhost:4202   # 200: la app Angular
+make test-web                                                 # 14 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -133,7 +135,10 @@ Commits en `main`:
 | `e2bb8c3` | Rework de la interfaz: foco de teclado, tarjetas de opción arregladas, avisos coherentes y páginas de error propias |
 | `b97bb38` | Cierra la fuga de datos entre tests que hacía fallar el buscador de personas al azar |
 | `37b033d` | La foto de perfil se cambia por la API: `PUT`/`DELETE me/avatar` |
-| (el último) | La API queda documentada en OpenAPI 3.1, con comprobador de desfase |
+| `3c1eb3a` | La API queda documentada en OpenAPI 3.1, con comprobador de desfase |
+| `b95eceb` | El remoto pasa de HTTPS a SSH                                |
+| `09258fe` | Compose sin repetir los servicios php, `make db` con mariadb y hook `post-merge` |
+| (el último) | Base de la app Angular + Ionic: entrar, «Mis listas» y «Nueva lista» |
 
 **Hecho y verificado corriendo:** el entorno completo, el esquema de base de
 datos, los seeders de catálogo y de demo, y los invariantes del dominio
@@ -165,6 +170,31 @@ Lo que trae la capa de aplicación:
 | `Wishlist::unlockByLink()`     | el enlace secreto se anota en la sesión, para no arrastrar el token por cada URL |
 | `GiftState`                    | los cuatro estados con que un tercero ve un regalo |
 | `ProductPolicy`                | solo se vota el catálogo público                   |
+
+### La app Angular (en curso)
+
+El 2026-11-24 se decidió reemplazar las vistas Blade por una app **Angular 22 +
+Ionic 9 + Tailwind 4** en `app/`, para tener también la app de teléfono
+(Capacitor). Es la misma base que `../tracker-gastos/app`, copiada y adaptada.
+
+- **Habla solo con la API v1**, con el token de Sanctum guardado en el
+  navegador (`whishlist.token` en localStorage), igual que tracker-gastos.
+- **Pantalla por pantalla:** la web Blade sigue funcionando entera mientras
+  tanto. Las vistas, rutas web y controladores web se borran recién cuando la
+  app tenga todas las pantallas.
+- **Diseño de tracker-gastos**, no el aspecto actual de whishlist: fondo gris,
+  tarjetas blancas, controles de 40 px, modo oscuro según el sistema. Las reglas
+  están en `../tracker-gastos/.claude/skills/diseno-app/SKILL.md`, y los
+  estilos en `app/src/tailwind.css` y `app/src/animations.css`.
+
+**Ya migradas:** entrar con correo y contraseña (`/login`), «Mis listas»
+(`/listas`) y «Nueva lista» (`/listas/nueva`). Probadas en el navegador contra
+la API real, en escritorio y en teléfono, en claro y en oscuro.
+`make test-web` → **14 passed**.
+
+**La app corre en <http://localhost:4202>** (contenedor `web`). La API se le
+indica en `app/src/environments/environment.development.ts`: si cambias
+`HTTP_PORT`, cámbiala también ahí.
 
 ### El catálogo se cura solo
 
@@ -539,6 +569,13 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
+0. **Seguir pasando pantallas a la app Angular.** Faltan el detalle de una
+   lista y sus regalos, editar una lista, agregar un regalo, «Descubrir», el
+   regalo visto por quien regala, personas y perfiles, «Mis reservas»,
+   notificaciones, seguidores, accesos, mi perfil y las páginas de error. Dos
+   necesitan API antes de poder migrarse: **registrarse** (no hay endpoint) y el
+   **enlace secreto** `/s/{token}` (depende de la sesión web). Ver la sección 6.
+
 1. **Los tests que faltaban: hechos.** Los cinco que estaban en esta lista ya
    están escritos y verificados por mutación —`AvatarStorageTest`,
    `ReservationFlowTest`, `ProductLikeTest` y `UserSuggestTest`—. Lo que sigue
@@ -702,6 +739,11 @@ Lo que **bloquea**, y son tres cosas concretas:
    CORS detrás. **Es la decisión más seria de esa migración, y va antes de
    escribir la primera línea de Angular, no después.**
 
+**Decidido el 2026-11-24 y en marcha** (ver «La app Angular» en la sección 2):
+el punto 3 se resolvió con el token, como tracker-gastos, aceptando el riesgo de
+que un script inyectado en la página lo lea; al empaquetar con Capacitor conviene
+moverlo al almacenamiento seguro del teléfono. Los puntos 1 y 2 siguen abiertos.
+
 Los tres están anotados también dentro de `docs/openapi.yaml`, para que quien
 lea el contrato los vea sin tener que abrir este archivo.
 
@@ -740,7 +782,10 @@ usuario admin es uno normal creado por seeder—.
 | `make fresh`      | borrar tablas, migrar y sembrar de nuevo              |
 | `make storage`    | enlaza `public/storage` (las fotos que suben)         |
 | `make test`       | tests contra MariaDB                                  |
-| `make db`         | cliente mysql contra la base                          |
+| `make test-web`   | tests de la app Angular (Vitest)                      |
+| `make logs-web`   | errores de compilación de la app Angular              |
+| `make hooks`      | activar los hooks de git en un clon anterior          |
+| `make db`         | cliente mariadb contra la base                        |
 | `make queue-logs` | qué está procesando el worker, en vivo                |
 | `make queue-restart` | reiniciar el worker (obligatorio tras cambiar un job) |
 | `make queue-failed` | los jobs que fallaron sus tres intentos             |

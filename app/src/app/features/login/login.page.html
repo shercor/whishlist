@@ -1,0 +1,61 @@
+<ion-content class="ion-padding">
+  <main class="login">
+    <div
+      aria-hidden="true"
+      class="icon-float mb-2 flex size-16 items-center justify-center rounded-2xl bg-blue-50 text-3xl text-blue-700 shadow-sm dark:bg-blue-500/15 dark:text-blue-300"
+    >
+      <ion-icon name="gift-outline" />
+    </div>
+    <h1 class="enter-up" style="--i: 2">whishlist</h1>
+    <p class="enter-up" style="--i: 3">Tus listas de deseos, sin arruinar la sorpresa.</p>
+
+    <form
+      class="card enter-up flex w-full flex-col gap-4 p-4 text-left md:p-5"
+      style="--i: 5"
+      (submit)="submit($event)"
+    >
+      <label class="flex flex-col gap-1.5 text-sm font-medium">
+        Correo
+        <input
+          type="email"
+          class="control w-full"
+          autocomplete="email"
+          enterkeyhint="next"
+          required
+          [value]="email()"
+          (input)="email.set(valueOf($event))"
+        />
+      </label>
+      <label class="flex flex-col gap-1.5 text-sm font-medium">
+        Contraseña
+        <input
+          type="password"
+          class="control w-full"
+          autocomplete="current-password"
+          enterkeyhint="go"
+          required
+          [value]="password()"
+          (input)="password.set(valueOf($event))"
+        />
+      </label>
+
+      @if (error(); as message) {
+        <p
+          role="alert"
+          animate.enter="enter-down"
+          class="m-0 text-sm text-red-600 dark:text-red-400"
+        >
+          {{ message }}
+        </p>
+      }
+
+      <ion-button type="submit" expand="block" class="pressable m-0" [disabled]="!canSubmit()">
+        @if (signingIn()) {
+          <ion-spinner name="crescent" aria-label="Entrando" />
+        } @else {
+          Entrar
+        }
+      </ion-button>
+    </form>
+  </main>
+</ion-content>

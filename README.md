@@ -1,6 +1,8 @@
 # whishlist
 
-API / aplicación Laravel 13 dockerizada desde el primer commit.
+API / aplicación Laravel 13 dockerizada desde el primer commit, con una app
+Angular + Ionic en `app/` que va reemplazando las vistas Blade pantalla por
+pantalla.
 
 > ¿Retomando el proyecto en otra máquina o después de un tiempo?
 > Parte por **[HANDOFF.md](HANDOFF.md)**: estado actual, decisiones de diseño
@@ -15,14 +17,17 @@ API / aplicación Laravel 13 dockerizada desde el primer commit.
 │   ├── nginx/           default.conf
 │   └── mysql/           my.cnf
 ├── laravel/             el proyecto Laravel (los fuentes)
+├── app/                 la app Angular 22 + Ionic 9 + Tailwind 4 (habla solo con la API)
+├── .githooks/           post-merge: dependencias al día tras cada git pull
 ├── docker-compose.yml
 ├── Makefile             atajos: make help
 ├── .env.example         config de DOCKER (puertos, credenciales)
 └── laravel/.env.example config de LARAVEL
 ```
 
-Seis contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
-**db** (MariaDB 11.4), **redis**, **scheduler** y **queue**.
+Siete contenedores: **app** (PHP 8.4-FPM), **webserver** (nginx),
+**db** (MariaDB 11.4), **redis**, **scheduler**, **queue** y **web** (`ng serve`
+de la app Angular, en <http://localhost:4202>; recarga sola al guardar).
 
 El `scheduler` corre `php artisan schedule:work`. Sin él, todo lo que se
 programe en `routes/console.php` queda escrito pero **no se ejecuta nunca**
@@ -237,8 +242,11 @@ Todas viven en `.env` / `laravel/.env` y conviene cambiarlas.
 | `make fresh`     | borrar todo, migrar y sembrar de nuevo                |
 | `make storage`   | enlazar `public/storage` (fotos de perfil y productos)|
 | `make admin`     | recrear / resetear el usuario administrador           |
-| `make db`        | cliente mysql contra la base                          |
-| `make test`      | correr los tests                                      |
+| `make db`        | cliente mariadb contra la base                        |
+| `make test`      | correr los tests de Laravel                           |
+| `make test-web`  | correr los tests de la app Angular (Vitest)           |
+| `make logs-web`  | salida de `ng serve`: errores de compilación de la app|
+| `make hooks`     | activar los hooks de git en un clon anterior          |
 | `make optimize`  | limpiar todas las cachés de Laravel                   |
 | `make destroy`   | borrar contenedores **y la base de datos** (pregunta) |
 
@@ -251,6 +259,7 @@ quede: `make artisan "make:model Wish -m"`. O usa `make sh` y trabaja dentro.
 |-------------|--------|--------------------------------------|
 | `webserver` | 8080   | toda la red (para probar desde el celular) |
 | `app` vite  | 5174   | toda la red                          |
+| `web`       | 4202   | **solo esta máquina**                |
 | `db`        | 3309   | **solo esta máquina**                |
 | `redis`     | 6380   | **solo esta máquina**                |
 
