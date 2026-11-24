@@ -578,3 +578,23 @@ ion-header ion-toolbar {
 :root {
   --gift-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='6 10 88 86'%3E%3Crect x='8' y='34' width='38' height='14' rx='1.5'/%3E%3Crect x='54' y='34' width='38' height='14' rx='1.5'/%3E%3Crect x='13' y='51' width='33' height='42' rx='1.5'/%3E%3Crect x='54' y='51' width='33' height='42' rx='1.5'/%3E%3Cpath d='M50 31C42 14 23 13 25 25c1.5 8 15 8 25 6Z M50 31C58 14 77 13 75 25c-1.5 8-15 8-25 6Z' fill='none' stroke='black' stroke-width='5' stroke-linejoin='round'/%3E%3Ccircle cx='50' cy='31' r='4'/%3E%3C/svg%3E");
 }
+
+/* Pie del menú (Modo claro / oscuro): separado de las secciones por una línea tenue, sin la sombra
+   de Ionic, y del mismo tono en que termina el fondo del menú. */
+ion-menu.app-menu ion-footer.footer-md,
+ion-menu.app-menu ion-footer.footer-ios {
+  box-shadow: none;
+}
+
+ion-menu.app-menu ion-footer {
+  padding-block: 0.5rem;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
+  background: var(--color-white);
+}
+
+:where(.ion-palette-dark) ion-menu.app-menu ion-footer {
+  border-top-color: rgb(255 255 255 / 0.06);
+  background: color-mix(in srgb, var(--color-neutral-950) 92%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}

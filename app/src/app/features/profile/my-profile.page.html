@@ -150,6 +150,20 @@
           </ion-button>
         </div>
       </form>
+
+      <div
+        class="card enter-up mt-4 flex flex-wrap items-center justify-between gap-4 p-4 md:p-5"
+        style="--i: 2"
+      >
+        <div class="min-w-0">
+          <p class="m-0 text-sm font-medium">Sesión</p>
+          <p class="hint m-0">Sales de whishlist en este dispositivo.</p>
+        </div>
+        <ion-button fill="outline" class="pressable m-0 shrink-0" (click)="logout()">
+          <ion-icon slot="start" name="log-out-outline" aria-hidden="true" />
+          Cerrar sesión
+        </ion-button>
+      </div>
     }
   </main>
 </ion-content>

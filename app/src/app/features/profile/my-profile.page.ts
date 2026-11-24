@@ -1,5 +1,5 @@
 import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   IonButton,
   IonButtons,
@@ -13,7 +13,7 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { imageOutline } from 'ionicons/icons';
+import { imageOutline, logOutOutline } from 'ionicons/icons';
 import { MeService } from '../../core/api/me.service';
 import { User } from '../../core/api/models';
 import { AuthService } from '../../core/auth/auth.service';
@@ -43,6 +43,7 @@ export class MyProfilePage implements ViewWillEnter {
   private readonly api = inject(MeService);
   protected readonly auth = inject(AuthService);
   private readonly notify = inject(Notify);
+  private readonly router = inject(Router);
 
   /** El formulario parte de lo guardado y se reinicia si el perfil cambia por fuera. */
   protected readonly name = linkedSignal(() => this.auth.user()?.name ?? '');
@@ -58,11 +59,21 @@ export class MyProfilePage implements ViewWillEnter {
   );
 
   constructor() {
-    addIcons({ imageOutline });
+    addIcons({ imageOutline, logOutOutline });
   }
 
   ionViewWillEnter(): void {
     void this.auth.refresh();
+  }
+
+  /** Vive aquí y no en el menú: ahí estaba a un toque de cualquier sección y se apretaba sin querer. */
+  protected async logout(): Promise<void> {
+    try {
+      await this.auth.logout();
+    } catch {
+      // La sesión local ya se borró: el token que quedó en la API vence solo.
+    }
+    await this.router.navigateByUrl('/login', { replaceUrl: true });
   }
 
   protected async save(event: Event): Promise<void> {

@@ -5,6 +5,7 @@ import { filter } from 'rxjs';
 import {
   IonApp,
   IonContent,
+  IonFooter,
   IonIcon,
   IonItem,
   IonLabel,
@@ -19,7 +20,6 @@ import {
   bagHandleOutline,
   compassOutline,
   giftOutline,
-  logOutOutline,
   mailUnreadOutline,
   moonOutline,
   notificationsOutline,
@@ -47,6 +47,7 @@ import { SECTIONS } from './shared/navigation';
     Avatar,
     IonApp,
     IonContent,
+    IonFooter,
     IonIcon,
     IonItem,
     IonLabel,
@@ -107,6 +108,12 @@ import { SECTIONS } from './shared/navigation';
                   </ion-item>
                 </ion-menu-toggle>
               }
+            </ion-list>
+          </ion-content>
+          <!-- Al pie, separado de las secciones: es un ajuste, no un lugar al que ir. Cerrar sesión
+               vive en Mi perfil, lejos de donde se toca a cada rato. -->
+          <ion-footer class="app-menu-footer">
+            <ion-list lines="none">
               <!-- Sin ion-menu-toggle: en el teléfono el menú queda abierto y se ve el cambio. -->
               <ion-item button [detail]="false" (click)="theme.toggle()">
                 <ion-icon
@@ -116,14 +123,8 @@ import { SECTIONS } from './shared/navigation';
                 />
                 <ion-label>{{ theme.isDark() ? 'Modo claro' : 'Modo oscuro' }}</ion-label>
               </ion-item>
-              <ion-menu-toggle [autoHide]="false">
-                <ion-item button [detail]="false" (click)="logout()">
-                  <ion-icon slot="start" name="log-out-outline" aria-hidden="true" />
-                  <ion-label>Cerrar sesión</ion-label>
-                </ion-item>
-              </ion-menu-toggle>
             </ion-list>
-          </ion-content>
+          </ion-footer>
         </ion-menu>
         <ion-router-outlet id="main" [animation]="transitions.builder()" />
       </ion-split-pane>
@@ -152,7 +153,6 @@ export class App {
       bagHandleOutline,
       compassOutline,
       giftOutline,
-      logOutOutline,
       mailUnreadOutline,
       moonOutline,
       notificationsOutline,
@@ -168,14 +168,5 @@ export class App {
         takeUntilDestroyed(),
       )
       .subscribe(() => void this.auth.refresh());
-  }
-
-  protected async logout(): Promise<void> {
-    try {
-      await this.auth.logout();
-    } catch {
-      // La sesión local ya se borró: el token que quedó en la API vence solo.
-    }
-    await this.router.navigateByUrl('/login', { replaceUrl: true });
   }
 }
