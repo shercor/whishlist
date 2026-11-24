@@ -105,6 +105,9 @@ make setup
 ```
 
 `make setup` deja todo andando y te imprime la URL y las credenciales.
+También activa los hooks de git: después de cada `git pull` se corre
+`composer install` si cambió `composer.lock`, y se avisa si hay migraciones
+nuevas (`make migrate`). En un clon anterior, actívalos con `make hooks`.
 Si los puertos por defecto (8080, 3309, 6380, 5174) chocan con otro proyecto,
 haz `cp .env.example .env`, edítalos, y recién entonces `make setup`.
 

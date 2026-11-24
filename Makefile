@@ -20,7 +20,7 @@ ARGS = $(filter-out $@,$(MAKECMDGOALS))
 	@:
 
 .PHONY: help setup env build up down restart rebuild destroy \
-        install key migrate fresh seed admin optimize test test-db \
+        hooks install key storage migrate fresh seed admin optimize test test-db \
         sh sh-root logs logs-app ps db xdebug-on xdebug-off \
         queue-status queue-logs queue-restart queue-failed queue-retry \
         artisan composer npm api-docs api-docs-check
@@ -38,6 +38,7 @@ help: ## Muestra esta ayuda
 	@echo ""
 
 setup: ## Instalación completa desde cero (el único comando que necesitas)
+	@$(MAKE) --no-print-directory hooks
 	@$(MAKE) --no-print-directory env
 	@$(MAKE) --no-print-directory up
 	@$(MAKE) --no-print-directory install
@@ -70,6 +71,10 @@ env: ## Crea los .env (raíz y laravel) y sincroniza las credenciales entre ambo
 	   fi; \
 	 done; \
 	 echo "  → credenciales sincronizadas: .env → laravel/.env"
+
+hooks: ## Activa los hooks de git del repo (composer install tras cada git pull)
+	@git config core.hooksPath .githooks
+	@echo "  → hooks de git activos (.githooks)"
 
 install: ## composer install dentro del contenedor php
 	@$(RUN) composer install
@@ -156,9 +161,9 @@ seed: ## Corre los seeders (incluye el usuario administrador)
 admin: ## Crea o restablece solo el usuario administrador
 	@$(RUN) php artisan db:seed --class=AdminUserSeeder --force
 
-db: ## Abre un cliente mysql contra la base de datos
+db: ## Abre un cliente mariadb contra la base de datos
 	@set -a; . ./.env; set +a; \
-	 $(EXE) mysql -h db -u "$$DB_USERNAME" -p"$$DB_PASSWORD" "$$DB_DATABASE"
+	 $(EXE) mariadb -h db -u "$$DB_USERNAME" -p"$$DB_PASSWORD" "$$DB_DATABASE"
 
 ## --------------------------------------------------------------------------
 ## Día a día

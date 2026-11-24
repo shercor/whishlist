@@ -52,10 +52,15 @@ keys de la cuenta `shercor`). `ssh -T git@github.com` debe responder
 make setup
 ```
 
-Eso solo. Hace, en este orden: `.env` de docker → levanta contenedores →
+Eso solo. Hace, en este orden: activa los hooks de git → `.env` de docker → levanta contenedores →
 `composer install` dentro del contenedor php → `.env` de Laravel →
 `key:generate` → `storage:link` → `migrate` → `seed`. Al terminar imprime la
 URL y las credenciales.
+
+Los hooks de git (`.githooks/post-merge`) hacen que cada `git pull` corra
+`composer install` si cambió `composer.lock`, y avisen si llegaron migraciones
+(no las aplican solos: eso es `make migrate`). Si clonaste antes de que
+existieran, actívalos una vez con `make hooks`.
 
 Si los puertos por defecto chocan con otro proyecto, primero
 `cp .env.example .env`, ajústalos, y recién ahí `make setup`.
