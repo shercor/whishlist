@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
-  <!-- Patrón de regalos esparcidos para el fondo (tailwind.css, .gift-backdrop). Se repite sin
+  <!-- Patrón de regalos esparcidos para el fondo (tailwind.css, .gift-background). Se repite sin
        costuras: cada regalo que toca un borde aparece también en el borde opuesto. -->
   <defs>
     <g id="r" fill="#f59e0b">

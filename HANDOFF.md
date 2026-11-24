@@ -226,7 +226,7 @@ mantiene `ThemeService`. Por eso los estilos oscuros van con `dark:` o con
 `:where(.ion-palette-dark)`, **nunca** con `@media (prefers-color-scheme: dark)`,
 que no se entera de lo que eligió la persona. En modo oscuro, «Mis listas»,
 «Descubrir», «Entrar» y «Crear cuenta» llevan de fondo un patrón de regalos
-naranjas (`app/src/patron-regalos.svg`, clase `.gift-backdrop`).
+naranjas (`app/src/patron-regalos.svg`, clase `.gift-background` en `ion-content`, que cubre toda la pantalla).
 
 **Menú de administrador** (botón abajo a la derecha, `features/admin/admin-menu.ts`):
 solo aparece mientras se desarrolla (`isDevMode()`), no en el build de
