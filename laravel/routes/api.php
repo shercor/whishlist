@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\AccessRequestController;
 use App\Http\Controllers\Api\V1\AvatarController;
+use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -80,6 +81,7 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::delete('reservations/{reservation}', [ReservationController::class, 'destroy'])->name('reservations.destroy');
 
         // --- Catálogo ---------------------------------------------------------
+        Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
         Route::get('products', [ProductController::class, 'index'])->name('products.index');
         Route::get('products/{product}', [ProductController::class, 'show'])->name('products.show');
         // PUT porque votar es idempotente: apretarlo dos veces deja un voto.

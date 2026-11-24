@@ -351,6 +351,11 @@ components:
         is_public:
           type: boolean
           description: Si la ficha está compartida con el catálogo de todos.
+        is_mine:
+          type: boolean
+          description: |
+            Si la escribiste tú. Solo su autor puede retirarla del catálogo
+            (`DELETE /products/{id}/publication`).
         category:
           $ref: '#/components/schemas/Category'
           description: Presente solo cuando el endpoint carga la relación.
@@ -360,7 +365,7 @@ components:
         liked_by_me:
           type: boolean
           description: Si tú ya lo votaste. Presente solo donde se calcula.
-      required: [id, name, is_public]
+      required: [id, name, is_public, is_mine]
 
     NewItem:
       type: object
@@ -1252,6 +1257,26 @@ paths:
   # ===========================================================================
   # Catálogo
   # ===========================================================================
+  /categories:
+    get:
+      tags: [Catálogo]
+      summary: Listar las categorías
+      description: |
+        Las categorías activas, por nombre. Hacen falta para escribir un regalo
+        a mano: `POST /wishlists/{id}/items` sin `product_id` exige `category_id`.
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Category' }
+          description: Todas las categorías activas, sin paginar.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /products:
     get:
       tags: [Catálogo]
@@ -1268,7 +1293,9 @@ paths:
         - name: q
           in: query
           required: false
-          description: Qué buscar. Sin esto, devuelve el catálogo entero paginado.
+          description: |
+            Qué buscar. Sin esto, devuelve el catálogo entero paginado. Las
+            palabras de menos de tres letras se ignoran.
           schema: { type: string }
         - $ref: '#/components/parameters/page'
       responses:

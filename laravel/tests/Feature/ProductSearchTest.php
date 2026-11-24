@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
 /**
@@ -55,6 +56,18 @@ class ProductSearchTest extends TestCase
 
         $this->assertCount(1, $resultados);
         $this->assertSame('Peluche Pikachu 30 cm', $resultados->first()->name);
+    }
+
+    public function test_the_api_search_finds_products_by_the_start_of_a_word(): void
+    {
+        Product::factory()->create(['name' => 'Peluche Pikachu 30 cm']);
+        Product::factory()->create(['name' => 'Cafetera italiana Bialetti']);
+
+        Sanctum::actingAs(User::factory()->create());
+
+        $this->getJson(route('api.v1.products.index', ['q' => 'pelu']))
+            ->assertOk()
+            ->assertJsonPath('data.*.name', ['Peluche Pikachu 30 cm']);
     }
 
     public function test_the_search_also_looks_inside_the_description(): void

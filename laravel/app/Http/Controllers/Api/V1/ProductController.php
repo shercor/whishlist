@@ -31,8 +31,10 @@ class ProductController extends Controller
             ->bestFirst()
             ->withMyLike($request->user());
 
+        // Por el comienzo de cada palabra, igual que el buscador de la web:
+        // «pelu» encuentra «Peluche» mientras la persona escribe.
         if ($termino !== '') {
-            $productos->search($termino);
+            $productos->searchPrefix($termino);
         }
 
         return ProductResource::collection($productos->paginate(20)->withQueryString());

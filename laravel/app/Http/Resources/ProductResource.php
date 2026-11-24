@@ -27,6 +27,9 @@ class ProductResource extends JsonResource
             'reference_price' => $this->reference_price,
             'currency' => $this->currency,
             'is_public' => (bool) $this->is_public,
+            // Lo publicó quien pregunta: solo su autor puede retirarlo del catálogo.
+            'is_mine' => $this->created_by_user_id !== null
+                && $this->created_by_user_id === $request->user()?->id,
             'category' => CategoryResource::make($this->whenLoaded('category')),
             'likes' => $this->when(isset($this->likes_count), fn () => $this->likes_count),
             'liked_by_me' => $this->when(
