@@ -268,13 +268,14 @@ ion-modal.auto-height .modal-body {
 /*
  * Regalos esparcidos de fondo (patron-regalos.svg), solo en modo oscuro, en toda la pantalla:
  * <ion-content class="gift-background">. Es el fondo de ion-content, así que queda quieto mientras
- * el contenido se desplaza. La capa oscura de encima los apaga para que no compitan con el texto.
+ * el contenido se desplaza. La capa oscura de encima los apaga para que no compitan con el texto,
+ * y desde la mitad de la pantalla los va oscureciendo hasta que desaparecen abajo.
  */
 :where(.ion-palette-dark) ion-content.gift-background {
   --background:
     linear-gradient(
-      color-mix(in srgb, var(--color-neutral-950) 84%, transparent),
-      color-mix(in srgb, var(--color-neutral-950) 84%, transparent)
+      color-mix(in srgb, var(--color-neutral-950) 84%, transparent) 55%,
+      var(--color-neutral-950)
     ),
     url('./patron-regalos.svg') 0 0 / 480px repeat, var(--color-neutral-950);
 }
