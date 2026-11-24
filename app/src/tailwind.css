@@ -598,3 +598,78 @@ ion-menu.app-menu ion-footer {
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   backdrop-filter: blur(18px) saturate(140%);
 }
+
+/*
+ * Regalos de una lista en tarjetas (wishlist.page.html). Las columnas dependen del ancho que tiene
+ * la lista, no de la pantalla (el padre lleva @container): con el menú abierto al lado, la misma
+ * pantalla deja menos espacio. Dos columnas en el teléfono; desde ahí, tantas como quepan de
+ * --gift-card-min, sin estirarse si son pocas.
+ */
+.gift-grid {
+  --gift-card-min: 14rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+@container (min-width: 36rem) {
+  .gift-grid {
+    grid-template-columns: repeat(auto-fill, minmax(var(--gift-card-min), 1fr));
+    gap: 1rem;
+  }
+}
+
+.gift-card {
+  transition:
+    transform 0.2s var(--ease-out),
+    box-shadow 0.2s var(--ease-out);
+}
+
+/* Al pasar el mouse sube un poco y el borde se enciende de ámbar. Solo con mouse: en el teléfono
+   el hover se queda pegado después de tocar. */
+@media (hover: hover) {
+  .gift-card:hover {
+    transform: translateY(-2px);
+    --tw-ring-color: color-mix(in srgb, var(--gift-amber) 45%, transparent);
+  }
+}
+
+/* La foto: algo más ancha que alta, sobre blanco como en las tiendas. */
+.gift-card-media {
+  position: relative;
+  flex-shrink: 0;
+  aspect-ratio: 4 / 3;
+  background-color: var(--color-white);
+  border-bottom: 1px solid rgb(0 0 0 / 0.05);
+}
+
+/* La foto encima, sin participar del alto: si no, una imagen alta estira la caja y rompe el 4:3. */
+.gift-card-media > img,
+.gift-card-media > div {
+  position: absolute;
+  inset: 0;
+}
+
+/* Prioridad sobre la foto: sólida, para que se lea encima de cualquier imagen. Alta, en ámbar. */
+.gift-card-priority {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / 0.92);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.08);
+  color: var(--color-neutral-700);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gift-card-priority.gift-card-priority-high {
+  background-color: var(--gift-amber);
+  box-shadow: none;
+  color: var(--ion-color-primary-contrast);
+}

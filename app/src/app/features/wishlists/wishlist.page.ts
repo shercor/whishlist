@@ -27,13 +27,13 @@ import {
   globeOutline,
   lockClosedOutline,
   shareSocialOutline,
-  starOutline,
+  star,
 } from 'ionicons/icons';
 import { LockedWishlist, Wishlist, WishlistItem } from '../../core/api/models';
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { environment } from '../../../environments/environment';
-import { formatEventDate } from '../../shared/format';
+import { formatEventDate, formatPrice } from '../../shared/format';
 import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
 import { priorityOf } from '../../shared/priority';
 import { visibilityOf } from '../../shared/visibility';
@@ -104,8 +104,9 @@ export class WishlistPage implements ViewWillEnter {
   protected readonly sheet =
     typeof matchMedia === 'function' && matchMedia('(max-width: 47.99rem)').matches;
 
-  protected readonly skeletonRows = ['50%', '35%', '60%'];
+  protected readonly skeletonRows = ['70%', '55%', '80%'];
   protected readonly formatEventDate = formatEventDate;
+  protected readonly formatPrice = formatPrice;
   protected readonly priorityOf = priorityOf;
   protected readonly visibilityOf = visibilityOf;
   protected readonly giftStateOf = giftStateOf;
@@ -121,7 +122,7 @@ export class WishlistPage implements ViewWillEnter {
       globeOutline,
       lockClosedOutline,
       shareSocialOutline,
-      starOutline,
+      star,
     });
   }
 
