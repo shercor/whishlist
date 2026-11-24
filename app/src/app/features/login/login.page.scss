@@ -1,4 +1,6 @@
 .login {
+  // Encima de los regalos del fondo (.gift-backdrop).
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;

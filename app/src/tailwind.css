@@ -256,6 +256,36 @@ ion-modal.auto-height .modal-body {
   @apply bg-blue-50 text-blue-800 dark:bg-blue-500/10 dark:text-blue-200;
 }
 
+/*
+ * Regalos esparcidos de fondo (patron-regalos.svg), solo en modo oscuro: le dan vida a la parte de
+ * arriba de algunas pantallas sin competir con el contenido. Apagados y fundidos con el fondo.
+ * Uso: <div class="gift-backdrop" aria-hidden="true"></div> dentro de ion-content, y el contenido
+ * con position: relative para quedar encima.
+ */
+.gift-backdrop {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .gift-backdrop {
+    display: block;
+    position: absolute;
+    inset: 0 0 auto;
+    height: 22rem;
+    background: url('./patron-regalos.svg') repeat;
+    background-size: 480px;
+    opacity: 0.16;
+    mask-image: linear-gradient(to bottom, #000 30%, transparent);
+    pointer-events: none;
+  }
+
+  /* Entrar y crear cuenta: cubre toda la pantalla. */
+  .gift-backdrop.gift-backdrop-full {
+    height: 100%;
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  }
+}
+
 /* Tarjeta blanca sobre el fondo gris: agrupa una lista o un formulario. */
 .card {
   @apply rounded-2xl bg-white shadow-sm ring-1 ring-black/5 dark:bg-neutral-900 dark:ring-white/10;

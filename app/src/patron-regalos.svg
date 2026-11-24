@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="480" viewBox="0 0 480 480">
+  <!-- Patrón de regalos esparcidos para el fondo (tailwind.css, .gift-backdrop). Se repite sin
+       costuras: cada regalo que toca un borde aparece también en el borde opuesto. -->
+  <defs>
+    <g id="r" fill="#f59e0b">
+      <!-- Tapa y caja, partidas por la cinta: el hueco deja ver el fondo. -->
+      <rect x="8" y="34" width="38" height="14" rx="1.5"/>
+      <rect x="54" y="34" width="38" height="14" rx="1.5"/>
+      <rect x="13" y="51" width="33" height="42" rx="1.5"/>
+      <rect x="54" y="51" width="33" height="42" rx="1.5"/>
+      <!-- Moño: dos lazos y el nudo. -->
+      <path d="M50 31C42 14 23 13 25 25c1.5 8 15 8 25 6Z M50 31C58 14 77 13 75 25c-1.5 8-15 8-25 6Z"
+        fill="none" stroke="#f59e0b" stroke-width="5" stroke-linejoin="round"/>
+      <circle cx="50" cy="31" r="4"/>
+    </g>
+  </defs>
+  <use href="#r" transform="translate(268.7 443.6) rotate(-3) scale(0.46) translate(-50 -55)"/>
+  <use href="#r" transform="translate(281.9 88.6) rotate(1) scale(0.47) translate(-50 -55)"/>
+  <use href="#r" transform="translate(380.6 45.2) rotate(-18) scale(0.51) translate(-50 -55)"/>
+  <use href="#r" transform="translate(388.6 332.9) rotate(-41) scale(0.35) translate(-50 -55)"/>
+  <use href="#r" transform="translate(-16.9 313.9) rotate(10) scale(0.61) translate(-50 -55)"/>
+  <use href="#r" transform="translate(463.1 313.9) rotate(10) scale(0.61) translate(-50 -55)"/>
+  <use href="#r" transform="translate(91.3 116.1) rotate(-42) scale(0.34) translate(-50 -55)"/>
+  <use href="#r" transform="translate(211.5 404.4) rotate(2) scale(0.46) translate(-50 -55)"/>
+  <use href="#r" transform="translate(239.9 318.0) rotate(-4) scale(0.51) translate(-50 -55)"/>
+  <use href="#r" transform="translate(-1.1 -2.1) rotate(31) scale(0.40) translate(-50 -55)"/>
+  <use href="#r" transform="translate(-1.1 477.9) rotate(31) scale(0.40) translate(-50 -55)"/>
+  <use href="#r" transform="translate(478.9 -2.1) rotate(31) scale(0.40) translate(-50 -55)"/>
+  <use href="#r" transform="translate(478.9 477.9) rotate(31) scale(0.40) translate(-50 -55)"/>
+  <use href="#r" transform="translate(151.3 110.2) rotate(-19) scale(0.53) translate(-50 -55)"/>
+  <use href="#r" transform="translate(367.8 192.2) rotate(31) scale(0.34) translate(-50 -55)"/>
+  <use href="#r" transform="translate(-20.1 406.7) rotate(-45) scale(0.44) translate(-50 -55)"/>
+  <use href="#r" transform="translate(459.9 406.7) rotate(-45) scale(0.44) translate(-50 -55)"/>
+  <use href="#r" transform="translate(436.9 225.6) rotate(43) scale(0.38) translate(-50 -55)"/>
+  <use href="#r" transform="translate(129.5 41.8) rotate(-15) scale(0.55) translate(-50 -55)"/>
+  <use href="#r" transform="translate(48.5 28.7) rotate(27) scale(0.39) translate(-50 -55)"/>
+  <use href="#r" transform="translate(268.5 214.8) rotate(-28) scale(0.37) translate(-50 -55)"/>
+  <use href="#r" transform="translate(62.9 309.0) rotate(-35) scale(0.54) translate(-50 -55)"/>
+  <use href="#r" transform="translate(101.1 189.3) rotate(32) scale(0.59) translate(-50 -55)"/>
+  <use href="#r" transform="translate(124.0 370.9) rotate(-15) scale(0.38) translate(-50 -55)"/>
+  <use href="#r" transform="translate(74.0 436.0) rotate(29) scale(0.37) translate(-50 -55)"/>
+  <use href="#r" transform="translate(338.2 123.4) rotate(29) scale(0.39) translate(-50 -55)"/>
+  <use href="#r" transform="translate(33.0 109.6) rotate(5) scale(0.54) translate(-50 -55)"/>
+  <use href="#r" transform="translate(213.9 29.0) rotate(-29) scale(0.40) translate(-50 -55)"/>
+  <use href="#r" transform="translate(331.8 280.5) rotate(-32) scale(0.52) translate(-50 -55)"/>
+  <use href="#r" transform="translate(353.8 432.1) rotate(21) scale(0.48) translate(-50 -55)"/>
+  <use href="#r" transform="translate(441.8 122.8) rotate(-44) scale(0.50) translate(-50 -55)"/>
+  <use href="#r" transform="translate(279.9 151.9) rotate(-33) scale(0.44) translate(-50 -55)"/>
+  <use href="#r" transform="translate(216.3 132.1) rotate(-26) scale(0.37) translate(-50 -55)"/>
+  <use href="#r" transform="translate(211.6 264.1) rotate(24) scale(0.34) translate(-50 -55)"/>
+  <use href="#r" transform="translate(408.4 -15.1) rotate(2) scale(0.38) translate(-50 -55)"/>
+  <use href="#r" transform="translate(408.4 464.9) rotate(2) scale(0.38) translate(-50 -55)"/>
+</svg>
