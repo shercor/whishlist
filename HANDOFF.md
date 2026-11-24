@@ -69,9 +69,9 @@ Si los puertos por defecto chocan con otro proyecto, primero
 
 ```bash
 curl -o /dev/null -w '%{http_code}\n' http://localhost:8080   # 302 → /login
-make test                                                     # 239 passed
+make test                                                     # 243 passed
 curl -o /dev/null -w '%{http_code}\n' http://localhost:4202   # 200: la app Angular
-make test-web                                                 # 16 passed
+make test-web                                                 # 20 passed
 ```
 
 Entra a http://localhost:8080: te lleva al login. Puedes crear una cuenta nueva
@@ -145,7 +145,7 @@ datos, los seeders de catálogo y de demo, y los invariantes del dominio
 (reserva única, sorpresa protegida, producto privado invisible, búsqueda
 fulltext), más las cinco reglas que solo sostenía la capa de aplicación. Todo
 eso está automatizado en la suite, no solo probado a mano:
-`make test` → **239 passed**.
+`make test` → **243 passed**.
 
 **La aplicación ya se usa de punta a punta.** Probado por HTTP contra el
 entorno real: registrarse, crear una lista, agregar un regalo escrito a mano,
@@ -193,9 +193,20 @@ con su enlace para compartir y sus regalos (`/listas/:id`; tocar un regalo
 abre una hoja para cambiarle el alias, las notas, la prioridad, marcarlo
 recibido o quitarlo), editar y eliminar una lista (`/listas/:id/editar`) y
 agregar un regalo del catálogo o escrito a mano con foto
-(`/listas/:id/regalos/nuevo`). Probadas en el navegador contra la API real, en
+(`/listas/:id/regalos/nuevo`). Y las de quien regala: «Descubrir»
+(`/descubrir`), buscar personas (`/personas`), el perfil de alguien con
+seguir, pedir seguirlo o dejar de seguir (`/u/:username`), la lista de otra
+persona para reservar o soltar un regalo (`/regalar/:id`, la misma pantalla
+que `/listas/:id` con otra ruta para que el menú no marque «Mis listas») y
+«Voy a regalar» (`/reservas`). Probadas en el navegador contra la API real, en
 escritorio y en teléfono, en claro y en oscuro.
-`make test-web` → **16 passed**.
+`make test-web` → **20 passed**.
+
+Para estas pantallas la API ganó `GET /discover`, `is_private` y
+`follow_status` en `GET /users/{user}`, `my_reservation_id` en cada regalo que
+ve quien regala (solo el id de **su** reserva, para soltarla) y la lista con
+su dueño en cada reserva de `GET /reservations`. Todo con pruebas en
+`tests/Feature/Api/ApiGiverTest.php` y documentado en `docs/openapi.yaml`.
 
 **La app corre en <http://localhost:4202>** (contenedor `web`). La API se le
 indica en `app/src/environments/environment.development.ts`: si cambias
@@ -574,11 +585,11 @@ catálogo, admin) corren en cualquier entorno; los de demo solo en `local` y
 
 La aplicación funciona. Lo que sigue, en orden de importancia:
 
-0. **Seguir pasando pantallas a la app Angular.** Faltan «Descubrir», la
-   lista vista por quien regala, personas y perfiles, «Mis reservas»,
-   notificaciones, seguidores, accesos, mi perfil y las páginas de error. Dos
-   necesitan API antes de poder migrarse: **registrarse** (no hay endpoint) y el
-   **enlace secreto** `/s/{token}` (depende de la sesión web). Ver la sección 6.
+0. **Seguir pasando pantallas a la app Angular.** Faltan notificaciones,
+   seguidores, accesos (pedir acceso a una lista privada y «Quién la ve»), mi
+   perfil y las páginas de error. Dos necesitan API antes de poder migrarse:
+   **registrarse** (no hay endpoint) y el **enlace secreto** `/s/{token}`
+   (depende de la sesión web). Ver la sección 6.
 
 1. **Los tests que faltaban: hechos.** Los cinco que estaban en esta lista ya
    están escritos y verificados por mutación —`AvatarStorageTest`,

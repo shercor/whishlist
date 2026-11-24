@@ -41,11 +41,24 @@ class WishlistItemResource extends JsonResource
             return $comun;
         }
 
+        $esMia = $this->reservedByViewer($request);
+
         return [
             ...$comun,
             'is_reserved' => $this->reservedForThisViewer(),
-            'reserved_by_me' => $this->reservedByViewer($request),
+            'reserved_by_me' => $esMia,
+            // Solo la propia, para soltarla con DELETE /reservations/{id}. La de
+            // otra persona no sale: su id no le sirve a nadie más que a ella.
+            'my_reservation_id' => $esMia ? $this->myReservationId($request) : null,
         ];
+    }
+
+    private function myReservationId(Request $request): ?int
+    {
+        return $this->reservations()
+            ->whereNotNull('active_flag')
+            ->where('user_id', $request->user()?->id)
+            ->value('id');
     }
 
     /**

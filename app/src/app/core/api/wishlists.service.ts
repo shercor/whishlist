@@ -15,6 +15,14 @@ export class WishlistsService {
     return firstValueFrom(this.http.get<Page<Wishlist>>(this.base, { params }));
   }
 
+  /** Listas públicas de otra gente («Descubrir»), por fecha del evento. */
+  discover(page = 1): Promise<Page<Wishlist>> {
+    const params = new HttpParams().set('page', page);
+    return firstValueFrom(
+      this.http.get<Page<Wishlist>>(`${environment.apiUrl}/discover`, { params }),
+    );
+  }
+
   /** Una lista con sus regalos. Qué campos trae cada regalo depende de si es mía (ver WishlistItem). */
   async show(id: number): Promise<Wishlist> {
     const response = await firstValueFrom(this.http.get<{ data: Wishlist }>(`${this.base}/${id}`));

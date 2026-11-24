@@ -13,7 +13,13 @@ import {
   IonSplitPane,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { giftOutline, logOutOutline } from 'ionicons/icons';
+import {
+  bagHandleOutline,
+  compassOutline,
+  giftOutline,
+  logOutOutline,
+  peopleOutline,
+} from 'ionicons/icons';
 import { AuthService } from './core/auth/auth.service';
 import { Avatar } from './shared/avatar';
 import { SECTIONS } from './shared/navigation';
@@ -92,7 +98,7 @@ export class App {
   protected readonly sections = SECTIONS;
 
   constructor() {
-    addIcons({ giftOutline, logOutOutline });
+    addIcons({ bagHandleOutline, compassOutline, giftOutline, logOutOutline, peopleOutline });
   }
 
   protected async logout(): Promise<void> {

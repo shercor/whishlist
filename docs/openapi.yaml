@@ -19,8 +19,9 @@ info:
 
     - **A su dueño**: sin `is_reserved` y sin `reserved_by_me`. No es que
       lleguen en `false` — es que las claves **no existen** en el json.
-    - **A cualquier otro**: con `is_reserved` y `reserved_by_me`. Nunca con el
-      id de la reserva ni con quién la hizo.
+    - **A cualquier otro**: con `is_reserved` y `reserved_by_me`. Nunca con
+      quién la hizo, ni con el id de una reserva ajena: solo con el de la tuya
+      (`my_reservation_id`), para poder soltarla.
 
     Un cliente no debe deducir "si no viene `is_reserved`, está libre". Lo que
     significa su ausencia es "estás mirando tu propia lista, y aquí no se
@@ -312,6 +313,17 @@ components:
         - $ref: '#/components/schemas/User'
         - type: object
           properties:
+            is_private:
+              type: boolean
+              description: |
+                Si su perfil es privado: seguirlo queda `pendiente` hasta que
+                acepte, en vez de quedar `aceptado` al momento.
+            follow_status:
+              type: [string, "null"]
+              enum: [pendiente, aceptado, null]
+              description: |
+                Cómo lo sigues tú: `null` si no lo sigues ni se lo pediste. En
+                tu propio perfil, siempre `null`.
             profile_open:
               type: boolean
               description: Si puedes ver su actividad o su perfil está cerrado para ti.
@@ -437,8 +449,8 @@ components:
     WishlistItemForViewer:
       description: |
         El regalo tal como lo recibe cualquiera **que no sea el dueño**. Trae
-        si está tomado y si lo tomaste tú — nunca quién lo tomó, ni el id de la
-        reserva.
+        si está tomado y si lo tomaste tú — nunca quién lo tomó, ni el id de una
+        reserva que no sea tuya.
       allOf:
         - $ref: '#/components/schemas/WishlistItemBase'
         - type: object
@@ -449,7 +461,12 @@ components:
             reserved_by_me:
               type: boolean
               description: Si quien lo tomó eres tú.
-          required: [is_reserved, reserved_by_me]
+            my_reservation_id:
+              type: [integer, "null"]
+              description: |
+                El id de tu reserva, para soltarla con
+                `DELETE /reservations/{reservation}`. `null` si no lo tomaste tú.
+          required: [is_reserved, reserved_by_me, my_reservation_id]
 
     WishlistItem:
       description: |
@@ -514,6 +531,11 @@ components:
             bloqueado para siempre por alguien que se olvidó.
         created_at: { type: [string, "null"], format: date-time }
         item:       { $ref: '#/components/schemas/WishlistItem' }
+        wishlist:
+          $ref: '#/components/schemas/Wishlist'
+          description: |
+            La lista del regalo, con su dueño. Viene en `GET /reservations`; no
+            al reservar.
 
     # --- seguidores y accesos ------------------------------------------------
 
@@ -833,6 +855,31 @@ paths:
   # ===========================================================================
   # Listas
   # ===========================================================================
+  /discover:
+    get:
+      tags: [Listas]
+      summary: Descubrir listas públicas
+      description: |
+        Listas públicas de otra gente, por fecha del evento. Las de un perfil
+        privado no salen aunque sean públicas: solo las ven sus seguidores, por
+        su perfil (`GET /users/{user}`). Las tuyas tampoco.
+      parameters:
+        - $ref: '#/components/parameters/page'
+      responses:
+        '200':
+          description: Las listas, con su dueño y el número de regalos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Wishlist' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
   /wishlists:
     get:
       tags: [Listas]

@@ -133,11 +133,17 @@ label.control:has(:checked) {
   border: 0;
   background: none;
   color: inherit;
-  font: inherit;
+  font-family: inherit;
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
+}
+
+/* El tamaño, sin peso: así una utilidad como text-sm le gana. */
+:where(.link-button) {
+  font-size: inherit;
+  line-height: inherit;
 }
 
 /* Acción que borra algo con forma de enlace («Quitar de la lista», «Retirar del catálogo»): roja. */

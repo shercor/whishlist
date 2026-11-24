@@ -1,0 +1,149 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-menu-button />
+    </ion-buttons>
+    <ion-title>Voy a regalar</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content />
+  </ion-refresher>
+
+  <main class="mx-auto w-full max-w-5xl px-4 py-5 md:px-6 md:py-8">
+    <div class="enter-up mb-4 md:mb-6">
+      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Voy a regalar</h1>
+      <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
+        Lo que tienes reservado. Nadie más ve esta pantalla, y menos los dueños de las listas.
+      </p>
+    </div>
+
+    @if (error(); as message) {
+      <div
+        role="alert"
+        animate.enter="enter-down"
+        class="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-500/10 dark:text-red-300"
+      >
+        {{ message }}
+      </div>
+    }
+
+    @if (loading()) {
+      <div role="status" aria-label="Cargando tus reservas" class="card overflow-hidden">
+        @for (width of skeletonRows; track $index) {
+          <div
+            aria-hidden="true"
+            class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 md:px-5 dark:border-white/5"
+          >
+            <ion-skeleton-text animated class="m-0 size-12 shrink-0 rounded-lg" />
+            <div class="flex min-w-0 flex-1 flex-col gap-2">
+              <ion-skeleton-text animated class="m-0 h-4" [style.width]="width" />
+              <ion-skeleton-text animated class="m-0 h-3 w-1/3" />
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (reservations().length === 0 && !error()) {
+      <div class="card enter-up flex flex-col items-center gap-2 px-6 py-12 text-center">
+        <div
+          class="icon-float flex size-12 items-center justify-center rounded-full bg-blue-50 text-2xl text-blue-700 dark:bg-blue-500/15 dark:text-blue-300"
+        >
+          <ion-icon name="bag-handle-outline" aria-hidden="true" />
+        </div>
+        <h2 class="mt-2 mb-0 text-lg font-semibold">No tienes nada reservado</h2>
+        <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+          Cuando reserves un regalo de la lista de alguien, aparece acá para que no se te olvide.
+        </p>
+        <ion-button class="pressable mt-3" routerLink="/descubrir"
+          >Buscar a quién regalarle</ion-button
+        >
+      </div>
+    } @else if (reservations().length > 0) {
+      <div role="list" aria-label="Mis reservas" class="card overflow-hidden">
+        @for (reservation of reservations(); track reservation.id) {
+          <!--
+            [foto] regalo
+            [    ] para quién · «lista»
+            [    ] se suelta sola el … (ámbar si ya pasó)
+          -->
+          <div
+            role="listitem"
+            tabindex="0"
+            aria-haspopup="dialog"
+            animate.enter="enter-up"
+            class="tappable-row grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+            [style.--i]="staggerIndex($index)"
+            (click)="open(reservation)"
+            (keydown.enter)="open(reservation)"
+          >
+            @if (reservation.item.product?.image; as image) {
+              <img
+                [src]="image"
+                alt=""
+                loading="lazy"
+                class="row-span-3 size-12 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
+              />
+            } @else {
+              <span
+                aria-hidden="true"
+                class="row-span-3 flex size-12 items-center justify-center rounded-lg bg-neutral-100 text-base font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
+              >
+                {{ reservation.item.name.charAt(0) }}
+              </span>
+            }
+            <div class="truncate font-medium" [title]="reservation.item.name">
+              {{ reservation.item.name }}
+            </div>
+            <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
+              @if (reservation.wishlist; as wishlist) {
+                Para {{ wishlist.owner?.display_name }} · «{{ wishlist.name }}»
+              }
+            </div>
+            @if (reservation.expires_at; as expires) {
+              <div
+                class="col-start-2 truncate text-sm"
+                [class]="
+                  isPast(expires)
+                    ? 'font-medium text-amber-700 dark:text-amber-300'
+                    : 'text-neutral-500 dark:text-neutral-400'
+                "
+              >
+                @if (isPast(expires)) {
+                  Se venció el plazo: se suelta en cualquier momento
+                } @else {
+                  Se suelta sola el {{ formatDay(expires) }}
+                }
+              </div>
+            }
+          </div>
+        }
+      </div>
+
+      <ion-infinite-scroll [disabled]="!hasMore()" (ionInfinite)="loadMore($event)">
+        <ion-infinite-scroll-content />
+      </ion-infinite-scroll>
+    }
+  </main>
+
+  <ion-modal
+    class="auto-height"
+    [isOpen]="modalOpen()"
+    [breakpoints]="sheet ? [0, 1] : undefined"
+    [initialBreakpoint]="sheet ? 1 : undefined"
+    (didDismiss)="modalOpen.set(false)"
+  >
+    <ng-template>
+      @if (opened(); as reservation) {
+        <app-gift-sheet
+          [item]="reservation.item"
+          [ownerName]="reservation.wishlist?.owner?.display_name ?? 'Su dueño'"
+          [wishlistId]="reservation.wishlist?.id ?? null"
+          (changed)="onChanged($event)"
+          (closed)="modalOpen.set(false)"
+        />
+      }
+    </ng-template>
+  </ion-modal>
+</ion-content>

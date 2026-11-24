@@ -77,6 +77,31 @@ export interface WishlistItem {
   product?: Product;
   is_reserved?: boolean;
   reserved_by_me?: boolean;
+  /** El id de mi reserva, para soltarla. Nunca el de la reserva de otra persona. */
+  my_reservation_id?: number | null;
+}
+
+export type FollowStatus = 'pendiente' | 'aceptado';
+
+/** El perfil de alguien, con exactamente las listas que puedo abrir. */
+export interface UserProfile extends User {
+  is_private: boolean;
+  /** Cómo lo sigo yo: null si no lo sigo ni se lo pedí. */
+  follow_status: FollowStatus | null;
+  /** Si veo su perfil entero o está cerrado para mí. */
+  profile_open: boolean;
+  wishlists: Wishlist[];
+}
+
+/** Una reserva mía («Voy a regalar»). */
+export interface Reservation {
+  id: number;
+  note: string | null;
+  /** Fecha y hora ISO en que se suelta sola. */
+  expires_at: string | null;
+  item: WishlistItem;
+  /** La lista del regalo, con su dueño. */
+  wishlist?: Wishlist;
 }
 
 export interface ItemChanges {

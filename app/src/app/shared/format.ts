@@ -40,3 +40,10 @@ export function formatPrice(amount: number | string, currency: string | null): s
     maximumFractionDigits: (currency ?? 'CLP') === 'CLP' ? 0 : 2,
   }).format(Number(amount));
 }
+
+const day = new Intl.DateTimeFormat('es-CL', { day: 'numeric', month: 'long' });
+
+/** «12 de diciembre» a partir de una fecha y hora ISO, en la zona de quien mira. */
+export function formatDay(iso: string): string {
+  return day.format(new Date(iso));
+}

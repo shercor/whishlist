@@ -36,6 +36,26 @@ class WishlistController extends Controller
         );
     }
 
+    /**
+     * Listas públicas de otra gente, para quien busca a quién regalarle.
+     *
+     * Mismo filtro que la web: las de un perfil privado no salen, porque solo
+     * sus seguidores deben verlas y esta es la pantalla de quien no sigue a nadie.
+     */
+    public function discover(Request $request): AnonymousResourceCollection
+    {
+        return WishlistResource::collection(
+            Wishlist::query()
+                ->public()
+                ->whereNot('user_id', $request->user()->id)
+                ->whereHas('user', fn ($query) => $query->where('is_private', false))
+                ->with('user')
+                ->withCount('items')
+                ->orderBy('event_date')
+                ->paginate(20)
+        );
+    }
+
     public function store(WishlistRequest $request): JsonResponse
     {
         $wishlist = $request->user()->wishlists()->create([

@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/listas" text="" aria-label="Volver" />
+      <ion-back-button [defaultHref]="backHref()" text="" aria-label="Volver" />
     </ion-buttons>
     <ion-title>{{ wishlist()?.name ?? 'Lista' }}</ion-title>
   </ion-toolbar>
@@ -48,7 +48,18 @@
           {{ wishlist.name }}
         </h1>
         <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-          {{ wishlist.description || 'Sin descripción.' }}
+          @if (!wishlist.is_mine && wishlist.owner; as owner) {
+            La lista de
+            <a class="font-medium text-inherit" [routerLink]="['/u', owner.username]">{{
+              owner.display_name
+            }}</a
+            >.
+            @if (wishlist.description) {
+              {{ wishlist.description }}
+            }
+          } @else {
+            {{ wishlist.description || 'Sin descripción.' }}
+          }
           @if (wishlist.event_date; as date) {
             <br />Para el {{ formatEventDate(date) }}.
           }
@@ -86,6 +97,14 @@
           </div>
         }
       </div>
+
+      @if (!wishlist.is_mine) {
+        <div role="status" class="notice notice-info enter-up" style="--i: 1">
+          <span>
+            {{ ownerName() }} no ve nada de esta pantalla: ni qué está reservado, ni por quién.
+          </span>
+        </div>
+      }
 
       @if (wishlist.is_mine) {
         <!-- Nada en esta pantalla habla de reservas: es lo que impide que el dueño se entere. -->
@@ -127,6 +146,11 @@
             <ion-icon name="gift-outline" aria-hidden="true" />
           </div>
           <h2 class="mt-2 mb-0 text-lg font-semibold">Esta lista está vacía</h2>
+          @if (!wishlist.is_mine) {
+            <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+              {{ ownerName() }} todavía no ha puesto nada. Cuando agregue algo, aparecerá acá.
+            </p>
+          }
           @if (wishlist.is_mine) {
             <p class="m-0 max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
               Elige algo del catálogo o escríbelo tú. Hasta que no tenga regalos, compartirla no le
@@ -145,7 +169,7 @@
           @for (item of items(); track item.id) {
             <!--
               [foto] nombre                      | prioridad
-              [    ] categoría · notas · recibido
+              [    ] categoría · notas · recibido | estado (solo quien regala)
             -->
             <div
               role="listitem"
@@ -153,7 +177,9 @@
               aria-haspopup="dialog"
               animate.enter="enter-up"
               class="tappable-row grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
-              [class.opacity-60]="item.received"
+              [class.opacity-60]="
+                item.received || (!wishlist.is_mine && item.is_reserved && !item.reserved_by_me)
+              "
               [style.--i]="staggerIndex($index)"
               (click)="open(item)"
               (keydown.enter)="open(item)"
@@ -174,7 +200,7 @@
                 </span>
               }
               <div class="truncate font-medium" [title]="item.name">{{ item.name }}</div>
-              <div class="row-span-2 justify-self-end">
+              <div class="row-span-2 flex flex-col items-end gap-1 justify-self-end">
                 <span
                   class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
                   [class]="
@@ -189,13 +215,23 @@
                   }
                   {{ priorityOf(item.priority).title }}
                 </span>
+                <!-- «Disponible» no se marca: se marcan las que ya no lo están. -->
+                @if (!wishlist.is_mine && giftStateOf(item) !== 'available') {
+                  @let state = giftStates[giftStateOf(item)];
+                  <span
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+                    [class]="state.chip"
+                  >
+                    {{ state.title }}
+                  </span>
+                }
               </div>
               <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
                 {{ item.product?.category?.name }}
                 @if (item.notes) {
                   · {{ item.notes }}
                 }
-                @if (item.received) {
+                @if (item.received && wishlist.is_mine) {
                   ·
                   <span class="inline-flex items-center gap-0.5 font-medium">
                     <ion-icon name="checkmark-circle-outline" aria-hidden="true" />
@@ -220,12 +256,22 @@
   >
     <ng-template>
       @if (editing(); as item) {
-        <app-item-sheet
-          [item]="item"
-          (changed)="onChanged($event)"
-          (removed)="onRemoved($event)"
-          (closed)="modalOpen.set(false)"
-        />
+        @if (wishlist()?.is_mine) {
+          <app-item-sheet
+            [item]="item"
+            (changed)="onChanged($event)"
+            (removed)="onRemoved($event)"
+            (closed)="modalOpen.set(false)"
+          />
+        } @else {
+          <app-gift-sheet
+            [item]="item"
+            [ownerName]="ownerName()"
+            (changed)="onChanged($event)"
+            (stale)="onStale()"
+            (closed)="modalOpen.set(false)"
+          />
+        }
       }
     </ng-template>
   </ion-modal>

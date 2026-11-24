@@ -1,0 +1,102 @@
+import { Component, computed, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import {
+  InfiniteScrollCustomEvent,
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonInfiniteScroll,
+  IonInfiniteScrollContent,
+  IonMenuButton,
+  IonRefresher,
+  IonRefresherContent,
+  IonSkeletonText,
+  IonTitle,
+  IonToolbar,
+  RefresherCustomEvent,
+  ViewWillEnter,
+} from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { compassOutline } from 'ionicons/icons';
+import { Wishlist } from '../../core/api/models';
+import { WishlistsService } from '../../core/api/wishlists.service';
+import { errorMessage } from '../../core/http/api-error';
+import { Avatar } from '../../shared/avatar';
+import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
+
+/** Listas públicas de otra gente, para encontrar a quién regalarle. */
+@Component({
+  selector: 'app-discover',
+  imports: [
+    RouterLink,
+    Avatar,
+    IonButton,
+    IonButtons,
+    IonContent,
+    IonHeader,
+    IonIcon,
+    IonInfiniteScroll,
+    IonInfiniteScrollContent,
+    IonMenuButton,
+    IonRefresher,
+    IonRefresherContent,
+    IonSkeletonText,
+    IonTitle,
+    IonToolbar,
+  ],
+  templateUrl: './discover.page.html',
+})
+export class DiscoverPage implements ViewWillEnter {
+  private readonly api = inject(WishlistsService);
+
+  protected readonly wishlists = signal<Wishlist[]>([]);
+  protected readonly loading = signal(true);
+  protected readonly error = signal<string | null>(null);
+
+  private readonly page = signal(0);
+  private readonly lastPage = signal(1);
+  protected readonly hasMore = computed(() => this.page() < this.lastPage());
+
+  protected readonly skeletonRows = ['45%', '60%', '35%', '52%'];
+  protected readonly formatEventDate = formatEventDate;
+  protected readonly formatShortEventDate = formatShortEventDate;
+  protected readonly giftCount = giftCount;
+
+  constructor() {
+    addIcons({ compassOutline });
+  }
+
+  ionViewWillEnter(): void {
+    void this.loadPage(1);
+  }
+
+  protected async refresh(event: RefresherCustomEvent): Promise<void> {
+    await this.loadPage(1);
+    await event.target.complete();
+  }
+
+  protected async loadMore(event: InfiniteScrollCustomEvent): Promise<void> {
+    await this.loadPage(this.page() + 1);
+    await event.target.complete();
+  }
+
+  protected staggerIndex(index: number): number {
+    return Math.min(index, 10);
+  }
+
+  private async loadPage(page: number): Promise<void> {
+    this.error.set(null);
+    try {
+      const result = await this.api.discover(page);
+      this.wishlists.update((list) => (page === 1 ? result.data : [...list, ...result.data]));
+      this.page.set(result.meta.current_page);
+      this.lastPage.set(result.meta.last_page);
+    } catch (error) {
+      this.error.set(errorMessage(error, 'No se pudieron cargar las listas.'));
+    } finally {
+      this.loading.set(false);
+    }
+  }
+}

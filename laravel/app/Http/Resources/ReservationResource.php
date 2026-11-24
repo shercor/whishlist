@@ -27,6 +27,11 @@ class ReservationResource extends JsonResource
             'expires_at' => $this->expires_at?->toIso8601String(),
             'created_at' => $this->created_at?->toIso8601String(),
             'item' => WishlistItemResource::make($this->whenLoaded('wishlistItem')),
+            // De qué lista es y para quién, si se cargó: «Voy a regalar» lo muestra.
+            'wishlist' => $this->when(
+                $this->relationLoaded('wishlistItem') && $this->wishlistItem->relationLoaded('wishlist'),
+                fn () => WishlistResource::make($this->wishlistItem->wishlist),
+            ),
         ];
     }
 }

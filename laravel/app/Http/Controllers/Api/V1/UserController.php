@@ -54,6 +54,11 @@ class UserController extends Controller
         return response()->json([
             'data' => [
                 ...UserResource::make($user)->resolve($request),
+                // Lo mismo que la web dice en el perfil («Perfil privado»): decide
+                // si el botón es «Seguir» o «Pedir seguirlo».
+                'is_private' => (bool) $user->is_private,
+                // null si no lo sigo ni se lo pedí; si no, `pendiente` o `aceptado`.
+                'follow_status' => $user->id === $yo->id ? null : $yo->followTo($user)?->status,
                 'profile_open' => $user->profileIsVisibleTo($yo),
                 'wishlists' => WishlistResource::collection(
                     $user->visibleWishlistsFor($yo)

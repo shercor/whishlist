@@ -25,6 +25,12 @@ export const routes: Routes = [
     loadComponent: () => import('./features/wishlists/wishlist.page').then((m) => m.WishlistPage),
   },
   {
+    // La misma pantalla para una lista ajena, con otra ruta: el menú no marca «Mis listas».
+    path: 'regalar/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/wishlists/wishlist.page').then((m) => m.WishlistPage),
+  },
+  {
     path: 'listas/:id/editar',
     canActivate: [authGuard],
     loadComponent: () =>
@@ -34,6 +40,27 @@ export const routes: Routes = [
     path: 'listas/:id/regalos/nuevo',
     canActivate: [authGuard],
     loadComponent: () => import('./features/items/item-form.page').then((m) => m.ItemFormPage),
+  },
+  {
+    path: 'descubrir',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/discover/discover.page').then((m) => m.DiscoverPage),
+  },
+  {
+    path: 'personas',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/people/people.page').then((m) => m.PeoplePage),
+  },
+  {
+    path: 'u/:username',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/people/profile.page').then((m) => m.ProfilePage),
+  },
+  {
+    path: 'reservas',
+    canActivate: [authGuard],
+    loadComponent: () =>
+      import('./features/reservations/reservations.page').then((m) => m.ReservationsPage),
   },
   { path: '**', redirectTo: 'listas' },
 ];

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
@@ -32,16 +33,22 @@ import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { environment } from '../../../environments/environment';
 import { formatEventDate } from '../../shared/format';
+import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
 import { Notify } from '../../shared/notify';
 import { priorityOf } from '../../shared/priority';
 import { visibilityOf } from '../../shared/visibility';
+import { GiftSheet } from './gift-sheet';
 import { ItemSheet } from './item-sheet';
 
-/** Una lista con sus regalos. */
+/**
+ * Una lista con sus regalos. Si es mía, para editarla y compartirla (sin una palabra sobre
+ * reservas); si no, para que quien regala reserve algo.
+ */
 @Component({
   selector: 'app-wishlist',
   imports: [
     RouterLink,
+    GiftSheet,
     ItemSheet,
     IonBackButton,
     IonButton,
@@ -70,6 +77,12 @@ export class WishlistPage implements ViewWillEnter {
   protected readonly loading = signal(true);
   protected readonly error = signal<string | null>(null);
 
+  /** Sin historial, «Volver» lleva a la sección de la que suele venir cada una. */
+  protected readonly backHref = computed(() =>
+    this.wishlist()?.is_mine === false ? '/descubrir' : '/listas',
+  );
+  protected readonly ownerName = computed(() => this.wishlist()?.owner?.display_name ?? 'Su dueño');
+
   protected readonly shareLink = computed(() => {
     const token = this.wishlist()?.share_token;
     return token ? `${environment.shareUrl}${token}` : null;
@@ -86,6 +99,8 @@ export class WishlistPage implements ViewWillEnter {
   protected readonly formatEventDate = formatEventDate;
   protected readonly priorityOf = priorityOf;
   protected readonly visibilityOf = visibilityOf;
+  protected readonly giftStateOf = giftStateOf;
+  protected readonly giftStates = GIFT_STATES;
 
   constructor() {
     addIcons({
@@ -120,6 +135,10 @@ export class WishlistPage implements ViewWillEnter {
     this.editing.set(item);
   }
 
+  protected onStale(): void {
+    void this.load();
+  }
+
   protected onRemoved(id: number): void {
     this.modalOpen.set(false);
     this.items.update((list) => list.filter((item) => item.id !== id));
@@ -147,12 +166,25 @@ export class WishlistPage implements ViewWillEnter {
     this.error.set(null);
     try {
       const wishlist = await this.api.show(Number(this.id()));
+      const items = wishlist.items ?? [];
       this.wishlist.set(wishlist);
-      this.items.set(wishlist.items ?? []);
+      this.items.set(items);
+      // Si el modal está abierto, que muestre el regalo al día.
+      this.editing.update((current) => items.find((item) => item.id === current?.id) ?? current);
     } catch (error) {
-      this.error.set(errorMessage(error, 'No se pudo cargar la lista.'));
+      this.error.set(loadError(error));
     } finally {
       this.loading.set(false);
     }
   }
+}
+
+function loadError(error: unknown): string {
+  if (error instanceof HttpErrorResponse && error.status === 403) {
+    return 'Esta lista es privada: solo la ve quien su dueño invita o quien tiene su enlace.';
+  }
+  if (error instanceof HttpErrorResponse && error.status === 404) {
+    return 'Esta lista no existe o ya la borraron.';
+  }
+  return errorMessage(error, 'No se pudo cargar la lista.');
 }

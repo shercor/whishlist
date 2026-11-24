@@ -63,6 +63,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         Route::get('users/{user:username}', [UserController::class, 'show'])->name('users.show');
 
         // --- Mis listas y las que puedo abrir ---------------------------------
+        // Listas públicas de otra gente: la pantalla «Descubrir».
+        Route::get('discover', [WishlistController::class, 'discover'])->name('discover');
         Route::apiResource('wishlists', WishlistController::class)->names('wishlists');
 
         // Los regalos cuelgan de su lista para crearlos, y van en plano para
