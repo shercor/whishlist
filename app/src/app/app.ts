@@ -1,6 +1,6 @@
-import { Component, inject, isDevMode } from '@angular/core';
+import { Component, computed, effect, inject, isDevMode, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter } from 'rxjs';
 import {
   IonApp,
@@ -19,27 +19,34 @@ import {
   bagHandleOutline,
   compassOutline,
   giftOutline,
-  mailUnreadOutline,
   notificationsOutline,
   peopleOutline,
-  searchOutline,
 } from 'ionicons/icons';
 import { AuthService } from './core/auth/auth.service';
 import { ThemeService } from './core/theme/theme.service';
 import { PageTransitionService } from './core/transitions/page-transition.service';
 import { AdminMenu } from './features/admin/admin-menu';
-import { SECTIONS } from './shared/navigation';
+import {
+  SECTIONS,
+  Section,
+  injectCurrentPath,
+  isTopLevel,
+  sectionCount,
+  sectionFor,
+} from './shared/navigation';
+import { TabBar } from './shared/tab-bar';
 
 /**
- * Menú de secciones: fijo a la izquierda desde md, y en el teléfono se abre con el botón de
- * cada barra superior. Sin sesión se desactiva, así el login ocupa toda la pantalla.
+ * Las secciones: desde md, en el menú fijo a la izquierda; en el teléfono, en la barra inferior
+ * (tab-bar.ts), y el menú lateral se apaga. Sin sesión no hay ni uno ni otra, así el login ocupa
+ * toda la pantalla.
  */
 @Component({
   selector: 'app-root',
   imports: [
     RouterLink,
-    RouterLinkActive,
     AdminMenu,
+    TabBar,
     IonApp,
     IonContent,
     IonIcon,
@@ -54,7 +61,8 @@ import { SECTIONS } from './shared/navigation';
   template: `
     <ion-app>
       <ion-split-pane contentId="main" when="md">
-        <ion-menu contentId="main" class="app-menu" [disabled]="!auth.isAuthenticated()">
+        <!-- Apagado en el teléfono: ahí está la barra inferior, y sin menú su botón ☰ se esconde solo. -->
+        <ion-menu contentId="main" class="app-menu" [disabled]="!auth.isAuthenticated() || !wide()">
           <ion-content>
             <div class="px-5 pt-6 pb-5">
               <!--
@@ -72,7 +80,9 @@ import { SECTIONS } from './shared/navigation';
               <img
                 class="app-logo"
                 [src]="
-                  theme.isDark() ? 'logo-wishlist-sobre-oscuro.png' : 'logo-wishlist-sobre-claro.png'
+                  theme.isDark()
+                    ? 'logo-wishlist-sobre-oscuro.png'
+                    : 'logo-wishlist-sobre-claro.png'
                 "
                 alt="wishlist"
               />
@@ -80,15 +90,17 @@ import { SECTIONS } from './shared/navigation';
             <ion-list lines="none">
               @for (section of sections; track section.url) {
                 <ion-menu-toggle [autoHide]="false">
+                  <!-- Marcada a mano y no con routerLinkActive: Notificaciones son dos rutas. -->
                   <ion-item
                     [routerLink]="section.url"
-                    routerLinkActive="selected"
                     routerDirection="root"
                     [detail]="false"
+                    [class.selected]="section === activeSection()"
+                    [attr.aria-current]="section === activeSection() ? 'page' : null"
                   >
                     <ion-icon slot="start" [name]="section.icon" aria-hidden="true" />
                     <ion-label>{{ section.title }}</ion-label>
-                    @if (section.count && auth.counts()[section.count]; as count) {
+                    @if (countOf(section); as count) {
                       <span
                         slot="end"
                         class="min-w-5 rounded-full bg-[var(--ion-color-primary)] px-1.5 text-center text-xs leading-5 font-semibold text-[var(--ion-color-primary-contrast)]"
@@ -104,6 +116,10 @@ import { SECTIONS } from './shared/navigation';
         </ion-menu>
         <ion-router-outlet id="main" [animation]="transitions.builder()" />
       </ion-split-pane>
+
+      @if (showTabBar()) {
+        <app-tab-bar />
+      }
 
       @if (devMode && auth.isAuthenticated()) {
         <app-admin-menu
@@ -123,17 +139,36 @@ export class App {
   protected readonly devMode = isDevMode();
   private readonly router = inject(Router);
   protected readonly sections = SECTIONS;
+  private readonly path = injectCurrentPath();
+  protected readonly activeSection = computed(() => sectionFor(this.path()));
+
+  /** Desde md (48rem) el menú queda fijo al lado; más angosto, es teléfono. */
+  private readonly wideQuery =
+    typeof matchMedia === 'function' ? matchMedia('(min-width: 48rem)') : undefined;
+  protected readonly wide = signal(this.wideQuery?.matches ?? true);
+
+  /**
+   * La barra inferior: con sesión y en una pantalla de primer nivel. En escritorio igual se pide,
+   * pero el CSS la esconde: así no depende de que matchMedia avise el cambio de ancho a tiempo.
+   */
+  protected readonly showTabBar = computed(
+    () => this.auth.isAuthenticated() && isTopLevel(this.path()),
+  );
 
   constructor() {
     addIcons({
       bagHandleOutline,
       compassOutline,
       giftOutline,
-      mailUnreadOutline,
       notificationsOutline,
       peopleOutline,
-      searchOutline,
     });
+
+    this.wideQuery?.addEventListener('change', (event) => this.wide.set(event.matches));
+
+    // Con la barra inferior a la vista, el contenido de cada pantalla deja espacio abajo para no
+    // quedar tapado (tailwind.css, .with-tab-bar).
+    effect(() => document.documentElement.classList.toggle('with-tab-bar', this.showTabBar()));
 
     // Al cambiar de pantalla, los contadores del menú se ponen al día.
     this.router.events
@@ -142,5 +177,9 @@ export class App {
         takeUntilDestroyed(),
       )
       .subscribe(() => void this.auth.refresh());
+  }
+
+  protected countOf(section: Section): number {
+    return sectionCount(section, this.auth.counts());
   }
 }

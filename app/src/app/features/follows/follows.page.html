@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-menu-button />
     </ion-buttons>
-    <ion-title><span class="title-gift" aria-hidden="true"></span>Mi gente</ion-title>
+    <ion-title><span class="title-gift" aria-hidden="true"></span>Gente</ion-title>
     <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -15,11 +15,15 @@
 
   <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
     <div class="enter-up mb-4 md:mb-6">
-      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Mi gente</h1>
+      <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Gente</h1>
       <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-        Quién te sigue y a quién sigues. Solo tus seguidores pueden recibir una lista privada tuya.
+        Busca a alguien por su usuario, y mira quién te sigue y a quién sigues. Solo tus seguidores
+        pueden recibir una lista privada tuya.
       </p>
     </div>
+
+    <!-- El buscador, parte de la pantalla: mientras se busca, los resultados toman el lugar de tu gente. -->
+    <app-people-search class="enter-up block" style="--i: 1" (active)="searching.set($event)" />
 
     @if (error(); as message) {
       <div
@@ -31,7 +35,9 @@
       </div>
     }
 
-    @if (loading()) {
+    @if (searching()) {
+      <!-- Buscando: tu gente vuelve al borrar la búsqueda. -->
+    } @else if (loading()) {
       <div role="status" aria-label="Cargando tu gente" class="card overflow-hidden">
         @for (row of [1, 2, 3]; track row) {
           <div
@@ -115,7 +121,7 @@
           class="card enter-up mb-6 flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
         >
           <p class="m-0 font-medium">No sigues a nadie.</p>
-          <ion-button class="pressable m-0" routerLink="/personas">Buscar personas</ion-button>
+          <ion-button class="pressable m-0" (click)="search().focus()">Buscar personas</ion-button>
         </div>
       }
 

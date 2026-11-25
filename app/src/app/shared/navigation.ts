@@ -1,30 +1,71 @@
+import { Signal, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter, map } from 'rxjs';
 import { Counts } from '../core/api/models';
 
 export interface Section {
+  /** Adonde lleva tocarla. */
   url: string;
   title: string;
   icon: string;
-  /** El contador que se muestra al lado, si lo tiene. */
-  count?: keyof Counts;
+  /**
+   * Las rutas en que esta sección se marca como la actual. Notificaciones son dos pantallas
+   * (Avisos y Solicitudes) bajo una misma sección.
+   */
+  paths: string[];
+  /** Los contadores que suma su globito, si lleva. */
+  counts?: (keyof Counts)[];
 }
 
-/** Las secciones del menú, en orden. Una sección se agrega aquí cuando su pantalla ya existe. */
+/**
+ * Las secciones, en orden: el menú lateral en escritorio y la barra inferior en el teléfono son la
+ * misma lista. Son cinco porque es lo que cabe cómodo en la barra inferior; por eso Personas vive
+ * dentro de Gente (el buscador) y Avisos y Solicitudes, dentro de Notificaciones. Notificaciones va
+ * al final: a la derecha en la barra inferior.
+ */
 export const SECTIONS: Section[] = [
-  { url: '/listas', title: 'Mis listas', icon: 'gift-outline' },
-  { url: '/descubrir', title: 'Descubrir', icon: 'compass-outline' },
-  { url: '/personas', title: 'Personas', icon: 'search-outline' },
-  { url: '/mi-gente', title: 'Mi gente', icon: 'people-outline' },
-  { url: '/reservas', title: 'Voy a regalar', icon: 'bag-handle-outline' },
-  {
-    url: '/solicitudes',
-    title: 'Solicitudes',
-    icon: 'mail-unread-outline',
-    count: 'pending_requests',
-  },
+  { url: '/listas', title: 'Mis listas', icon: 'gift-outline', paths: ['/listas'] },
+  { url: '/descubrir', title: 'Descubrir', icon: 'compass-outline', paths: ['/descubrir'] },
+  { url: '/reservas', title: 'Voy a regalar', icon: 'bag-handle-outline', paths: ['/reservas'] },
+  { url: '/mi-gente', title: 'Gente', icon: 'people-outline', paths: ['/mi-gente'] },
   {
     url: '/avisos',
-    title: 'Avisos',
+    title: 'Notificaciones',
     icon: 'notifications-outline',
-    count: 'unread_notifications',
+    paths: ['/avisos', '/solicitudes'],
+    counts: ['unread_notifications', 'pending_requests'],
   },
 ];
+
+/** La sección de una ruta, o undefined en las pantallas que no son de primer nivel. */
+export function sectionFor(path: string): Section | undefined {
+  return SECTIONS.find((section) => section.paths.includes(path));
+}
+
+/** El número del globito de una sección: la suma de sus contadores. */
+export function sectionCount(section: Section, counts: Counts): number {
+  return (section.counts ?? []).reduce((total, key) => total + counts[key], 0);
+}
+
+/**
+ * Las pantallas de primer nivel: las de las secciones y Mi perfil. En ellas el teléfono muestra la
+ * barra inferior; en las de más adentro (una lista, editar, agregar un regalo) se esconde y se
+ * vuelve con la flecha.
+ */
+export function isTopLevel(path: string): boolean {
+  return path === '/perfil' || !!sectionFor(path);
+}
+
+/** La ruta actual, sin ?consulta ni #ancla, al día con cada navegación. */
+export function injectCurrentPath(): Signal<string> {
+  const router = inject(Router);
+  const pathOf = (url: string) => url.split(/[?#]/)[0];
+  return toSignal(
+    router.events.pipe(
+      filter((event) => event instanceof NavigationEnd),
+      map(() => pathOf(router.url)),
+    ),
+    { initialValue: pathOf(router.url) },
+  );
+}

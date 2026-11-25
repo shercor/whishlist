@@ -187,8 +187,25 @@ Son tres recursos que se repiten y amarran la identidad:
 - **Hojas** (`ion-modal.auto-height` con `.modal-body`): en el teléfono suben
   desde abajo (`breakpoints [0, 1]`) y en escritorio son una tarjeta de 28rem.
   Arriba llevan un `h2` y el botón de cerrar (`fill="clear" color="medium"`).
-- **Menú lateral:** solo para navegar. Lleva el logo y las secciones, con un
-  ancho fijo de 15rem desde `md`. Los ajustes no van ahí.
+- **Las secciones son cinco**, definidas en `shared/navigation.ts` (`SECTIONS`):
+  Mis listas, Descubrir, Voy a regalar, Gente y Notificaciones, esta última
+  siempre al final. Cinco es lo que cabe cómodo en la barra inferior. Antes de
+  sumar una sección nueva, busca dentro de cuál cabe: así Personas vive dentro
+  de Gente, como buscador, y Avisos y Solicitudes dentro de Notificaciones.
+- **En el teléfono, barra inferior** (`shared/tab-bar.ts`), como la de Tenpo.
+  - Es de vidrio, con la línea ámbar tenue arriba.
+  - La sección actual lleva la barrita encendida en el borde de arriba, y su
+    ícono y texto en ámbar, sin negrita: en negrita el texto salta y no cabe.
+  - El globito suma los contadores de la sección.
+  - Solo se ve en las pantallas de primer nivel (`isTopLevel`). Más adentro se
+    esconde y se vuelve con la flecha.
+  - El menú lateral se apaga en el teléfono, así que el ☰ desaparece solo.
+- **Desde `md`, menú lateral:** solo para navegar. Lleva el logo y las mismas
+  secciones, con un ancho fijo de 15rem. Los ajustes no van ahí.
+- **Pestañas dentro de una sección** (`.segmented`, como Avisos y Solicitudes):
+  son controles parejos con la actual teñida de ámbar y su contador. Cada
+  pestaña tiene su dirección, pero al cambiar no hay animación ni se suma al
+  historial (`navigateRoot` con `animated: false`).
 - **Tu cuenta:** tu foto arriba a la derecha de cada barra
   (`<ion-buttons slot="end"><app-user-menu /></ion-buttons>`). Al tocarla se
   abre el menú con Mi perfil, el modo claro u oscuro y, al final y en rojo,

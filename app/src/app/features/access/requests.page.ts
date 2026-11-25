@@ -24,11 +24,13 @@ import { formatDay } from '../../shared/format';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
 import { UserMenu } from '../../shared/user-menu';
+import { NotificationsSwitch } from '../notifications/notifications-switch';
 
 /** Todo lo que espera mi respuesta, y qué pasó con lo que pedí yo. */
 @Component({
   selector: 'app-requests',
   imports: [
+    NotificationsSwitch,
     UserMenu,
     RouterLink,
     PersonRow,

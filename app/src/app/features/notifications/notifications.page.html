@@ -3,7 +3,7 @@
     <ion-buttons slot="start">
       <ion-menu-button />
     </ion-buttons>
-    <ion-title><span class="title-gift" aria-hidden="true"></span>Avisos</ion-title>
+    <ion-title><span class="title-gift" aria-hidden="true"></span>Notificaciones</ion-title>
     <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
 </ion-header>
@@ -14,19 +14,21 @@
   </ion-refresher>
 
   <main class="mx-auto w-full max-w-3xl px-4 py-5 md:px-6 md:py-8">
-    <div class="enter-up mb-4 flex flex-wrap items-start justify-between gap-x-4 gap-y-3 md:mb-6">
-      <div class="min-w-0 flex-1 basis-64">
-        <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Avisos</h1>
-        <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-          Lo que pasó mientras no estabas. Solo tú ves esto.
-        </p>
-      </div>
+    <div class="enter-up mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">Notificaciones</h1>
       @if (hasUnread()) {
         <ion-button fill="outline" class="pressable m-0 shrink-0" (click)="readAll()">
           Marcar todo leído
         </ion-button>
       }
     </div>
+    <app-notifications-switch class="enter-up mb-3 block" style="--i: 1" current="avisos" />
+    <p
+      class="enter-up mt-0 mb-4 text-sm text-neutral-500 md:mb-6 dark:text-neutral-400"
+      style="--i: 2"
+    >
+      Lo que pasó mientras no estabas. Solo tú ves esto.
+    </p>
 
     @if (error(); as message) {
       <div

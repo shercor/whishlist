@@ -934,3 +934,174 @@ ion-popover.user-menu ion-item.user-menu-sign-out {
   max-width: 100%;
   height: auto;
 }
+
+/*
+ * Barra inferior del teléfono (tab-bar.ts), como la de Tenpo: las cinco secciones a un toque del
+ * pulgar. Del mismo vidrio que la barra superior, con la línea ámbar tenue arriba en vez de abajo.
+ * La sección actual se marca con la barrita encendida en el borde de arriba (la del menú lateral,
+ * girada) y su ícono y texto en ámbar. Desde md no existe: está el menú lateral.
+ */
+:root {
+  --tab-bar-height: 3.75rem;
+}
+
+.tab-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1px solid color-mix(in srgb, var(--gift-amber) 35%, transparent);
+  background: color-mix(in srgb, var(--color-white) 80%, transparent);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  backdrop-filter: blur(18px) saturate(160%);
+}
+
+:where(.ion-palette-dark) .tab-bar {
+  border-top-color: color-mix(in srgb, var(--gift-amber) 28%, transparent);
+  background: color-mix(in srgb, var(--color-neutral-950) 70%, transparent);
+}
+
+@media (min-width: 48rem) {
+  .tab-bar {
+    display: none;
+  }
+}
+
+.tab-bar-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-width: 0;
+  color: var(--color-neutral-500);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:where(.ion-palette-dark) .tab-bar-item {
+  color: var(--color-neutral-400);
+}
+
+/* Solo el color: en negrita el texto se ensancha, salta al cambiar de sección y «Notificaciones»
+   ya no cabe en un teléfono de 360 px. */
+.tab-bar-item[aria-current='page'] {
+  color: var(--accent-text);
+}
+
+/* La barrita, arriba: del ancho del ícono y algo más, pegada al borde, con su brillo. */
+.tab-bar-item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  inset-inline: 30%;
+  height: 3px;
+  border-end-start-radius: 3px;
+  border-end-end-radius: 3px;
+  background: var(--gift-amber);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--gift-amber) 55%, transparent);
+  animation: tab-bar-in 0.3s var(--ease-out) both;
+}
+
+@keyframes tab-bar-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+}
+
+.tab-bar-item:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: -4px;
+  border-radius: var(--radius-lg);
+}
+
+.tab-bar-icon {
+  position: relative;
+  display: inline-flex;
+  font-size: 1.5rem;
+}
+
+/* Lo que hay por ver, sobre el ícono: el mismo globito ámbar del menú lateral. */
+.tab-bar-badge {
+  position: absolute;
+  top: -0.3rem;
+  left: 60%;
+  min-width: 1.05rem;
+  padding: 0 0.25rem;
+  border-radius: 9999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-size: 0.625rem;
+  font-weight: 700;
+  line-height: 1.05rem;
+  text-align: center;
+}
+
+.tab-bar-label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Con la barra a la vista, cada pantalla deja espacio abajo para no quedar tapada (app.ts pone la
+   clase), y el menú de administrador se sube por encima de ella. */
+@media (max-width: 47.99rem) {
+  :root.with-tab-bar ion-content {
+    --padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom));
+  }
+
+  :root.with-tab-bar app-admin-menu {
+    bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom) + 0.75rem);
+  }
+}
+
+/* Pestañas dentro de una sección (Notificaciones: Avisos y Solicitudes): dos controles parejos, y
+   la actual teñida de ámbar como una opción elegida. Cada una con su contador. */
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+a.control.segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+a.control.segmented-item[aria-current='page'] {
+  border-color: var(--ion-color-primary);
+  background-color: color-mix(in srgb, var(--ion-color-primary) 10%, var(--color-white));
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+:where(.ion-palette-dark) a.control.segmented-item[aria-current='page'] {
+  background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
+}
+
+.segmented-count {
+  min-width: 1.25rem;
+  padding: 0 0.3rem;
+  border-radius: 9999px;
+  background: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+}

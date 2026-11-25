@@ -1,5 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, inject, signal, viewChild } from '@angular/core';
 import {
   IonButton,
   IonButtons,
@@ -22,13 +21,18 @@ import { errorMessage } from '../../core/http/api-error';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
 import { UserMenu } from '../../shared/user-menu';
+import { PeopleSearch } from '../people/people-search';
 
-/** Quién me sigue y a quién sigo. Solo un seguidor puede recibir una lista privada mía. */
+/**
+ * Gente: buscar a alguien, quién me sigue y a quién sigo. Solo un seguidor puede recibir una lista
+ * privada mía. El buscador era una sección aparte (Personas); vive aquí para que las secciones
+ * quepan en la barra inferior del teléfono.
+ */
 @Component({
   selector: 'app-follows',
   imports: [
     UserMenu,
-    RouterLink,
+    PeopleSearch,
     PersonRow,
     IonButton,
     IonButtons,
@@ -53,6 +57,9 @@ export class FollowsPage implements ViewWillEnter {
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** Hay una búsqueda en curso: se esconden tus listas de gente. */
+  protected readonly searching = signal(false);
+  protected readonly search = viewChild.required(PeopleSearch);
 
   ionViewWillEnter(): void {
     void this.load();

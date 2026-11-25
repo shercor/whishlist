@@ -58,11 +58,8 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/discover/discover.page').then((m) => m.DiscoverPage),
   },
-  {
-    path: 'personas',
-    canActivate: [authGuard],
-    loadComponent: () => import('./features/people/people.page').then((m) => m.PeoplePage),
-  },
+  // Buscar personas vive dentro de Gente. La dirección vieja sigue llevando ahí.
+  { path: 'personas', redirectTo: 'mi-gente' },
   {
     path: 'u/:username',
     canActivate: [authGuard],

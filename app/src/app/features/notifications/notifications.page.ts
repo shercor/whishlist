@@ -28,11 +28,13 @@ import { appPathFor } from '../../shared/app-path';
 import { formatAgo } from '../../shared/format';
 import { Notify } from '../../shared/notify';
 import { UserMenu } from '../../shared/user-menu';
+import { NotificationsSwitch } from './notifications-switch';
 
 /** Lo que pasó mientras no estabas. Tocar un aviso lo marca leído y lleva a lo que cuenta. */
 @Component({
   selector: 'app-notifications',
   imports: [
+    NotificationsSwitch,
     UserMenu,
     IonButton,
     IonButtons,
