@@ -23,11 +23,13 @@ import { errorMessage } from '../../core/http/api-error';
 import { ACCESS_SOURCES, ACCESS_STATUSES } from '../../shared/access-status';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
+import { UserMenu } from '../../shared/user-menu';
 
 /** «Quién la ve»: quién entró a una lista mía, por dónde, y a qué seguidor más dársela. */
 @Component({
   selector: 'app-wishlist-access',
   imports: [
+    UserMenu,
     RouterLink,
     PersonRow,
     IonBackButton,

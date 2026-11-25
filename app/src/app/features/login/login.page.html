@@ -2,13 +2,26 @@
   <app-theme-toggle class="theme-corner" />
 
   <main class="login">
-    <div
-      aria-hidden="true"
-      class="icon-float mb-2 flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl text-amber-700 shadow-sm dark:bg-amber-500/15 dark:text-amber-300"
-    >
-      <ion-icon name="gift-outline" />
-    </div>
-    <h1 class="enter-up" style="--i: 2">whishlist</h1>
+    <!--
+      Cabecera anterior: el regalo en un recuadro y el nombre escrito. Guardada por si se vuelve a
+      ella; para usarla, descomentarla, quitar el <h1> con el logo de abajo y devolver a
+      login.page.ts el import de IonIcon y addIcons({ giftOutline }).
+      <div
+        aria-hidden="true"
+        class="icon-float mb-2 flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl text-amber-700 shadow-sm dark:bg-amber-500/15 dark:text-amber-300"
+      >
+        <ion-icon name="gift-outline" />
+      </div>
+      <h1 class="enter-up" style="--i: 2">whishlist</h1>
+    -->
+    <!-- El logo, en la versión que se lee sobre el fondo de cada modo (como en el menú lateral). -->
+    <h1 class="enter-up" style="--i: 1">
+      <img
+        class="login-logo"
+        [src]="theme.isDark() ? 'logo-wishlist-sobre-oscuro.png' : 'logo-wishlist-sobre-claro.png'"
+        alt="wishlist"
+      />
+    </h1>
     <p class="enter-up" style="--i: 3">Tus listas de deseos, sin arruinar la sorpresa.</p>
 
     <form

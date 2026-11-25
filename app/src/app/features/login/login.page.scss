@@ -14,6 +14,14 @@ h1 {
   margin: 0;
 }
 
+// El logo de la portada: más grande que en el menú lateral, sin pasarse del ancho del formulario.
+.login-logo {
+  display: block;
+  width: 16rem;
+  max-width: 100%;
+  height: auto;
+}
+
 // Modo claro/oscuro en la esquina: estas pantallas no tienen menú.
 .theme-corner {
   position: absolute;

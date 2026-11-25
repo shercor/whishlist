@@ -17,6 +17,7 @@ import { addIcons } from 'ionicons';
 import { linkOutline } from 'ionicons/icons';
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
+import { UserMenu } from '../../shared/user-menu';
 
 /**
  * El enlace secreto de una lista (`/s/:token`): lo abre y lleva a la lista.
@@ -25,6 +26,7 @@ import { errorMessage } from '../../core/http/api-error';
 @Component({
   selector: 'app-shared-link',
   imports: [
+    UserMenu,
     RouterLink,
     IonButton,
     IonButtons,
@@ -43,6 +45,7 @@ import { errorMessage } from '../../core/http/api-error';
           <ion-menu-button />
         </ion-buttons>
         <ion-title><span class="title-gift" aria-hidden="true"></span>Lista compartida</ion-title>
+        <ion-buttons slot="end"><app-user-menu /></ion-buttons>
       </ion-toolbar>
     </ion-header>
 

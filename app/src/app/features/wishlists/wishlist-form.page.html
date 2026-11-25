@@ -7,7 +7,11 @@
         aria-label="Volver"
       />
     </ion-buttons>
-    <ion-title><span class="title-gift" aria-hidden="true"></span>{{ editing() ? 'Editar lista' : 'Nueva lista' }}</ion-title>
+    <ion-title
+      ><span class="title-gift" aria-hidden="true"></span
+      >{{ editing() ? 'Editar lista' : 'Nueva lista' }}</ion-title
+    >
+    <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
 </ion-header>
 

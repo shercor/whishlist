@@ -26,11 +26,13 @@ import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
 import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
 import { Notify } from '../../shared/notify';
+import { UserMenu } from '../../shared/user-menu';
 
 /** El perfil de alguien: seguirlo y las listas suyas que puedo abrir. */
 @Component({
   selector: 'app-profile',
   imports: [
+    UserMenu,
     RouterLink,
     Avatar,
     IonBackButton,

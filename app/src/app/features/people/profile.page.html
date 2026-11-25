@@ -3,7 +3,11 @@
     <ion-buttons slot="start">
       <ion-back-button defaultHref="/personas" text="" aria-label="Volver" />
     </ion-buttons>
-    <ion-title><span class="title-gift" aria-hidden="true"></span>{{ profile()?.handle ?? '@' + username() }}</ion-title>
+    <ion-title
+      ><span class="title-gift" aria-hidden="true"></span
+      >{{ profile()?.handle ?? '@' + username() }}</ion-title
+    >
+    <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
 </ion-header>
 

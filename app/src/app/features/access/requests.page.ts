@@ -23,11 +23,13 @@ import { ACCESS_STATUSES } from '../../shared/access-status';
 import { formatDay } from '../../shared/format';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Todo lo que espera mi respuesta, y qué pasó con lo que pedí yo. */
 @Component({
   selector: 'app-requests',
   imports: [
+    UserMenu,
     RouterLink,
     PersonRow,
     IonButton,

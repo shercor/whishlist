@@ -12,11 +12,13 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { compassOutline } from 'ionicons/icons';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Una dirección que no es ninguna pantalla de la app. */
 @Component({
   selector: 'app-not-found',
   imports: [
+    UserMenu,
     RouterLink,
     IonButton,
     IonButtons,
@@ -34,6 +36,7 @@ import { compassOutline } from 'ionicons/icons';
           <ion-menu-button />
         </ion-buttons>
         <ion-title><span class="title-gift" aria-hidden="true"></span>No existe</ion-title>
+        <ion-buttons slot="end"><app-user-menu /></ion-buttons>
       </ion-toolbar>
     </ion-header>
 

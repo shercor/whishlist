@@ -27,6 +27,7 @@ import { errorMessage } from '../../core/http/api-error';
 import { Notify } from '../../shared/notify';
 import { PRIORITIES, priorityOf } from '../../shared/priority';
 import { ProductSheet } from './product-sheet';
+import { UserMenu } from '../../shared/user-menu';
 
 type Mode = 'catalogo' | 'manual';
 
@@ -34,6 +35,7 @@ type Mode = 'catalogo' | 'manual';
 @Component({
   selector: 'app-item-form',
   imports: [
+    UserMenu,
     ProductSheet,
     IonBackButton,
     IonButton,

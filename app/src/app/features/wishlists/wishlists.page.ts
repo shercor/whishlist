@@ -25,10 +25,12 @@ import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
 import { visibilityOf } from '../../shared/visibility';
+import { UserMenu } from '../../shared/user-menu';
 
 @Component({
   selector: 'app-wishlists',
   imports: [
+    UserMenu,
     RouterLink,
     IonButton,
     IonButtons,

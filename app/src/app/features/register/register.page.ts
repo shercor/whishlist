@@ -1,9 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { IonButton, IonContent, IonIcon, IonSpinner } from '@ionic/angular';
-import { addIcons } from 'ionicons';
-import { giftOutline } from 'ionicons/icons';
+import { IonButton, IonContent, IonSpinner } from '@ionic/angular';
 import { AuthService } from '../../core/auth/auth.service';
+import { ThemeService } from '../../core/theme/theme.service';
 import { returnUrl } from '../../core/auth/return-url';
 import { errorMessage } from '../../core/http/api-error';
 import { ThemeToggle } from '../../shared/theme-toggle';
@@ -11,12 +10,14 @@ import { ThemeToggle } from '../../shared/theme-toggle';
 /** Crear una cuenta. Sin verificar el correo: al terminar quedas dentro, como en la web. */
 @Component({
   selector: 'app-register',
-  imports: [RouterLink, ThemeToggle, IonButton, IonContent, IonIcon, IonSpinner],
+  imports: [RouterLink, ThemeToggle, IonButton, IonContent, IonSpinner],
   templateUrl: './register.page.html',
   styleUrl: '../login/login.page.scss',
 })
 export class RegisterPage {
   private readonly auth = inject(AuthService);
+  /** Para elegir la versión del logo que se lee sobre el fondo de cada modo. */
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
@@ -42,10 +43,6 @@ export class RegisterPage {
       !this.mismatch() &&
       !this.saving(),
   );
-
-  constructor() {
-    addIcons({ giftOutline });
-  }
 
   protected async submit(event: Event): Promise<void> {
     event.preventDefault();

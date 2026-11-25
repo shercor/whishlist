@@ -2,12 +2,24 @@
   <app-theme-toggle class="theme-corner" />
 
   <main class="login">
-    <div
-      aria-hidden="true"
-      class="icon-float mb-2 flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl text-amber-700 shadow-sm dark:bg-amber-500/15 dark:text-amber-300"
-    >
-      <ion-icon name="gift-outline" />
-    </div>
+    <!--
+      Cabecera anterior: el regalo en un recuadro. Guardada por si se vuelve a ella; para usarla,
+      descomentarla, quitar el <img> con el logo de abajo y devolver a register.page.ts el import
+      de IonIcon y addIcons({ giftOutline }).
+      <div
+        aria-hidden="true"
+        class="icon-float mb-2 flex size-16 items-center justify-center rounded-2xl bg-amber-50 text-3xl text-amber-700 shadow-sm dark:bg-amber-500/15 dark:text-amber-300"
+      >
+        <ion-icon name="gift-outline" />
+      </div>
+    -->
+    <!-- El logo, igual que en la pantalla de entrar (los estilos son los de login.page.scss). -->
+    <img
+      class="login-logo enter-up"
+      style="--i: 1"
+      [src]="theme.isDark() ? 'logo-wishlist-sobre-oscuro.png' : 'logo-wishlist-sobre-claro.png'"
+      alt="wishlist"
+    />
     <h1 class="enter-up" style="--i: 2">Crea tu cuenta</h1>
     <p class="enter-up" style="--i: 3">Arma tus listas y regala sin repetir.</p>
 

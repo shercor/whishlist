@@ -45,6 +45,7 @@ import { LockedWishlistView } from '../access/locked-wishlist';
 import { GiftSheet } from './gift-sheet';
 import { ItemSheet } from './item-sheet';
 import { ShareSheet } from './share-sheet';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Regalos por página. */
 const PER_PAGE = 10;
@@ -56,6 +57,7 @@ const PER_PAGE = 10;
 @Component({
   selector: 'app-wishlist',
   imports: [
+    UserMenu,
     RouterLink,
     GiftSheet,
     LockedWishlistView,

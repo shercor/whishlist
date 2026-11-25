@@ -3,7 +3,11 @@
     <ion-buttons slot="start">
       <ion-back-button [defaultHref]="backHref()" text="" aria-label="Volver" />
     </ion-buttons>
-    <ion-title><span class="title-gift" aria-hidden="true"></span>{{ wishlist()?.name ?? 'Lista' }}</ion-title>
+    <ion-title
+      ><span class="title-gift" aria-hidden="true"></span
+      >{{ wishlist()?.name ?? 'Lista' }}</ion-title
+    >
+    <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -146,7 +150,8 @@
             @if (wishlist.is_mine) {
               <!-- Nada en esta pantalla habla de reservas: es lo que impide que el dueño se entere. -->
               <span>
-                Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la sorpresa.
+                Acá no verás si alguien reservó tus regalos. Es a propósito: la gracia es la
+                sorpresa.
               </span>
             } @else {
               <span>

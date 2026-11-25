@@ -21,11 +21,13 @@ import { AuthService } from '../../core/auth/auth.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Quién me sigue y a quién sigo. Solo un seguidor puede recibir una lista privada mía. */
 @Component({
   selector: 'app-follows',
   imports: [
+    UserMenu,
     RouterLink,
     PersonRow,
     IonButton,

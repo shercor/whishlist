@@ -1,5 +1,5 @@
 import { Component, computed, inject, linkedSignal, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
   IonButtons,
@@ -20,11 +20,14 @@ import { AuthService } from '../../core/auth/auth.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
 import { Notify } from '../../shared/notify';
+import { injectSignOut } from '../../shared/sign-out';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Con qué me encuentran los demás, y cuánto de mí ven. */
 @Component({
   selector: 'app-my-profile',
   imports: [
+    UserMenu,
     RouterLink,
     Avatar,
     IonButton,
@@ -43,7 +46,8 @@ export class MyProfilePage implements ViewWillEnter {
   private readonly api = inject(MeService);
   protected readonly auth = inject(AuthService);
   private readonly notify = inject(Notify);
-  private readonly router = inject(Router);
+  /** También está en el menú de la cuenta (la foto, arriba a la derecha); aquí es donde se busca. */
+  protected readonly logout = injectSignOut();
 
   /** El formulario parte de lo guardado y se reinicia si el perfil cambia por fuera. */
   protected readonly name = linkedSignal(() => this.auth.user()?.name ?? '');
@@ -64,16 +68,6 @@ export class MyProfilePage implements ViewWillEnter {
 
   ionViewWillEnter(): void {
     void this.auth.refresh();
-  }
-
-  /** Vive aquí y no en el menú: ahí estaba a un toque de cualquier sección y se apretaba sin querer. */
-  protected async logout(): Promise<void> {
-    try {
-      await this.auth.logout();
-    } catch {
-      // La sesión local ya se borró: el token que quedó en la API vence solo.
-    }
-    await this.router.navigateByUrl('/login', { replaceUrl: true });
   }
 
   protected async save(event: Event): Promise<void> {

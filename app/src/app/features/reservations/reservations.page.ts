@@ -26,11 +26,13 @@ import { ReservationsService } from '../../core/api/reservations.service';
 import { errorMessage } from '../../core/http/api-error';
 import { formatDay } from '../../shared/format';
 import { GiftSheet } from '../wishlists/gift-sheet';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Lo que tengo reservado. Nadie más ve esta pantalla, y menos los dueños de las listas. */
 @Component({
   selector: 'app-reservations',
   imports: [
+    UserMenu,
     RouterLink,
     GiftSheet,
     IonButton,

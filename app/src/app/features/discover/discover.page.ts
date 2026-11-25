@@ -25,11 +25,13 @@ import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
 import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Listas públicas de otra gente, para encontrar a quién regalarle. */
 @Component({
   selector: 'app-discover',
   imports: [
+    UserMenu,
     RouterLink,
     Avatar,
     IonButton,

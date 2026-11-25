@@ -20,11 +20,13 @@ import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Notify } from '../../shared/notify';
 import { VISIBILITIES, visibilityOf } from '../../shared/visibility';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Crear una lista, o editarla si la ruta trae su :id. */
 @Component({
   selector: 'app-wishlist-form',
   imports: [
+    UserMenu,
     IonBackButton,
     IonButton,
     IonButtons,

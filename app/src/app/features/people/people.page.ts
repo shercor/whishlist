@@ -16,6 +16,7 @@ import { User } from '../../core/api/models';
 import { PeopleService } from '../../core/api/people.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
+import { UserMenu } from '../../shared/user-menu';
 
 /** Con menos letras la API no devuelve a nadie: el directorio no se puede recorrer entero. */
 const MIN_LETTERS = 3;
@@ -24,6 +25,7 @@ const MIN_LETTERS = 3;
 @Component({
   selector: 'app-people',
   imports: [
+    UserMenu,
     RouterLink,
     Avatar,
     IonButtons,
