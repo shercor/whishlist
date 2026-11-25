@@ -78,7 +78,7 @@ class ApiGiverTest extends TestCase
 
         Sanctum::actingAs($yo);
 
-        $regalos = collect($this->getJson(route('api.v1.wishlists.show', $lista))->assertOk()->json('data.items'))
+        $regalos = collect($this->getJson(route('api.v1.items.index', $lista))->assertOk()->json('data'))
             ->keyBy('id');
 
         $this->assertSame($reserva->id, $regalos[$mio->id]['my_reservation_id']);

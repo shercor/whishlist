@@ -110,6 +110,13 @@ components:
       required: false
       schema: { type: integer, minimum: 1, default: 1 }
 
+    perPage:
+      name: per_page
+      in: query
+      description: Cuántos por página.
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+
     wishlistId:
       name: wishlist
       in: path
@@ -513,7 +520,9 @@ components:
           description: La fecha del cumpleaños o lo que sea. Solo el día.
         items_count:
           type: integer
-          description: Presente solo en los listados que lo cuentan.
+          description: |
+            Cuántos regalos tiene. Presente en los listados que lo cuentan y en
+            `GET /wishlists/{id}`.
         owner:
           $ref: '#/components/schemas/User'
           description: Presente solo cuando el endpoint carga la relación.
@@ -525,10 +534,6 @@ components:
             dársela a un invitado equivaldría a dejarle repartir la lista por su
             cuenta. Para todos los demás la clave no existe. Es `null` en las
             listas públicas, que no tienen enlace secreto.
-        items:
-          type: array
-          description: Presente solo en `GET /wishlists/{id}`.
-          items: { $ref: '#/components/schemas/WishlistItem' }
       required: [id, name, visibility, is_mine]
 
     # --- reservas ------------------------------------------------------------
@@ -1060,12 +1065,13 @@ paths:
   /wishlists/{wishlist}:
     get:
       tags: [Listas]
-      summary: Ver una lista con sus regalos
+      summary: Ver una lista
       description: |
-        El mismo endpoint sirve para tu lista y para la de otro, y **la
-        respuesta no tiene la misma forma en los dos casos**: si la lista es
-        tuya, sus regalos vienen sin `is_reserved` ni `reserved_by_me`. Ver el
-        esquema `WishlistItem`.
+        La lista con su dueño y **cuántos regalos tiene** (`items_count`), pero
+        sin los regalos: una lista puede tener muchos, y vienen por página en
+        `GET /wishlists/{wishlist}/items`.
+
+        Sirve igual para tu lista y para la de otro.
 
         Hay cuatro caminos por los que esto puede abrirse: que la lista sea
         pública, que sea tuya, que te la hayan concedido, o que la hayas abierto
@@ -1077,7 +1083,7 @@ paths:
         - $ref: '#/components/parameters/wishlistId'
       responses:
         '200':
-          description: La lista con sus regalos ordenados.
+          description: La lista, con `owner` e `items_count`.
           content:
             application/json:
               schema:
@@ -1190,6 +1196,42 @@ paths:
   # Regalos
   # ===========================================================================
   /wishlists/{wishlist}/items:
+    get:
+      tags: [Regalos]
+      summary: Los regalos de una lista, por página
+      description: |
+        En el orden de la lista. El mismo endpoint sirve para tu lista y para
+        la de otro, y **la respuesta no tiene la misma forma en los dos
+        casos**: si la lista es tuya, sus regalos vienen sin `is_reserved` ni
+        `reserved_by_me`. Ver el esquema `WishlistItem`.
+
+        Quién puede verlos es lo mismo que en `GET /wishlists/{wishlist}`, pero
+        si no puedes, aquí el 403 es seco: de quién es la lista y si puedes
+        pedirla lo dice ese otro endpoint.
+
+        Los enlaces de `links` conservan `per_page`.
+      parameters:
+        - $ref: '#/components/parameters/wishlistId'
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/perPage'
+      responses:
+        '200':
+          description: Una página de regalos.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/WishlistItem' }
+                  links: { $ref: '#/components/schemas/PaginationLinks' }
+                  meta:  { $ref: '#/components/schemas/PaginationMeta' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
     post:
       tags: [Regalos]
       summary: Agregar un regalo a una lista

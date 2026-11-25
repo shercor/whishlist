@@ -12,6 +12,7 @@ use App\Models\WishlistItem;
 use App\Services\UserProductCreator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Los regalos de una lista.
@@ -23,6 +24,47 @@ use Illuminate\Http\Request;
  */
 class WishlistItemController extends Controller
 {
+    /** Regalos por página si el cliente no dice otra cosa. */
+    private const POR_PAGINA = 20;
+
+    /**
+     * Los regalos de una lista, por página y en el orden de la lista.
+     *
+     * Sirve al dueño y a quien regala: qué campos trae cada regalo lo decide
+     * WishlistItemResource, no este método. La lista que no se puede ver da un
+     * 403 seco; quién es su dueño y si se le puede pedir lo dice `show`.
+     */
+    public function index(Request $request, Wishlist $wishlist): AnonymousResourceCollection
+    {
+        $this->authorize('view', $wishlist);
+
+        $datos = $request->validate([
+            'per_page' => ['sometimes', 'integer', 'min:1', 'max:50'],
+        ]);
+        $porPagina = (int) ($datos['per_page'] ?? self::POR_PAGINA);
+
+        $items = $wishlist->items()->ordered()->with('product.category');
+
+        // Los contadores de reserva se piden **solo** si quien mira no es el
+        // dueño. No es una optimización: es que la consulta que los trae es
+        // justamente la que el dueño no debe hacer.
+        if ($wishlist->user_id !== $request->user()->id) {
+            $items->withCount([
+                'reservations as reserved_count' => fn ($query) => $query->whereNotNull('active_flag'),
+                'reservations as mine_count' => fn ($query) => $query->whereNotNull('active_flag')
+                    ->where('user_id', $request->user()->id),
+            ]);
+        }
+
+        $pagina = $items->paginate($porPagina)->withQueryString();
+
+        // El Resource pregunta de quién es la lista en cada regalo. Ya se
+        // sabe: sin esto, cada uno la volvería a pedir a la base.
+        $pagina->getCollection()->each->setRelation('wishlist', $wishlist);
+
+        return WishlistItemResource::collection($pagina);
+    }
+
     public function store(
         StoreWishlistItemRequest $request,
         Wishlist $wishlist,

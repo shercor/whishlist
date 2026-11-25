@@ -360,9 +360,19 @@ ion-skeleton-text.skeleton-round {
  * con una barrita ámbar encendida en el borde izquierdo, y su ícono y texto en ámbar. El resto, en
  * gris tenue. Del borde que lo separa del contenido sale la misma línea ámbar de la barra superior.
  */
-/* :root delante: Ionic define --border con una clase, que le gana a una regla de solo elemento. */
+/*
+ * :root delante: Ionic define sus variables con una clase, que le gana a una regla de solo elemento.
+ *
+ * Ancho fijo del menú cuando queda al lado (desde md). Ionic lo deja en el 28% de la pantalla, así
+ * que crece con ella sin que haya más que mostrar: a 1680 px eran 470 px para siete secciones.
+ * 15rem alcanza para los nombres de sección y el contador; un @usuario muy largo se corta con «…».
+ * En el teléfono no aplica: ahí el menú se abre encima con su propio ancho.
+ */
 :root ion-split-pane {
   --border: 1px solid color-mix(in srgb, var(--gift-amber) 28%, transparent);
+  --side-width: 15rem;
+  --side-min-width: 15rem;
+  --side-max-width: 15rem;
 }
 
 /*
@@ -603,10 +613,13 @@ ion-menu.app-menu ion-footer {
  * Regalos de una lista en tarjetas (wishlist.page.html). Las columnas dependen del ancho que tiene
  * la lista, no de la pantalla (el padre lleva @container): con el menú abierto al lado, la misma
  * pantalla deja menos espacio. Dos columnas en el teléfono; desde ahí, tantas como quepan de
- * --gift-card-min, sin estirarse si son pocas.
+ * --gift-card-min, hasta --gift-grid-max por fila. Con más espacio que eso, las tarjetas crecen en
+ * vez de sumar columnas; con pocos regalos, no se estiran.
  */
 .gift-grid {
-  --gift-card-min: 14rem;
+  --gift-card-min: 10.5rem;
+  --gift-grid-max: 5;
+  --gift-grid-gap: 1rem;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
@@ -614,8 +627,19 @@ ion-menu.app-menu ion-footer {
 
 @container (min-width: 36rem) {
   .gift-grid {
-    grid-template-columns: repeat(auto-fill, minmax(var(--gift-card-min), 1fr));
-    gap: 1rem;
+    /* El mínimo de cada columna es el mayor entre --gift-card-min y una quinta parte del ancho
+       (descontados los espacios): así nunca caben más de cinco. */
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(
+        max(
+          var(--gift-card-min),
+          calc((100% - (var(--gift-grid-max) - 1) * var(--gift-grid-gap)) / var(--gift-grid-max))
+        ),
+        1fr
+      )
+    );
+    gap: var(--gift-grid-gap);
   }
 }
 
@@ -634,12 +658,12 @@ ion-menu.app-menu ion-footer {
   }
 }
 
-/* La foto: algo más ancha que alta. Sobre blanco, para que el crema de los regalos sin foto (un ámbar
+/* La foto: cuadrada, que es lo que mejor les queda a la mayoría de los productos. Sobre blanco, para que el crema de los regalos sin foto (un ámbar
    translúcido) se vea igual en los dos modos. */
 .gift-card-media {
   position: relative;
   flex-shrink: 0;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 1;
   background-color: var(--color-white);
   border-bottom: 1px solid rgb(0 0 0 / 0.05);
 }
@@ -713,4 +737,19 @@ ion-menu.app-menu ion-footer {
 
 .photo-frame > img:last-child {
   object-fit: contain;
+}
+
+/* Botones de página (1 2 3 …): cuadrados del alto de los controles; la actual, en ámbar. */
+button.control.page-button {
+  justify-content: center;
+  min-width: var(--control-height);
+  padding: 0 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+button.control.page-button[aria-current='page'] {
+  border-color: var(--ion-color-primary);
+  background-color: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-weight: 600;
 }

@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 import { environment } from '../../../environments/environment';
 import { Wishlist, WishlistItem } from '../../core/api/models';
-import { WishlistPage } from './wishlist.page';
+import { WishlistPage, pageNumbers } from './wishlist.page';
 
 function item(overrides: Partial<WishlistItem>): WishlistItem {
   return {
@@ -37,11 +37,18 @@ describe('WishlistPage', () => {
 
   afterEach(() => backend.verify());
 
-  async function render(wishlist: Wishlist): Promise<string> {
+  /** La lista y su primera página de regalos llegan por dos pedidos. */
+  async function render(wishlist: Wishlist, gifts: WishlistItem[]): Promise<string> {
     const fixture = TestBed.createComponent(WishlistPage);
     fixture.componentRef.setInput('id', String(wishlist.id));
     fixture.componentInstance.ionViewWillEnter();
     backend.expectOne(`${environment.apiUrl}/wishlists/${wishlist.id}`).flush({ data: wishlist });
+    backend
+      .expectOne((request) => request.url === `${environment.apiUrl}/wishlists/${wishlist.id}/items`)
+      .flush({
+        data: gifts,
+        meta: { current_page: 1, last_page: 1, per_page: 10, total: gifts.length },
+      });
     await fixture.whenStable();
     fixture.detectChanges();
     return (fixture.nativeElement as HTMLElement).textContent ?? '';
@@ -68,8 +75,7 @@ describe('WishlistPage', () => {
         avatar: null,
         initials: 'B',
       },
-      items,
-    });
+    }, items);
 
     expect(text).toContain('Bruno no ve nada de esta pantalla');
     expect(text).toContain('Lo reservaste tú');
@@ -86,11 +92,17 @@ describe('WishlistPage', () => {
       event_date: null,
       is_mine: true,
       share_token: 'abc',
-      items,
-    });
+    }, items);
 
     expect(text).toContain('Acá no verás si alguien reservó tus regalos');
     expect(text).not.toContain('Lo reservaste tú');
     expect(text).not.toContain('Ya lo reservaron');
+  });
+
+  it('numera las páginas con «…» cuando son muchas', () => {
+    expect(pageNumbers(1, 3)).toEqual([1, 2, 3]);
+    expect(pageNumbers(1, 12)).toEqual([1, 2, null, 12]);
+    expect(pageNumbers(5, 12)).toEqual([1, null, 4, 5, 6, null, 12]);
+    expect(pageNumbers(12, 12)).toEqual([1, null, 11, 12]);
   });
 });

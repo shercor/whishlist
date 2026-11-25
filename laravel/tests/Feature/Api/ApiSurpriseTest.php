@@ -56,9 +56,9 @@ class ApiSurpriseTest extends TestCase
 
         Sanctum::actingAs($duenio);
 
-        $regalo = $this->getJson(route('api.v1.wishlists.show', $lista))
+        $regalo = $this->getJson(route('api.v1.items.index', $lista))
             ->assertOk()
-            ->json('data.items.0');
+            ->json('data.0');
 
         // Ni el booleano: saber que está tomado ya le dice que se lo van a
         // comprar. Por eso la clave no debe ni existir.
@@ -72,7 +72,9 @@ class ApiSurpriseTest extends TestCase
 
         Sanctum::actingAs($duenio);
 
-        $crudo = $this->getJson(route('api.v1.wishlists.show', $lista))->assertOk()->content();
+        // La lista y sus regalos llegan por dos endpoints: ninguno puede traerlo.
+        $crudo = $this->getJson(route('api.v1.wishlists.show', $lista))->assertOk()->content()
+            .$this->getJson(route('api.v1.items.index', $lista))->assertOk()->content();
 
         foreach (['Ana Rojas', 'anarojas_7', 'Se lo llevo el sábado', 'reservation'] as $rastro) {
             $this->assertStringNotContainsString($rastro, $crudo, "«{$rastro}» viajó al dueño.");
@@ -85,8 +87,8 @@ class ApiSurpriseTest extends TestCase
 
         Sanctum::actingAs(User::factory()->create());
 
-        $respuesta = $this->getJson(route('api.v1.wishlists.show', $lista))->assertOk();
-        $regalo = $respuesta->json('data.items.0');
+        $respuesta = $this->getJson(route('api.v1.items.index', $lista))->assertOk();
+        $regalo = $respuesta->json('data.0');
 
         $this->assertTrue($regalo['is_reserved']);
         // No es suya: la tiene otra persona.
@@ -104,9 +106,9 @@ class ApiSurpriseTest extends TestCase
 
         Sanctum::actingAs($regalador);
 
-        $regalo = $this->getJson(route('api.v1.wishlists.show', $lista))
+        $regalo = $this->getJson(route('api.v1.items.index', $lista))
             ->assertOk()
-            ->json('data.items.0');
+            ->json('data.0');
 
         $this->assertTrue($regalo['is_reserved']);
         $this->assertTrue($regalo['reserved_by_me']);

@@ -15,9 +15,10 @@ use Illuminate\Support\Str;
 /**
  * Listas de deseos.
  *
- * Un solo `show` sirve al dueño y a quien va a regalar, y es el
- * `WishlistItemResource` el que decide qué campos ve cada uno. En la web son
- * dos controladores distintos porque son dos pantallas; acá partirlo en dos
+ * Un solo `show` sirve al dueño y a quien va a regalar. Los regalos no vienen
+ * dentro: se piden paginados a `GET /wishlists/{id}/items`, donde el
+ * `WishlistItemResource` decide qué campos ve cada uno. En la web son dos
+ * controladores distintos porque son dos pantallas; acá partirlo en dos
  * endpoints obligaría al cliente a saber de antemano si la lista es suya, y
  * dejaría la regla de la sorpresa escrita en dos sitios.
  */
@@ -85,22 +86,10 @@ class WishlistController extends Controller
             ], 403);
         }
 
-        $esMia = $wishlist->user_id === $request->user()->id;
-
-        $items = $wishlist->items()->ordered()->with('product.category');
-
-        // Los contadores de reserva se piden **solo** si quien mira no es el
-        // dueño. No es una optimización: es que la consulta que los trae es
-        // justamente la que el dueño no debe hacer.
-        if (! $esMia) {
-            $items->withCount([
-                'reservations as reserved_count' => fn ($query) => $query->whereNotNull('active_flag'),
-                'reservations as mine_count' => fn ($query) => $query->whereNotNull('active_flag')
-                    ->where('user_id', $request->user()->id),
-            ]);
-        }
-
-        $wishlist->setRelation('items', $items->get());
+        // Sin los regalos: una lista puede tener muchos, y vienen por página en
+        // `GET /wishlists/{id}/items`. Va la cuenta, para que el cliente sepa
+        // cuántos son antes de pedirlos.
+        $wishlist->loadCount('items');
         $wishlist->load('user');
 
         return response()->json(['data' => WishlistResource::make($wishlist)->resolve($request)]);

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Page, Wishlist, WishlistInput } from './models';
+import { Page, Wishlist, WishlistInput, WishlistItem } from './models';
 
 @Injectable({ providedIn: 'root' })
 export class WishlistsService {
@@ -23,10 +23,21 @@ export class WishlistsService {
     );
   }
 
-  /** Una lista con sus regalos. Qué campos trae cada regalo depende de si es mía (ver WishlistItem). */
+  /** Una lista, con cuántos regalos tiene pero sin ellos: vienen por página con items(). */
   async show(id: number): Promise<Wishlist> {
     const response = await firstValueFrom(this.http.get<{ data: Wishlist }>(`${this.base}/${id}`));
     return response.data;
+  }
+
+  /**
+   * Una página de los regalos de una lista, en su orden. Qué campos trae cada regalo depende de
+   * si la lista es mía (ver WishlistItem).
+   */
+  items(id: number, page = 1, perPage = 20): Promise<Page<WishlistItem>> {
+    const params = new HttpParams().set('page', page).set('per_page', perPage);
+    return firstValueFrom(
+      this.http.get<Page<WishlistItem>>(`${this.base}/${id}/items`, { params }),
+    );
   }
 
   /**

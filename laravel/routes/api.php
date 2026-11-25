@@ -79,6 +79,8 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
 
         // Los regalos cuelgan de su lista para crearlos, y van en plano para
         // editarlos: el id del regalo ya lo identifica sin ambigüedad.
+        // Los regalos de una lista vienen por página, aparte de la lista.
+        Route::get('wishlists/{wishlist}/items', [WishlistItemController::class, 'index'])->name('items.index');
         Route::post('wishlists/{wishlist}/items', [WishlistItemController::class, 'store'])->name('items.store');
         Route::patch('items/{item}', [WishlistItemController::class, 'update'])->name('items.update');
         Route::delete('items/{item}', [WishlistItemController::class, 'destroy'])->name('items.destroy');

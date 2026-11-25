@@ -97,13 +97,12 @@ export interface Wishlist {
   visibility: WishlistVisibility;
   /** aaaa-mm-dd */
   event_date: string | null;
+  /** En los listados y en el detalle. Los regalos mismos se piden por página (WishlistsService.items). */
   items_count?: number;
   owner?: User;
   is_mine: boolean;
   /** Solo para el dueño de una lista privada. */
   share_token?: string | null;
-  /** Solo en el detalle de una lista. */
-  items?: WishlistItem[];
 }
 
 export interface Category {
