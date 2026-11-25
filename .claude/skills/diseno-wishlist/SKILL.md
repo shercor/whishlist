@@ -123,6 +123,10 @@ Son tres recursos que se repiten y amarran la identidad:
   - En el menú lateral marca la sección actual.
   - En menús desplegables también aparece al pasar el mouse o llegar con el
     teclado (`.ion-focused`).
+  - En las **filas que abren otra pantalla dentro de una tarjeta** (Mis listas,
+    Descubrir, personas, avisos...) aparece al pasar el mouse o con el
+    teclado. Ya está global: basta con que la fila sea `.tappable-row` e hija
+    directa de `.card`. Así "esto se abre" se dice igual en toda la app.
   - En una opción destructiva, la barrita es roja (`--bar-color`).
   - Hay que darle `z-index: 1` al `::before` sobre `ion-item`, o el fondo de la
     fila la tapa. Copiar los bloques de `ion-menu.app-menu` o de
@@ -166,6 +170,9 @@ Son tres recursos que se repiten y amarran la identidad:
   borrosa sobre crema. Vale para tarjetas y para miniaturas en hojas.
 - **Sin foto:** el regalo de la marca (`.gift-mark`) sobre crema
   (`bg-amber-50 dark:bg-amber-500/10`, sobre blanco). Nunca una inicial gris.
+  En una fila, una lista lleva el mismo regalo en un recuadro redondeado
+  (`rounded-xl bg-amber-50 dark:bg-amber-500/15`). Las iniciales quedan solo
+  para las personas (`app-avatar`).
 - Lo que ya no está disponible (recibido, o reservado por otro) va con
   `opacity-60`.
 
@@ -186,7 +193,8 @@ Son tres recursos que se repiten y amarran la identidad:
   (`<ion-buttons slot="end"><app-user-menu /></ion-buttons>`). Al tocarla se
   abre el menú con Mi perfil, el modo claro u oscuro y, al final y en rojo,
   Cerrar sesión.
-- **Títulos de sección:** `.section-title`, por ejemplo "Regalos · 26".
+- **Títulos de sección:** `.section-title`, con la cuenta tras un punto medio
+  ("Regalos · 26", "Te siguen · 0"), nunca entre paréntesis.
   Aclaraciones: `.hint`. Texto secundario:
   `text-sm text-neutral-500 dark:text-neutral-400`.
 
@@ -281,8 +289,9 @@ Para comprobarlo con capturas reales, sigue la sección siguiente.
 ## Comprobar con capturas
 
 `scripts/capturas.mjs` abre Chrome sin ventana, entra con un token y saca una
-captura por cada combinación de ruta, ancho y modo. Puede, además, tocar algo
-antes de capturar (abrir un menú, una hoja...). Los pasos:
+captura por cada combinación de ruta, ancho y modo. Puede, además, pasar el
+mouse sobre algo (para ver la barrita o un borde encendido) y tocar algo (abrir
+un menú, una hoja...), y saca una captura más por cada cosa. Los pasos:
 
 ```bash
 # 1. Un token para un usuario de prueba de los seeders (ver HANDOFF.md):
@@ -292,7 +301,7 @@ TOKEN=$(docker compose exec -T app php artisan tinker --execute \
 # 2. Las capturas (carpeta de salida en el scratchpad de la sesión):
 node .claude/skills/diseno-wishlist/scripts/capturas.mjs --token="$TOKEN" \
   --out=<carpeta> --paths=/listas/1,/perfil --widths=420,1280 --themes=oscuro,claro \
-  [--click=.user-menu-trigger] [--scroll=300]
+  [--hover='.card > .tappable-row'] [--click=.user-menu-trigger] [--scroll=300]
 
 # 3. Revocar el token al terminar:
 curl -s -X DELETE localhost:8080/api/v1/tokens/current \

@@ -65,9 +65,10 @@ describe('WishlistsPage', () => {
       row.textContent?.replace(/\s+/g, ' ').trim(),
     );
     // La fecha va dos veces, pegadas: corta para el teléfono y larga desde md. El CSS muestra una.
+    // Sin inicial delante: cada fila lleva el regalo de la marca, que es una imagen sin texto.
     expect(rows).toEqual([
-      'N Navidad Pública 3 regalos · 24 dic 202624 de diciembre de 2026',
-      'C Cumpleaños Privada Vacía todavía',
+      'Navidad Pública 3 regalos · 24 dic 202624 de diciembre de 2026',
+      'Cumpleaños Privada Vacía todavía',
     ]);
   });
 

@@ -49,7 +49,7 @@
       </div>
     } @else {
       @if (followRequests().length > 0) {
-        <h2 class="section-title enter-up">Quieren seguirte ({{ followRequests().length }})</h2>
+        <h2 class="section-title enter-up">Quieren seguirte · {{ followRequests().length }}</h2>
         <div role="list" aria-label="Quieren seguirte" class="card enter-up mb-2 overflow-hidden">
           @for (follow of followRequests(); track follow.id) {
             @if (follow.follower; as person) {

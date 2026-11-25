@@ -74,7 +74,7 @@
         </div>
       }
 
-      <h2 class="section-title enter-up">Te siguen ({{ lists.followers.length }})</h2>
+      <h2 class="section-title enter-up">Te siguen · {{ lists.followers.length }}</h2>
       @if (lists.followers.length > 0) {
         <div role="list" aria-label="Te siguen" class="card enter-up mb-6 overflow-hidden">
           @for (follow of lists.followers; track follow.id) {
@@ -101,7 +101,7 @@
         </div>
       }
 
-      <h2 class="section-title enter-up">Sigues a ({{ lists.following.length }})</h2>
+      <h2 class="section-title enter-up">Sigues a · {{ lists.following.length }}</h2>
       @if (lists.following.length > 0) {
         <div role="list" aria-label="Sigues a" class="card enter-up mb-6 overflow-hidden">
           @for (follow of lists.following; track follow.id) {

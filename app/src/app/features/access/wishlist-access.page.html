@@ -58,7 +58,7 @@
         </div>
       }
 
-      <h2 class="section-title enter-up">Con acceso ({{ accesses().length }})</h2>
+      <h2 class="section-title enter-up">Con acceso · {{ accesses().length }}</h2>
       @if (accesses().length > 0) {
         <div role="list" aria-label="Con acceso" class="card enter-up mb-6 overflow-hidden">
           @for (access of accesses(); track access.id) {

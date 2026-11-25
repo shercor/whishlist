@@ -488,6 +488,42 @@ ion-menu.app-menu ion-item.selected::before {
   background-color: rgb(255 255 255 / 0.08);
 }
 
+/*
+ * Filas que abren otra pantalla dentro de una tarjeta (Mis listas, Descubrir, personas, avisos,
+ * reservas, el catálogo al agregar un regalo): al pasar el mouse o al llegar con el teclado se
+ * enciende la barrita en su borde izquierdo, la misma del menú lateral y del menú de la cuenta. Así
+ * «esto se abre» se dice igual en toda la app. Solo las filas hijas directas de .card: las tarjetas
+ * de regalo (.card.tappable-row) tienen su propio encendido, el borde ámbar.
+ */
+.card > .tappable-row {
+  position: relative;
+}
+
+.card > .tappable-row::before {
+  /* La forma de la barrita. Sin `content` no se dibuja: la encienden los estados de abajo. */
+  position: absolute;
+  inset-block: 0.5rem;
+  inset-inline-start: 0;
+  z-index: 1;
+  width: 3px;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  background: var(--gift-amber);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--gift-amber) 55%, transparent);
+  animation: menu-bar-in 0.25s var(--ease-out) both;
+}
+
+.card > .tappable-row:focus-visible::before {
+  content: '';
+}
+
+/* El hover solo con mouse: en el teléfono la barrita quedaría encendida después de tocar. */
+@media (hover: hover) {
+  .card > .tappable-row:hover::before {
+    content: '';
+  }
+}
+
 /* Botones de acción con el alto de los controles (40 px), sólidos o con borde: así una fila de
    acciones queda pareja. Los de la barra superior y los transparentes conservan su tamaño. */
 ion-button:not([fill='clear']):not(.in-toolbar) {
