@@ -6,9 +6,11 @@
 /.vscode/*
 !/.vscode/launch.json
 
-# Claude Code
+# Claude Code. Las skills del proyecto sí se versionan (como en tracker-gastos); lo demás de
+# .claude/ es configuración local de cada equipo.
 /CLAUDE.md
-/.claude/
+/.claude/*
+!/.claude/skills/
 
 # SO
 .DS_Store

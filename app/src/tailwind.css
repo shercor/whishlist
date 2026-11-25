@@ -762,67 +762,133 @@ button.control.page-button[aria-current='page'] {
   box-shadow: 0 0 0 2px var(--accent-text);
 }
 
-/* El menú de la cuenta: tarjeta flotante con las filas del mismo alto que el menú lateral. */
+/*
+ * El menú de la cuenta (user-menu.ts), con el lenguaje del menú lateral y la barra superior:
+ * - vidrio: translúcido y con desenfoque, la pantalla se adivina detrás;
+ * - el resplandor ámbar que nace arriba, detrás de tu foto, y se apaga hacia abajo;
+ * - el borde, una línea ámbar tenue como la de la barra superior;
+ * - las filas a todo el ancho y sin fondo teñido: la que se va a elegir (mouse o teclado) y la de
+ *   la pantalla en que estás se marcan con la barrita encendida en el borde izquierdo.
+ */
 ion-popover.user-menu {
-  --width: 15rem;
-  --background: var(--color-white);
-  --box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+  --width: 15.5rem;
+  --background:
+    radial-gradient(
+      130% 70% at 12% 0%,
+      color-mix(in srgb, var(--gift-amber) 10%, transparent),
+      transparent 75%
+    ),
+    color-mix(in srgb, var(--color-white) 88%, transparent);
+  --box-shadow: 0 16px 40px rgb(0 0 0 / 0.16);
 }
 
 :where(.ion-palette-dark) ion-popover.user-menu {
-  --background: var(--color-neutral-900);
-  --box-shadow: 0 12px 32px rgb(0 0 0 / 0.6);
+  --background:
+    radial-gradient(
+      130% 70% at 12% 0%,
+      color-mix(in srgb, var(--gift-amber) 14%, transparent),
+      transparent 75%
+    ),
+    color-mix(in srgb, var(--color-neutral-900) 80%, transparent);
+  --box-shadow: 0 16px 40px rgb(0 0 0 / 0.55);
 }
 
 ion-popover.user-menu::part(content) {
   border-radius: var(--radius-xl);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
   box-shadow:
     var(--box-shadow),
-    0 0 0 1px rgb(0 0 0 / 0.06);
+    0 0 0 1px color-mix(in srgb, var(--gift-amber) 30%, transparent);
 }
 
 :where(.ion-palette-dark) ion-popover.user-menu::part(content) {
   box-shadow:
     var(--box-shadow),
-    0 0 0 1px rgb(255 255 255 / 0.08);
+    0 0 0 1px color-mix(in srgb, var(--gift-amber) 26%, transparent);
+}
+
+/* Tu foto arriba del menú: el mismo aro con separación de la esquina, ya encendido. */
+.user-menu-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 2px;
+  border-radius: 9999px;
+  box-shadow: 0 0 0 2px var(--gift-amber);
 }
 
 ion-popover.user-menu ion-list {
-  padding: 0 0 0.375rem;
+  padding: 0.25rem 0 0.375rem;
   border-top: 1px solid rgb(0 0 0 / 0.06);
   background: transparent;
 }
 
 :where(.ion-palette-dark) ion-popover.user-menu ion-list {
-  border-top-color: rgb(255 255 255 / 0.08);
+  border-top-color: rgb(255 255 255 / 0.07);
 }
 
 ion-popover.user-menu ion-item {
+  --bar-color: var(--gift-amber);
   --background: transparent;
+  --background-hover: var(--color-neutral-900);
+  --background-hover-opacity: 0.04;
+  --background-focused: var(--color-neutral-900);
+  --background-focused-opacity: 0.04;
+  --color: var(--color-neutral-600);
   --min-height: 2.75rem;
   --padding-start: 1rem;
   font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+:where(.ion-palette-dark) ion-popover.user-menu ion-item {
+  --background-hover: var(--color-white);
+  --background-hover-opacity: 0.05;
+  --background-focused: var(--color-white);
+  --background-focused-opacity: 0.05;
+  --color: var(--color-neutral-300);
 }
 
 ion-popover.user-menu ion-item ion-icon {
   margin-inline-end: 0.875rem;
-  color: var(--color-neutral-500);
-}
-
-/* Cerrar sesión: separado del resto y en rojo, para que no se confunda con un paso más. */
-ion-popover.user-menu ion-item.user-menu-sign-out {
-  margin-top: 0.375rem;
-  border-top: 1px solid rgb(0 0 0 / 0.06);
-  --color: var(--color-red-600);
-}
-
-ion-popover.user-menu ion-item.user-menu-sign-out ion-icon {
   color: inherit;
 }
 
+/* La fila de la pantalla en que estás (Mi perfil, en /perfil): ámbar, como en el menú lateral. */
+ion-popover.user-menu ion-item.selected {
+  --color: var(--accent-text);
+  font-weight: 600;
+}
+
+/* La barrita: en la fila elegida, y al pasar el mouse o llegar con el teclado. La misma del menú
+   lateral (z-index por lo mismo: el fondo de la fila se pintaría encima). */
+ion-popover.user-menu ion-item.selected::before,
+ion-popover.user-menu ion-item:hover::before,
+ion-popover.user-menu ion-item.ion-focused::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.375rem;
+  inset-inline-start: 0;
+  z-index: 1;
+  width: 3px;
+  border-start-end-radius: 3px;
+  border-end-end-radius: 3px;
+  background: var(--bar-color);
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--bar-color) 55%, transparent);
+  animation: menu-bar-in 0.25s var(--ease-out) both;
+}
+
+/* Cerrar sesión: separado del resto y en rojo, también su barrita: es una salida, no un paso más. */
+ion-popover.user-menu ion-item.user-menu-sign-out {
+  --bar-color: var(--color-red-500);
+  --color: var(--color-red-600);
+  margin-top: 0.25rem;
+  border-top: 1px solid rgb(0 0 0 / 0.06);
+}
+
 :where(.ion-palette-dark) ion-popover.user-menu ion-item.user-menu-sign-out {
-  border-top-color: rgb(255 255 255 / 0.08);
   --color: var(--color-red-400);
+  border-top-color: rgb(255 255 255 / 0.07);
 }
 
 /* El logo arriba del menú lateral (app.ts): a lo ancho del menú, con su proporción. */

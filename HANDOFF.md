@@ -183,9 +183,11 @@ Ionic 9 + Tailwind 4** en `app/`, para tener también la app de teléfono
 - **Pantalla por pantalla:** la web Blade sigue funcionando entera mientras
   tanto. Las vistas, rutas web y controladores web se borran recién cuando la
   app tenga todas las pantallas.
-- **Diseño de tracker-gastos**, no el aspecto actual de whishlist: fondo gris,
-  tarjetas blancas, controles de 40 px, modo oscuro según el sistema. Las reglas
-  están en `../tracker-gastos/.claude/skills/diseno-app/SKILL.md`, y los
+- **Diseño propio**: partió del de tracker-gastos (fondo gris, tarjetas,
+  controles de 40 px) y ya tiene identidad: el ámbar de los regalos como color
+  principal, vidrio en modo oscuro sobre el fondo de regalos, la barrita
+  encendida, fotos completas con fondo borroso y modo claro u oscuro elegible.
+  Las reglas están en la skill `.claude/skills/diseno-wishlist/SKILL.md`, y los
   estilos en `app/src/tailwind.css` y `app/src/animations.css`.
 
 **Ya migradas:** entrar con correo y contraseña (`/login`), «Mis listas»
