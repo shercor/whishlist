@@ -30,6 +30,25 @@ este archivo.
 vidrio, botones, tarjetas con foto, chips, paginación y hojas. Ante la duda,
 copiar cómo lo resuelve esa vista.
 
+## Si también está ui-ux-pro-max
+
+`ui-ux-pro-max` es una guía genérica de UI/UX instalada en el proyecto. Se
+activa con las mismas tareas que esta, así que muchas veces se cargan las dos.
+
+- **Por defecto manda este archivo.** Si las dos chocan (alto de los
+  controles, colores, tipografía, estilo, animaciones), se sigue lo de aquí.
+  Al informar el cambio, se dice en una línea qué recomendación de
+  ui-ux-pro-max no se siguió y por qué.
+- **ui-ux-pro-max sirve de consulta** para lo que este archivo no cubre (por
+  ejemplo formularios, accesibilidad o gráficos), sin tocar marca, colores ni
+  tipografía.
+- **El usuario puede elegir.** Si pide usar ui-ux-pro-max para una tarea, se
+  usa esa aunque choque con este archivo. Antes de aplicar algo que contradiga
+  este archivo, se le dice qué regla de aquí se rompe, para que confirme.
+- **No crear un segundo sistema de diseño.** Nada de
+  `search.py --design-system --persist` (que crea `design-system/`) en este
+  repo, salvo que el usuario lo pida.
+
 ## Dónde vive cada cosa
 
 | Archivo | Contenido |
@@ -175,6 +194,11 @@ Son tres recursos que se repiten y amarran la identidad:
   para las personas (`app-avatar`).
 - Lo que ya no está disponible (recibido, o reservado por otro) va con
   `opacity-60`.
+- **En una lista ajena**, cada regalo disponible lleva al pie el botón
+  "Lo regalo yo" (`ion-button.gift-card-action`, con contorno: una grilla de
+  botones sólidos no deja ver nada). Reserva sin abrir la hoja; el resto de la
+  tarjeta abre la hoja con la ficha. Arriba, la foto y el nombre de la dueña
+  (`.owner-link`) y la fecha del evento con cuenta regresiva (`eventCountdown`).
 
 ## 6. Menús, hojas y jerarquía de la pantalla
 
@@ -183,7 +207,23 @@ Son tres recursos que se repiten y amarran la identidad:
   - Las acciones secundarias con mucho contenido van a una **hoja**: por
     ejemplo, Compartir abre `share-sheet.ts` con el enlace y "Quién la ve".
   - Las aclaraciones permanentes van en **una línea con ícono** sobre el
-    contenido (la de "Acá no verás si alguien reservó..."), no en una franja.
+    contenido (la de "No verás si alguien reservó tus regalos..."), no en una
+    franja.
+- **Listas agrupadas** (Voy a regalar: reservas por persona): lo que agrupa
+  es un **encabezado de sección fuera de la tarjeta**, sobre el fondo, con
+  foto, `h2` en negrita y un enlace secundario gris (`a.list-link` con
+  `chevron-forward`). Dentro de la tarjeta va solo el contenido del grupo.
+  Nunca el encabezado como una fila más de la tarjeta: se lee al mismo nivel
+  que lo que agrupa. Entre grupos, más espacio que entre filas (`gap-7`).
+- **Poco texto explicativo.** Bajo el título de una pantalla, una frase corta
+  como mucho. Lo que vale para toda una sección se dice una vez bajo su título
+  (como "Pueden recibir tus listas privadas." en Te siguen), no en cada fila.
+- **Las acciones poco frecuentes no compiten con el contenido.** Quitar a un
+  seguidor o quitarle el acceso a alguien va en un ícono discreto
+  (`fill="clear" color="medium"`, con `aria-label` y confirmación), no en un
+  enlace rojo en cada fila. El rojo queda para lo que borra algo de verdad.
+- **Ajustes que se prenden o se apagan:** `ion-toggle`, con su explicación en
+  una línea a la izquierda (Mi perfil, Privacidad).
 - **Hojas** (`ion-modal.auto-height` con `.modal-body`): en el teléfono suben
   desde abajo (`breakpoints [0, 1]`) y en escritorio son una tarjeta de 28rem.
   Arriba llevan un `h2` y el botón de cerrar (`fill="clear" color="medium"`).
@@ -206,7 +246,10 @@ Son tres recursos que se repiten y amarran la identidad:
 - **Pestañas dentro de una sección** (`.segmented`, como Avisos y Solicitudes):
   son controles parejos con la actual teñida de ámbar y su contador. Cada
   pestaña tiene su dirección, pero al cambiar no hay animación ni se suma al
-  historial (`navigateRoot` con `animated: false`).
+  historial (`navigateRoot` con `animated: false`). Si solo cambian lo que se
+  ve, sin dirección propia (Agregar regalo: Del catálogo y Escribirlo yo), son
+  `button.control.segmented-item` con `aria-pressed`. Nunca `ion-segment`: sus
+  mayúsculas y su raya son de Android y no combinan con el resto.
 - **Tu cuenta:** tu foto arriba a la derecha de cada barra
   (`<ion-buttons slot="end"><app-user-menu /></ion-buttons>`). Al tocarla se
   abre el menú con Mi perfil, el modo claro u oscuro y, al final y en rojo,
