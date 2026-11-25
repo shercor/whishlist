@@ -1576,6 +1576,73 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
 
+  /products/{product}/image:
+    put:
+      tags: [Catálogo]
+      summary: Poner o cambiar la foto de una ficha mía
+      description: |
+        Solo el **autor** de la ficha. El catálogo curado no tiene autor, así
+        que nadie lo cambia desde aquí.
+
+        Vale también si la ficha está publicada: la foto nueva la ven todos los
+        que la tienen en sus listas.
+
+        Como `PUT /me/avatar`, la foto viaja como `multipart/form-data`, y `PUT`
+        porque reemplazarla es idempotente. La anterior se borra del disco, y
+        si la ficha traía una foto por URL, también se descarta. La imagen se
+        achica en segundo plano.
+
+        > **Requiere PHP 8.4 en el servidor**, por lo mismo que `PUT /me/avatar`.
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: |
+                    jpeg, png o webp, hasta 4 MB. Se valida el **contenido**, no
+                    la extensión.
+      responses:
+        '200':
+          description: |
+            La ficha con la URL nueva en `image`. No es un 204 porque el nombre
+            del archivo lo inventa el servidor.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [Catálogo]
+      summary: Quitar la foto de una ficha mía
+      description: |
+        Solo el autor. Deja la ficha sin foto —ni la subida ni una por URL— y
+        borra el archivo. Quitar una foto que no estaba **no es un error**.
+      parameters:
+        - $ref: '#/components/parameters/productId'
+      responses:
+        '200':
+          description: La ficha, ya con `image` en `null`.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Product' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
   # ===========================================================================
   # Seguidores
   # ===========================================================================

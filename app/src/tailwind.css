@@ -634,7 +634,8 @@ ion-menu.app-menu ion-footer {
   }
 }
 
-/* La foto: algo más ancha que alta, sobre blanco como en las tiendas. */
+/* La foto: algo más ancha que alta. Sobre blanco, para que el crema de los regalos sin foto (un ámbar
+   translúcido) se vea igual en los dos modos. */
 .gift-card-media {
   position: relative;
   flex-shrink: 0;
@@ -672,4 +673,44 @@ ion-menu.app-menu ion-footer {
   background-color: var(--gift-amber);
   box-shadow: none;
   color: var(--ion-color-primary-contrast);
+}
+
+/*
+ * Foto enmarcada: completa, sin recortes y tocando los bordes por su lado largo. Lo que sobra (a los
+ * lados si es alta, arriba y abajo si es ancha) se llena con la misma foto, ampliada y borrosa,
+ * sobre el crema de los regalos sin foto. Así no quedan franjas blancas y el relleno combina con
+ * cada foto.
+ *
+ *   <div class="photo-frame"><img aria-hidden="true" [src]> <img [src]></div>
+ *
+ * Las dos imágenes tienen la misma URL: el navegador la baja una vez.
+ */
+.photo-frame {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--color-amber-50);
+}
+
+:where(.ion-palette-dark) .photo-frame {
+  /* El mismo crema que los regalos sin foto en modo oscuro (ámbar al 10% sobre blanco). */
+  background-color: color-mix(in srgb, var(--gift-amber) 10%, var(--color-white));
+}
+
+.photo-frame > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* El relleno: cubre todo y se desenfoca. Ampliado para que el borde borroso no deje un halo claro. */
+.photo-frame > img:first-child {
+  object-fit: cover;
+  filter: blur(18px) saturate(1.3);
+  transform: scale(1.25);
+  opacity: 0.55;
+}
+
+.photo-frame > img:last-child {
+  object-fit: contain;
 }

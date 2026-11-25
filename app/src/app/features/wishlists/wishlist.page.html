@@ -176,8 +176,11 @@
             >
               <div class="gift-card-media">
                 @if (item.product?.image; as image) {
-                  <!-- Contenida y sobre blanco: no recorta el producto, sea cual sea su forma. -->
-                  <img [src]="image" alt="" loading="lazy" class="size-full object-contain p-3" />
+                  <!-- La foto completa, y lo que sobra a los lados, con ella misma borrosa (.photo-frame). -->
+                  <div class="photo-frame">
+                    <img [src]="image" alt="" loading="lazy" aria-hidden="true" />
+                    <img [src]="image" alt="" loading="lazy" />
+                  </div>
                 } @else {
                   <!-- Sin foto, el regalo de la marca. -->
                   <div

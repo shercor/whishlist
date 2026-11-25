@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\CategoryController;
 use App\Http\Controllers\Api\V1\FollowController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductImageController;
 use App\Http\Controllers\Api\V1\ProductLikeController;
 use App\Http\Controllers\Api\V1\ProductPublicationController;
 use App\Http\Controllers\Api\V1\ProfileController;
@@ -101,6 +102,10 @@ Route::prefix('v1')->name('api.v1.')->group(function () {
         // Retirar del catálogo una ficha propia. No hay POST hermano: publicar
         // se pide al crear el regalo, con `share_with_catalog`.
         Route::delete('products/{product}/publication', [ProductPublicationController::class, 'destroy'])->name('products.publication.destroy');
+        // La foto de una ficha propia: PUT la pone o la cambia, DELETE la quita.
+        // Igual que me/avatar, viaja en multipart.
+        Route::put('products/{product}/image', [ProductImageController::class, 'store'])->name('products.image.store');
+        Route::delete('products/{product}/image', [ProductImageController::class, 'destroy'])->name('products.image.destroy');
 
         // --- Seguidores -------------------------------------------------------
         Route::get('follows', [FollowController::class, 'index'])->name('follows.index');

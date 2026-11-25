@@ -15,11 +15,18 @@
   @if (item().product; as product) {
     <div class="mb-4 flex gap-4">
       @if (product.image) {
-        <img
-          [src]="product.image"
-          alt=""
-          class="size-24 shrink-0 rounded-xl object-cover ring-1 ring-black/5 dark:ring-white/10"
-        />
+        <div class="photo-frame size-24 shrink-0 rounded-xl ring-1 ring-black/5 dark:ring-white/10">
+          <img [src]="product.image" alt="" aria-hidden="true" />
+          <img [src]="product.image" alt="" />
+        </div>
+      } @else if (product.is_mine) {
+        <!-- Ficha mía sin foto: el hueco a la vista, para que se note que se puede poner una. -->
+        <span
+          aria-hidden="true"
+          class="flex size-24 shrink-0 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-500/10"
+        >
+          <span class="gift-mark size-10 opacity-80"></span>
+        </span>
       }
       <div class="min-w-0 text-sm">
         @if (product.name !== item().name) {
@@ -44,6 +51,42 @@
             Ver dónde se consigue
             <ion-icon name="open-outline" aria-hidden="true" />
           </a>
+        }
+        <!-- La foto la cambia solo quien escribió la ficha; el catálogo curado no tiene dueño. -->
+        @if (product.is_mine) {
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <label class="control pressable w-fit" [class.opacity-60]="photoBusy()">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                class="sr-only"
+                [disabled]="photoBusy()"
+                (change)="pickPhoto($event)"
+              />
+              @if (photoBusy()) {
+                <ion-spinner name="crescent" class="size-4" aria-label="Subiendo" />
+              } @else {
+                <ion-icon name="image-outline" aria-hidden="true" />
+              }
+              {{ product.image ? 'Cambiar foto' : 'Subir una foto' }}
+            </label>
+            @if (product.image) {
+              <button
+                type="button"
+                class="link-button link-danger text-sm"
+                [disabled]="photoBusy()"
+                (click)="removePhoto()"
+              >
+                Quitar foto
+              </button>
+            }
+          </div>
+          @if (product.is_public) {
+            <p class="hint mt-2 mb-0">
+              Esta ficha está en el catálogo: la foto cambia también para quienes ya la tienen en
+              su lista.
+            </p>
+          }
         }
       </div>
     </div>

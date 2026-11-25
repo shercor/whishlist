@@ -36,4 +36,18 @@ class ProductPolicy
         return $product->is_public
             && $product->created_by_user_id === $user->id;
     }
+
+    /**
+     * Cambiar o quitar la foto de una ficha: solo su autor.
+     *
+     * También si está publicada y otras personas ya la tienen en sus listas: la
+     * ficha es suya, como lo es retirarla del catálogo, y la foto cambia para
+     * todos. El catálogo curado no tiene autor, así que nadie lo toca desde la
+     * aplicación.
+     */
+    public function updatePhoto(User $user, Product $product): bool
+    {
+        return $product->created_by_user_id !== null
+            && $product->created_by_user_id === $user->id;
+    }
 }

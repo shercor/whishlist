@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Jobs\ShrinkStoredImage;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
@@ -17,7 +16,7 @@ use Illuminate\Http\UploadedFile;
  */
 class UserProductCreator
 {
-    private const CARPETA = 'productos';
+    public function __construct(private readonly ProductPhotoService $fotos) {}
 
     /**
      * @param  array<string, mixed>  $atributos
@@ -32,33 +31,11 @@ class UserProductCreator
         return Product::create([
             ...$atributos,
             'created_by_user_id' => $autor->id,
-            'image_path' => $this->guardarFoto($foto),
+            // La foto la guarda el mismo servicio que la cambia después.
+            'image_path' => $foto ? $this->fotos->store($foto) : null,
             // Privado por defecto: compartir con el catálogo es algo que se
             // pide, nunca lo que pasa por no marcar nada.
             'is_public' => $alCatalogo,
         ]);
-    }
-
-    /**
-     * Guarda la foto tal como llegó y encola el achicado.
-     *
-     * El nombre lo inventa Laravel: 40 caracteres al azar. Importa porque el
-     * disco es público, así que la URL queda adivinable solo para quien la
-     * tiene, y de paso el nombre original —que puede traer el nombre de la
-     * persona— no termina a la vista.
-     */
-    private function guardarFoto(?UploadedFile $foto): ?string
-    {
-        if (! $foto) {
-            return null;
-        }
-
-        $ruta = $foto->store(self::CARPETA, 'public');
-
-        // Se guarda tal cual y se achica después: procesar 4 MB en la petición
-        // dejaría a quien agrega el regalo mirando el navegador girar.
-        dispatch(ShrinkStoredImage::forProductPhoto($ruta));
-
-        return $ruta;
     }
 }

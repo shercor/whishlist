@@ -15,11 +15,10 @@
   @if (item().product; as product) {
     <div class="mb-4 flex gap-4">
       @if (product.image) {
-        <img
-          [src]="product.image"
-          alt=""
-          class="size-24 shrink-0 rounded-xl object-cover ring-1 ring-black/5 dark:ring-white/10"
-        />
+        <div class="photo-frame size-24 shrink-0 rounded-xl ring-1 ring-black/5 dark:ring-white/10">
+          <img [src]="product.image" alt="" aria-hidden="true" />
+          <img [src]="product.image" alt="" />
+        </div>
       }
       <div class="min-w-0 text-sm">
         @if (product.name !== item().name) {

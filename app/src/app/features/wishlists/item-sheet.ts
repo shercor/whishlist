@@ -1,8 +1,9 @@
 import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { checkmarkCircleOutline, closeOutline, openOutline } from 'ionicons/icons';
-import { ItemPriority, WishlistItem } from '../../core/api/models';
+import { checkmarkCircleOutline, closeOutline, imageOutline, openOutline } from 'ionicons/icons';
+import { CatalogService } from '../../core/api/catalog.service';
+import { ItemPriority, Product, WishlistItem } from '../../core/api/models';
 import { ItemsService } from '../../core/api/items.service';
 import { errorMessage } from '../../core/http/api-error';
 import { formatPrice } from '../../shared/format';
@@ -21,6 +22,7 @@ import { PRIORITIES, priorityOf } from '../../shared/priority';
 export class ItemSheet {
   private readonly api = inject(ItemsService);
   private readonly notify = inject(Notify);
+  private readonly catalog = inject(CatalogService);
 
   readonly item = input.required<WishlistItem>();
   readonly changed = output<WishlistItem>();
@@ -36,13 +38,15 @@ export class ItemSheet {
   protected readonly priority = linkedSignal<ItemPriority>(() => this.item().priority);
 
   protected readonly busy = signal(false);
+  /** Aparte de busy: subir una foto no debería bloquear el formulario de al lado. */
+  protected readonly photoBusy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly priorities = PRIORITIES;
   protected readonly chosenPriority = computed(() => priorityOf(this.priority()));
   protected readonly formatPrice = formatPrice;
 
   constructor() {
-    addIcons({ checkmarkCircleOutline, closeOutline, openOutline });
+    addIcons({ checkmarkCircleOutline, closeOutline, imageOutline, openOutline });
   }
 
   protected async save(event: Event): Promise<void> {
@@ -80,6 +84,43 @@ export class ItemSheet {
       this.removed.emit(this.item().id);
       await this.notify.toast('Regalo quitado de la lista.');
     });
+  }
+
+  protected async pickPhoto(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Vaciado: así elegir de nuevo el mismo archivo vuelve a disparar (change).
+    input.value = '';
+    const product = this.item().product;
+    if (!file || !product) {
+      return;
+    }
+    await this.changePhoto(() => this.catalog.setImage(product.id, file), 'Foto cambiada.');
+  }
+
+  protected async removePhoto(): Promise<void> {
+    const product = this.item().product;
+    if (!product) {
+      return;
+    }
+    const confirmed = await this.notify.confirm('¿Quitar la foto?', '', 'Quitar');
+    if (confirmed) {
+      await this.changePhoto(() => this.catalog.removeImage(product.id), 'Foto quitada.');
+    }
+  }
+
+  /** La ficha nueva viaja dentro del regalo: así la tarjeta de la lista también se actualiza. */
+  private async changePhoto(action: () => Promise<Product>, done: string): Promise<void> {
+    this.photoBusy.set(true);
+    try {
+      const product = await action();
+      this.changed.emit({ ...this.item(), product: { ...this.item().product, ...product } });
+      await this.notify.toast(done);
+    } catch (error) {
+      await this.notify.toast(errorMessage(error, 'No se pudo cambiar la foto.'));
+    } finally {
+      this.photoBusy.set(false);
+    }
   }
 
   protected valueOf(event: Event): string {
