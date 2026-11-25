@@ -30,7 +30,6 @@ import {
   SECTIONS,
   Section,
   injectCurrentPath,
-  isTopLevel,
   sectionCount,
   sectionFor,
 } from './shared/navigation';
@@ -133,7 +132,7 @@ export class App {
   protected readonly auth = inject(AuthService);
   /** Se crea al arrancar: mantiene la clase del tema y sigue al sistema si no hay elección. */
   protected readonly theme = inject(ThemeService);
-  /** La animación al cambiar de pantalla. Sin elegir, la de Ionic de siempre. */
+  /** La animación al cambiar de pantalla. Sin elegir, el fundido. */
   protected readonly transitions = inject(PageTransitionService);
   /** El menú de administrador no llega a producción. */
   protected readonly devMode = isDevMode();
@@ -148,12 +147,12 @@ export class App {
   protected readonly wide = signal(this.wideQuery?.matches ?? true);
 
   /**
-   * La barra inferior: con sesión y en una pantalla de primer nivel. En escritorio igual se pide,
-   * pero el CSS la esconde: así no depende de que matchMedia avise el cambio de ancho a tiempo.
+   * La barra inferior: con sesión, en todas las pantallas, para cambiar de sección desde cualquier
+   * parte sin volver atrás. En las de más adentro ninguna sección queda marcada. En escritorio
+   * igual se pide, pero el CSS la esconde: así no depende de que matchMedia avise el cambio de
+   * ancho a tiempo.
    */
-  protected readonly showTabBar = computed(
-    () => this.auth.isAuthenticated() && isTopLevel(this.path()),
-  );
+  protected readonly showTabBar = computed(() => this.auth.isAuthenticated());
 
   constructor() {
     addIcons({

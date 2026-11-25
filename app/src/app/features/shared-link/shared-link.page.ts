@@ -44,7 +44,7 @@ import { UserMenu } from '../../shared/user-menu';
         <ion-buttons slot="start">
           <ion-menu-button />
         </ion-buttons>
-        <ion-title><span class="title-gift" aria-hidden="true"></span>Lista compartida</ion-title>
+        <ion-title><span class="title-gift" aria-hidden="true"></span><span class="sr-only">Lista compartida</span></ion-title>
         <ion-buttons slot="end"><app-user-menu /></ion-buttons>
       </ion-toolbar>
     </ion-header>

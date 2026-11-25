@@ -5,7 +5,7 @@
     </ion-buttons>
     <ion-title
       ><span class="title-gift" aria-hidden="true"></span
-      >{{ wishlist()?.name ?? 'Lista' }}</ion-title
+      ><span class="sr-only">{{ wishlist()?.name ?? 'Lista' }}</span></ion-title
     >
     <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>

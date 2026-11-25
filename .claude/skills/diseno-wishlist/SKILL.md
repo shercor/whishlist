@@ -197,8 +197,9 @@ Son tres recursos que se repiten y amarran la identidad:
   - La sección actual lleva la barrita encendida en el borde de arriba, y su
     ícono y texto en ámbar, sin negrita: en negrita el texto salta y no cabe.
   - El globito suma los contadores de la sección.
-  - Solo se ve en las pantallas de primer nivel (`isTopLevel`). Más adentro se
-    esconde y se vuelve con la flecha.
+  - Se ve en todas las pantallas con sesión. En las de más adentro (una lista,
+    editar) ninguna sección queda marcada y la barrita se apaga.
+  - La barrita es una sola y se desliza hasta la sección elegida.
   - El menú lateral se apaga en el teléfono, así que el ☰ desaparece solo.
 - **Desde `md`, menú lateral:** solo para navegar. Lleva el logo y las mismas
   secciones, con un ancho fijo de 15rem. Los ajustes no van ahí.
@@ -224,8 +225,9 @@ Son tres recursos que se repiten y amarran la identidad:
   El texto alternativo es `alt="wishlist"`.
   - El nombre de la app es **wishlist**. "whishlist", con h, es un error
     heredado en el código: no lo propagues a textos nuevos.
-- **Regalito en cada título de barra:**
-  `<ion-title><span class="title-gift" aria-hidden="true"></span>Título</ion-title>`.
+- **Regalito en cada barra, sin el nombre de la pantalla a la vista** (ya está
+  en el `h1` del contenido). El nombre queda solo para lectores de pantalla:
+  `<ion-title><span class="title-gift" aria-hidden="true"></span><span class="sr-only">Título</span></ion-title>`.
 - **Avatares** (`app-avatar`): foto o iniciales. Cuando el avatar es un botón,
   o es "tú", lleva un **aro con separación**: 2 px de espacio entre la foto y el
   aro, que se enciende de ámbar al pasar el mouse o con lo que abre activo. Ver
@@ -248,6 +250,10 @@ Solo `transform` y `opacity`, con las clases de `animations.css` y las curvas
 - El hover que mueve cosas va dentro de `@media (hover: hover)`, porque en el
   teléfono quedaría pegado después de tocar.
 - `animations.css` ya respeta `prefers-reduced-motion`.
+- Al cambiar de pantalla, la animación por defecto es el **fundido**
+  (`core/transitions/`); el menú de administrador permite probar otras.
+  Cambiar de sección también anima, desde el menú lateral y desde la barra
+  inferior. Las pestañas dentro de una sección (`.segmented`) no.
 - Si hay datos y se recarga una parte (por ejemplo, al cambiar de página), esa
   parte baja a `opacity-60` con `aria-busy` en vez de volver al esqueleto.
 

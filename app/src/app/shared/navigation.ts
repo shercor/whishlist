@@ -38,7 +38,7 @@ export const SECTIONS: Section[] = [
   },
 ];
 
-/** La sección de una ruta, o undefined en las pantallas que no son de primer nivel. */
+/** La sección de una ruta, o undefined en las pantallas de más adentro (una lista, editar...). */
 export function sectionFor(path: string): Section | undefined {
   return SECTIONS.find((section) => section.paths.includes(path));
 }
@@ -46,15 +46,6 @@ export function sectionFor(path: string): Section | undefined {
 /** El número del globito de una sección: la suma de sus contadores. */
 export function sectionCount(section: Section, counts: Counts): number {
   return (section.counts ?? []).reduce((total, key) => total + counts[key], 0);
-}
-
-/**
- * Las pantallas de primer nivel: las de las secciones y Mi perfil. En ellas el teléfono muestra la
- * barra inferior; en las de más adentro (una lista, editar, agregar un regalo) se esconde y se
- * vuelve con la flecha.
- */
-export function isTopLevel(path: string): boolean {
-  return path === '/perfil' || !!sectionFor(path);
 }
 
 /** La ruta actual, sin ?consulta ni #ancla, al día con cada navegación. */

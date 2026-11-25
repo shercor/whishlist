@@ -996,17 +996,39 @@ ion-popover.user-menu ion-item.user-menu-sign-out {
   color: var(--accent-text);
 }
 
-/* La barrita, arriba: del ancho del ícono y algo más, pegada al borde, con su brillo. */
-.tab-bar-item[aria-current='page']::before {
-  content: '';
+/* La barrita, arriba: una sola para toda la barra, del ancho de una sección. Se mueve con
+   transform según --tab-index (lo pone tab-bar.ts), así que al cambiar de sección se desliza hasta
+   la nueva con un pequeño rebote en vez de apagarse y encenderse. La línea visible es el ::before,
+   del ancho del ícono y algo más, con su brillo. */
+.tab-bar-indicator {
   position: absolute;
   top: -1px;
-  inset-inline: 30%;
+  left: 0;
+  width: calc(100% / 5);
   height: 3px;
+  pointer-events: none;
+  transform: translateX(calc(var(--tab-index, 0) * 100%));
+  transition:
+    transform 0.45s var(--ease-spring),
+    opacity 0.2s var(--ease-out);
+}
+
+/* En una pantalla de más adentro no hay sección actual: la barrita se apaga donde estaba y, al
+   volver a una sección, se enciende y se desliza hasta ella. */
+.tab-bar-indicator.is-hidden {
+  opacity: 0;
+}
+
+.tab-bar-indicator::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 30%;
   border-end-start-radius: 3px;
   border-end-end-radius: 3px;
   background: var(--gift-amber);
   box-shadow: 0 0 10px 1px color-mix(in srgb, var(--gift-amber) 55%, transparent);
+  /* Solo al aparecer la barra (al entrar a la app); después se desliza. */
   animation: tab-bar-in 0.3s var(--ease-out) both;
 }
 

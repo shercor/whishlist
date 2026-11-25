@@ -3,12 +3,15 @@ import { PAGE_TRANSITIONS, PageTransition } from './page-transitions';
 
 const KEY = 'whishlist.animacion';
 
-/** La animación al cambiar de pantalla, elegida en el menú de administrador. Se recuerda. */
+/**
+ * La animación al cambiar de pantalla, elegida en el menú de administrador. Se recuerda. Sin
+ * elegir, el fundido.
+ */
 @Injectable({ providedIn: 'root' })
 export class PageTransitionService {
   readonly options = PAGE_TRANSITIONS;
 
-  private readonly chosenId = signal(saved() ?? 'ionic');
+  private readonly chosenId = signal(saved() ?? 'fundido');
 
   readonly current = computed<PageTransition>(
     () => this.options.find((option) => option.id === this.chosenId()) ?? this.options[0],

@@ -5,7 +5,7 @@
     </ion-buttons>
     <ion-title
       ><span class="title-gift" aria-hidden="true"></span
-      >{{ profile()?.handle ?? '@' + username() }}</ion-title
+      ><span class="sr-only">{{ profile()?.handle ?? '@' + username() }}</span></ion-title
     >
     <ion-buttons slot="end"><app-user-menu /></ion-buttons>
   </ion-toolbar>
