@@ -30,6 +30,8 @@ class ApiGiverTest extends TestCase
             ->create(['user_id' => $abierta->id, 'name' => 'Cumple de Bruno']);
         WishlistItem::factory()->count(2)->for($visible)->create();
         Wishlist::factory()->visibility(WishlistVisibility::PRIVATE)->create(['user_id' => $abierta->id]);
+        // Pública pero vacía: todavía no tiene nada que regalar.
+        Wishlist::factory()->visibility(WishlistVisibility::PUBLIC)->create(['user_id' => $abierta->id]);
         Wishlist::factory()->visibility(WishlistVisibility::PUBLIC)->create(['user_id' => $cerrada->id]);
         Wishlist::factory()->visibility(WishlistVisibility::PUBLIC)->create(['user_id' => $yo->id]);
 
@@ -40,6 +42,62 @@ class ApiGiverTest extends TestCase
         $this->assertSame([$visible->id], array_column($respuesta->json('data'), 'id'));
         $this->assertSame($abierta->username, $respuesta->json('data.0.owner.username'));
         $this->assertSame(2, $respuesta->json('data.0.items_count'));
+    }
+
+    public function test_discover_puts_people_i_follow_first_then_upcoming_then_undated_then_past(): void
+    {
+        $this->travelTo('2026-11-25 12:00:00');
+        $yo = User::factory()->create();
+        $sigo = User::factory()->create(['is_private' => false]);
+        $otra = User::factory()->create(['is_private' => false]);
+        Follow::factory()->between($yo, $sigo)->accepted()->create();
+
+        $publica = fn (User $dueno, ?string $fecha) => Wishlist::factory()
+            ->visibility(WishlistVisibility::PUBLIC)
+            ->has(WishlistItem::factory(), 'items')
+            ->create(['user_id' => $dueno->id, 'event_date' => $fecha]);
+
+        $pasadaReciente = $publica($otra, '2026-11-20');
+        $sinFecha = $publica($otra, null);
+        $lejana = $publica($otra, '2027-03-01');
+        $pasadaAntigua = $publica($otra, '2026-01-10');
+        $deHoy = $publica($otra, '2026-11-25');
+        $deQuienSigo = $publica($sigo, null);
+
+        Sanctum::actingAs($yo);
+
+        $this->assertSame(
+            [$deQuienSigo->id, $deHoy->id, $lejana->id, $sinFecha->id, $pasadaReciente->id, $pasadaAntigua->id],
+            array_column($this->getJson(route('api.v1.discover'))->assertOk()->json('data'), 'id')
+        );
+    }
+
+    public function test_discover_searches_by_list_name_or_owner_username(): void
+    {
+        $yo = User::factory()->create();
+        $bruno = User::factory()->create(['is_private' => false, 'username' => 'bruno_soto']);
+        $carla = User::factory()->create(['is_private' => false, 'username' => 'carla']);
+
+        $publica = fn (User $dueno, string $nombre) => Wishlist::factory()
+            ->visibility(WishlistVisibility::PUBLIC)
+            ->has(WishlistItem::factory(), 'items')
+            ->create(['user_id' => $dueno->id, 'name' => $nombre]);
+
+        $deBruno = $publica($bruno, 'Navidad');
+        $cumple = $publica($carla, 'Mi cumpleaños');
+        $publica($carla, 'Casa nueva');
+
+        Sanctum::actingAs($yo);
+
+        $ids = fn (string $q) => array_column(
+            $this->getJson(route('api.v1.discover', ['q' => $q]))->assertOk()->json('data'),
+            'id'
+        );
+
+        $this->assertSame([$cumple->id], $ids('cumple'));
+        $this->assertSame([$deBruno->id], $ids('@bruno'));
+        // Un comodín de LIKE se busca como letra, no como «cualquier cosa».
+        $this->assertSame([], $ids('%'));
     }
 
     public function test_a_profile_says_how_i_follow_it(): void

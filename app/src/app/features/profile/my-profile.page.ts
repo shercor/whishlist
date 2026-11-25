@@ -9,6 +9,7 @@ import {
   IonMenuButton,
   IonSpinner,
   IonTitle,
+  IonToggle,
   IonToolbar,
   ViewWillEnter,
 } from '@ionic/angular';
@@ -38,6 +39,7 @@ import { UserMenu } from '../../shared/user-menu';
     IonMenuButton,
     IonSpinner,
     IonTitle,
+    IonToggle,
     IonToolbar,
   ],
   templateUrl: './my-profile.page.html',
@@ -117,10 +119,6 @@ export class MyProfilePage implements ViewWillEnter {
 
   protected valueOf(event: Event): string {
     return (event.target as HTMLInputElement).value;
-  }
-
-  protected checkedOf(event: Event): boolean {
-    return (event.target as HTMLInputElement).checked;
   }
 
   private async changeAvatar(action: () => Promise<User>, done: string): Promise<void> {

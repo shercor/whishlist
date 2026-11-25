@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\FollowStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\WishlistRequest;
 use App\Http\Resources\UserResource;
@@ -43,18 +44,48 @@ class WishlistController extends Controller
      *
      * Mismo filtro que la web: las de un perfil privado no salen, porque solo
      * sus seguidores deben verlas y esta es la pantalla de quien no sigue a nadie.
+     * Tampoco las vacías.
+     *
+     * Con `q`, solo las que tienen esas letras en su nombre o en el usuario de
+     * su dueño. El orden pone primero lo que más sirve: las de gente que sigo,
+     * después los eventos que vienen (el más cercano primero), las listas sin
+     * fecha y al final los eventos que ya pasaron (el más reciente primero).
      */
     public function discover(Request $request): AnonymousResourceCollection
     {
+        $yo = $request->user();
+        $hoy = now()->toDateString();
+        $termino = trim($request->string('q')->toString());
+
         return WishlistResource::collection(
             Wishlist::query()
                 ->public()
-                ->whereNot('user_id', $request->user()->id)
+                ->whereNot('user_id', $yo->id)
                 ->whereHas('user', fn ($query) => $query->where('is_private', false))
+                // Una lista vacía no tiene nada que regalar todavía.
+                ->has('items')
+                ->when($termino !== '', function ($query) use ($termino) {
+                    $parecido = '%'.addcslashes(ltrim($termino, '@'), '%_\\').'%';
+                    $query->where(fn ($query) => $query
+                        ->where('name', 'like', $parecido)
+                        ->orWhereHas('user', fn ($query) => $query->where('username', 'like', $parecido)));
+                })
                 ->with('user')
                 ->withCount('items')
-                ->orderBy('event_date')
+                ->orderByRaw(
+                    'case when exists (select 1 from follows where follows.followed_id = wishlists.user_id'
+                    .' and follows.follower_id = ? and follows.status = ?) then 0 else 1 end',
+                    [$yo->id, FollowStatus::ACCEPTED->label()]
+                )
+                ->orderByRaw(
+                    'case when event_date >= ? then 0 when event_date is null then 1 else 2 end',
+                    [$hoy]
+                )
+                ->orderByRaw('case when event_date >= ? then event_date end asc', [$hoy])
+                ->orderByDesc('event_date')
+                ->orderByDesc('id')
                 ->paginate(20)
+                ->withQueryString()
         );
     }
 

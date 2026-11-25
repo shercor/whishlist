@@ -105,9 +105,10 @@
                 >
                   Lo sigues
                 </span>
+                <!-- Se puede volver a seguir: no es una pérdida, así que no va en rojo. -->
                 <button
                   type="button"
-                  class="link-button link-danger text-sm"
+                  class="link-button text-sm"
                   [disabled]="busy()"
                   (click)="unfollow()"
                 >
@@ -137,18 +138,29 @@
       }
 
       @if (person.wishlists.length > 0) {
+        <h2 class="section-title enter-up" style="--i: 1">Listas · {{ person.wishlists.length }}</h2>
         <div
           role="list"
           [attr.aria-label]="'Listas de ' + person.handle"
           class="card overflow-hidden"
         >
           @for (wishlist of person.wishlists; track wishlist.id) {
+            <!--
+              Como en Mis listas:  [regalo] nombre                 | Privada
+                                   [      ] regalos · cuánto falta
+            -->
             <a
               role="listitem"
               animate.enter="enter-up"
-              class="tappable-row grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3.5 text-inherit no-underline transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+              class="tappable-row grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3.5 text-inherit no-underline transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
               [routerLink]="[isMe() ? '/listas' : '/regalar', wishlist.id]"
             >
+              <span
+                aria-hidden="true"
+                class="row-span-2 flex size-10 items-center justify-center rounded-xl bg-amber-50 md:size-9 dark:bg-amber-500/15"
+              >
+                <span class="gift-mark size-5"></span>
+              </span>
               <div class="truncate font-medium" [title]="wishlist.name">{{ wishlist.name }}</div>
               <div class="row-span-2 justify-self-end">
                 @if (wishlist.visibility === 'privada') {
@@ -161,12 +173,16 @@
                   </span>
                 }
               </div>
-              <div class="truncate text-sm text-neutral-500 dark:text-neutral-400">
+              <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
                 {{ giftCount(wishlist.items_count ?? 0) }}
                 @if (wishlist.event_date; as date) {
+                  @let countdown = eventCountdown(date);
                   ·
-                  <span class="md:hidden">{{ formatShortEventDate(date) }}</span>
-                  <span class="hidden md:inline">{{ formatEventDate(date) }}</span>
+                  <span
+                    [class]="countdown.upcoming ? 'text-[var(--accent-text)]' : ''"
+                    [title]="formatEventDate(date)"
+                    >{{ countdown.text }}</span
+                  >
                 }
               </div>
             </a>

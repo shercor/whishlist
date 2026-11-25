@@ -60,7 +60,7 @@ describe('WishlistPage', () => {
     item({ id: 3, name: 'Acuarelas', is_reserved: false }),
   ];
 
-  it('a quien regala le muestra qué está tomado, sin marcar lo disponible', async () => {
+  it('a quien regala le muestra qué está tomado, y en lo disponible el botón para reservarlo', async () => {
     const text = await render({
       id: 15,
       name: 'Amigo secreto',
@@ -77,10 +77,12 @@ describe('WishlistPage', () => {
       },
     }, items);
 
-    expect(text).toContain('Bruno no ve nada de esta pantalla');
+    expect(text).toContain('Bruno no ve qué está reservado ni por quién');
     expect(text).toContain('Lo reservaste tú');
     expect(text).toContain('Ya lo reservaron');
     expect(text).not.toContain('Disponible');
+    // Solo Acuarelas está libre: un único «Lo regalo yo».
+    expect(text.split('Lo regalo yo').length - 1).toBe(1);
   });
 
   it('al dueño no le muestra nada de reservas, aunque la respuesta trajera esos campos', async () => {
@@ -94,8 +96,9 @@ describe('WishlistPage', () => {
       share_token: 'abc',
     }, items);
 
-    expect(text).toContain('Acá no verás si alguien reservó tus regalos');
+    expect(text).toContain('No verás si alguien reservó tus regalos');
     expect(text).not.toContain('Lo reservaste tú');
+    expect(text).not.toContain('Lo regalo yo');
     expect(text).not.toContain('Ya lo reservaron');
   });
 

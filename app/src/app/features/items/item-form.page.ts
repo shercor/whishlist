@@ -6,10 +6,7 @@ import {
   IonContent,
   IonHeader,
   IonIcon,
-  IonLabel,
   IonModal,
-  IonSegment,
-  IonSegmentButton,
   IonSkeletonText,
   IonSpinner,
   IonTitle,
@@ -18,7 +15,7 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { heart, imageOutline, searchOutline } from 'ionicons/icons';
+import { createOutline, heart, imageOutline, searchOutline } from 'ionicons/icons';
 import { CatalogService } from '../../core/api/catalog.service';
 import { ItemsService } from '../../core/api/items.service';
 import { Category, ItemPriority, Product } from '../../core/api/models';
@@ -43,10 +40,7 @@ type Mode = 'catalogo' | 'manual';
     IonContent,
     IonHeader,
     IonIcon,
-    IonLabel,
     IonModal,
-    IonSegment,
-    IonSegmentButton,
     IonSkeletonText,
     IonSpinner,
     IonTitle,
@@ -103,7 +97,7 @@ export class ItemFormPage implements ViewWillEnter {
   protected readonly skeletonRows = ['55%', '40%', '62%', '48%'];
 
   constructor() {
-    addIcons({ heart, imageOutline, searchOutline });
+    addIcons({ createOutline, heart, imageOutline, searchOutline });
   }
 
   ionViewWillEnter(): void {

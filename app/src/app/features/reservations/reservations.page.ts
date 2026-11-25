@@ -20,11 +20,12 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { bagHandleOutline } from 'ionicons/icons';
-import { Reservation, WishlistItem } from '../../core/api/models';
+import { bagHandleOutline, calendarOutline, chevronForward } from 'ionicons/icons';
+import { Reservation, Wishlist, WishlistItem } from '../../core/api/models';
 import { ReservationsService } from '../../core/api/reservations.service';
 import { errorMessage } from '../../core/http/api-error';
-import { formatDay } from '../../shared/format';
+import { Avatar } from '../../shared/avatar';
+import { eventCountdown, formatDay, formatEventDate } from '../../shared/format';
 import { GiftSheet } from '../wishlists/gift-sheet';
 import { UserMenu } from '../../shared/user-menu';
 
@@ -33,6 +34,7 @@ import { UserMenu } from '../../shared/user-menu';
   selector: 'app-reservations',
   imports: [
     UserMenu,
+    Avatar,
     RouterLink,
     GiftSheet,
     IonButton,
@@ -71,9 +73,27 @@ export class ReservationsPage implements ViewWillEnter {
 
   protected readonly skeletonRows = ['45%', '60%', '35%'];
   protected readonly formatDay = formatDay;
+  protected readonly formatEventDate = formatEventDate;
+  protected readonly eventCountdown = eventCountdown;
+
+  /**
+   * Las reservas juntas por lista: así se ve de un vistazo qué le llevas a cada persona. Las
+   * listas quedan en el orden en que aparece su primera reserva, que es la que vence antes.
+   */
+  protected readonly groups = computed(() => {
+    const groups = new Map<number, { wishlist?: Wishlist; reservations: Reservation[] }>();
+    for (const reservation of this.reservations()) {
+      // Sin lista (no debería pasar), cada reserva va sola.
+      const key = reservation.wishlist?.id ?? -reservation.id;
+      const group = groups.get(key) ?? { wishlist: reservation.wishlist, reservations: [] };
+      group.reservations.push(reservation);
+      groups.set(key, group);
+    }
+    return [...groups.values()];
+  });
 
   constructor() {
-    addIcons({ bagHandleOutline });
+    addIcons({ bagHandleOutline, calendarOutline, chevronForward });
   }
 
   ionViewWillEnter(): void {

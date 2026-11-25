@@ -19,12 +19,12 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { compassOutline } from 'ionicons/icons';
+import { calendarOutline, compassOutline, searchOutline } from 'ionicons/icons';
 import { Wishlist } from '../../core/api/models';
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
-import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
+import { eventCountdown, formatEventDate, giftCount } from '../../shared/format';
 import { UserMenu } from '../../shared/user-menu';
 
 /** Listas públicas de otra gente, para encontrar a quién regalarle. */
@@ -63,11 +63,17 @@ export class DiscoverPage implements ViewWillEnter {
 
   protected readonly skeletonRows = ['45%', '60%', '35%', '52%'];
   protected readonly formatEventDate = formatEventDate;
-  protected readonly formatShortEventDate = formatShortEventDate;
+  protected readonly eventCountdown = eventCountdown;
   protected readonly giftCount = giftCount;
 
+  /** Lo escrito en el buscador. */
+  protected readonly query = signal('');
+  private searchTimer?: ReturnType<typeof setTimeout>;
+  /** Cada pedido lleva un número: si llega uno viejo (se siguió escribiendo), se descarta. */
+  private request = 0;
+
   constructor() {
-    addIcons({ compassOutline });
+    addIcons({ calendarOutline, compassOutline, searchOutline });
   }
 
   ionViewWillEnter(): void {
@@ -84,14 +90,25 @@ export class DiscoverPage implements ViewWillEnter {
     await event.target.complete();
   }
 
+  /** Busca al dejar de escribir, no con cada letra. */
+  protected typed(event: Event): void {
+    this.query.set((event.target as HTMLInputElement).value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => void this.loadPage(1), 300);
+  }
+
   protected staggerIndex(index: number): number {
     return Math.min(index, 10);
   }
 
   private async loadPage(page: number): Promise<void> {
     this.error.set(null);
+    const request = ++this.request;
     try {
-      const result = await this.api.discover(page);
+      const result = await this.api.discover(page, this.query());
+      if (request !== this.request) {
+        return;
+      }
       this.wishlists.update((list) => (page === 1 ? result.data : [...list, ...result.data]));
       this.page.set(result.meta.current_page);
       this.lastPage.set(result.meta.last_page);

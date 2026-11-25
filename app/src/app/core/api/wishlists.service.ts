@@ -16,8 +16,12 @@ export class WishlistsService {
   }
 
   /** Listas públicas de otra gente («Descubrir»), por fecha del evento. */
-  discover(page = 1): Promise<Page<Wishlist>> {
-    const params = new HttpParams().set('page', page);
+  /** Listas públicas de otra gente. `query` busca en el nombre de la lista y en el usuario de su dueño. */
+  discover(page = 1, query = ''): Promise<Page<Wishlist>> {
+    let params = new HttpParams().set('page', page);
+    if (query.trim()) {
+      params = params.set('q', query.trim());
+    }
     return firstValueFrom(
       this.http.get<Page<Wishlist>>(`${environment.apiUrl}/discover`, { params }),
     );

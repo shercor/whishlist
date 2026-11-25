@@ -23,6 +23,31 @@ export function formatShortEventDate(date: string): string {
   return shortEventDate.format(new Date(`${date}T00:00:00Z`));
 }
 
+/**
+ * Cuántos días faltan para el evento, contados en días del calendario de quien mira: «Hoy»,
+ * «Mañana», «Faltan 12 días», «Fue ayer», «Fue hace 3 días». `upcoming` dice si todavía no pasa.
+ */
+export function eventCountdown(
+  date: string,
+  today = new Date(),
+): { text: string; upcoming: boolean } {
+  const [year, month, day] = date.split('-').map(Number);
+  const event = Date.UTC(year, month - 1, day);
+  const now = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+  const days = Math.round((event - now) / 86_400_000);
+
+  if (days === 0) {
+    return { text: 'Hoy', upcoming: true };
+  }
+  if (days === 1) {
+    return { text: 'Mañana', upcoming: true };
+  }
+  if (days > 1) {
+    return { text: `Faltan ${days} días`, upcoming: true };
+  }
+  return { text: days === -1 ? 'Fue ayer' : `Fue hace ${-days} días`, upcoming: false };
+}
+
 /** «Vacía todavía», «1 regalo», «3 regalos». */
 export function giftCount(count: number): string {
   if (count === 0) {

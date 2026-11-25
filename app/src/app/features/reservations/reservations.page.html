@@ -17,7 +17,7 @@
     <div class="enter-up mb-4 md:mb-6">
       <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Voy a regalar</h1>
       <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-        Lo que tienes reservado. Nadie más ve esta pantalla, y menos los dueños de las listas.
+        Lo que tienes reservado, por persona. Solo tú ves esta pantalla.
       </p>
     </div>
 
@@ -62,63 +62,114 @@
         >
       </div>
     } @else if (reservations().length > 0) {
-      <div role="list" aria-label="Mis reservas" class="card overflow-hidden">
-        @for (reservation of reservations(); track reservation.id) {
-          <!--
-            [foto] regalo
-            [    ] para quién · «lista»
-            [    ] se suelta sola el … (ámbar si ya pasó)
-          -->
-          <div
-            role="listitem"
-            tabindex="0"
-            aria-haspopup="dialog"
-            animate.enter="enter-up"
-            class="tappable-row grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+      <!--
+        Lista agrupada: cada persona es un encabezado de sección, fuera de la tarjeta y con letra más
+        grande; dentro de la tarjeta van solo los regalos que le llevas. Así la persona se lee como
+        el título del grupo y no como una fila más. El nombre de la lista lleva a ella; tocar un
+        regalo abre su hoja (para soltarlo).
+
+          [foto] Para Teresa                       [Faltan 12 días]
+                 Regalos de casa nueva ›
+          ┌──────────────────────────────────────────┐
+          │ [regalo] Figura Iron Man                 │
+          │          Se suelta sola el 8 de diciembre│
+          └──────────────────────────────────────────┘
+      -->
+      <div class="flex flex-col gap-7">
+        @for (group of groups(); track group.wishlist?.id ?? group.reservations[0].id) {
+          <section
+            class="enter-up"
             [style.--i]="staggerIndex($index)"
-            (click)="open(reservation)"
-            (keydown.enter)="open(reservation)"
+            [attr.aria-labelledby]="'para-' + $index"
           >
-            @if (reservation.item.product?.image; as image) {
-              <img
-                [src]="image"
-                alt=""
-                loading="lazy"
-                class="row-span-3 size-12 rounded-lg object-cover ring-1 ring-black/5 dark:ring-white/10"
-              />
-            } @else {
-              <span
-                aria-hidden="true"
-                class="row-span-3 flex size-12 items-center justify-center rounded-lg bg-neutral-100 text-base font-semibold text-neutral-600 dark:bg-white/10 dark:text-neutral-300"
-              >
-                {{ reservation.item.name.charAt(0) }}
-              </span>
+            @if (group.wishlist; as wishlist) {
+              <header class="mb-2.5 flex items-center gap-3 px-1">
+                @if (wishlist.owner; as owner) {
+                  <app-avatar [user]="owner" class="size-11 text-sm" />
+                }
+                <div class="min-w-0 flex-1">
+                  <h2 class="m-0 truncate text-base font-semibold" [id]="'para-' + $index">
+                    Para {{ wishlist.owner?.display_name }}
+                  </h2>
+                  <a
+                    class="list-link inline-flex max-w-full items-center gap-0.5 text-sm"
+                    [routerLink]="['/regalar', wishlist.id]"
+                  >
+                    <span class="truncate">{{ wishlist.name }}</span>
+                    <ion-icon name="chevron-forward" aria-hidden="true" class="shrink-0" />
+                  </a>
+                </div>
+                @if (wishlist.event_date; as date) {
+                  @let countdown = eventCountdown(date);
+                  <span
+                    class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                    [class]="
+                      countdown.upcoming
+                        ? 'bg-amber-50 text-[var(--accent-text)] dark:bg-amber-500/15'
+                        : 'bg-neutral-200/70 text-neutral-700 dark:bg-white/10 dark:text-neutral-300'
+                    "
+                    [title]="formatEventDate(date)"
+                  >
+                    <ion-icon name="calendar-outline" aria-hidden="true" />
+                    {{ countdown.text }}
+                  </span>
+                }
+              </header>
             }
-            <div class="truncate font-medium" [title]="reservation.item.name">
-              {{ reservation.item.name }}
-            </div>
-            <div class="col-start-2 truncate text-sm text-neutral-500 dark:text-neutral-400">
-              @if (reservation.wishlist; as wishlist) {
-                Para {{ wishlist.owner?.display_name }} · «{{ wishlist.name }}»
+
+            <div role="list" aria-label="Lo que le llevas" class="card overflow-hidden">
+              @for (reservation of group.reservations; track reservation.id) {
+                <!--
+                  [foto] regalo
+                  [    ] se suelta sola el … (ámbar si ya pasó)
+                -->
+                <div
+                  role="listitem"
+                  tabindex="0"
+                  aria-haspopup="dialog"
+                  class="tappable-row grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+                  (click)="open(reservation)"
+                  (keydown.enter)="open(reservation)"
+                >
+                  <!-- La foto completa (.photo-frame) o, sin foto, el regalo sobre crema. -->
+                  @if (reservation.item.product?.image; as image) {
+                    <div
+                      class="photo-frame row-span-2 size-12 rounded-lg ring-1 ring-black/5 dark:ring-white/10"
+                    >
+                      <img [src]="image" alt="" loading="lazy" aria-hidden="true" />
+                      <img [src]="image" alt="" loading="lazy" />
+                    </div>
+                  } @else {
+                    <span
+                      aria-hidden="true"
+                      class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/15"
+                    >
+                      <span class="gift-mark size-6 opacity-80"></span>
+                    </span>
+                  }
+                  <div class="truncate font-medium" [title]="reservation.item.name">
+                    {{ reservation.item.name }}
+                  </div>
+                  @if (reservation.expires_at; as expires) {
+                    <div
+                      class="col-start-2 truncate text-sm"
+                      [class]="
+                        isPast(expires)
+                          ? 'font-medium text-amber-700 dark:text-amber-300'
+                          : 'text-neutral-500 dark:text-neutral-400'
+                      "
+                    >
+                      @if (isPast(expires)) {
+                        Se venció el plazo: se suelta en cualquier momento
+                      } @else {
+                        Se suelta sola el {{ formatDay(expires) }}
+                      }
+                    </div>
+                  }
+                </div>
               }
             </div>
-            @if (reservation.expires_at; as expires) {
-              <div
-                class="col-start-2 truncate text-sm"
-                [class]="
-                  isPast(expires)
-                    ? 'font-medium text-amber-700 dark:text-amber-300'
-                    : 'text-neutral-500 dark:text-neutral-400'
-                "
-              >
-                @if (isPast(expires)) {
-                  Se venció el plazo: se suelta en cualquier momento
-                } @else {
-                  Se suelta sola el {{ formatDay(expires) }}
-                }
-              </div>
-            }
-          </div>
+          </section>
         }
       </div>
 

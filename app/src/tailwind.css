@@ -715,6 +715,54 @@ ion-header ion-toolbar {
   color: var(--ion-color-primary-contrast);
 }
 
+/* «Lo regalo yo» al pie de la tarjeta (lista ajena): a todo el ancho y separado del precio. Con
+   contorno, porque en una grilla de botones sólidos ninguno se leería como el principal. */
+ion-button.gift-card-action {
+  margin: 0.5rem 0 0;
+}
+
+/* Enlace secundario bajo un encabezado de grupo (Voy a regalar: la lista de cada persona): gris
+   como el texto secundario, sin subrayado, y en ámbar al pasar el mouse o con el teclado. */
+a.list-link {
+  color: var(--color-neutral-500);
+  text-decoration: none;
+}
+
+:where(.ion-palette-dark) a.list-link {
+  color: var(--color-neutral-400);
+}
+
+@media (hover: hover) {
+  a.list-link:hover {
+    color: var(--accent-text);
+  }
+}
+
+a.list-link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* De quién es la lista, arriba del detalle: su foto y su nombre, que llevan a su perfil. Sin
+   subrayado, como el resto de las filas que se tocan; al pasar el mouse, el nombre en ámbar. */
+.owner-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .owner-link:hover {
+    color: var(--accent-text);
+  }
+}
+
+.owner-link:focus-visible {
+  outline: 2px solid var(--accent-text);
+  outline-offset: 2px;
+  border-radius: 9999px;
+}
+
 /*
  * Foto enmarcada: completa, sin recortes y tocando los bordes por su lado largo. Lo que sobra (a los
  * lados si es alta, arriba y abajo si es ancha) se llena con la misma foto, ampliada y borrosa,
@@ -1086,15 +1134,18 @@ ion-popover.user-menu ion-item.user-menu-sign-out {
   }
 }
 
-/* Pestañas dentro de una sección (Notificaciones: Avisos y Solicitudes): dos controles parejos, y
-   la actual teñida de ámbar como una opción elegida. Cada una con su contador. */
+/* Pestañas dentro de una sección o de una pantalla: dos controles parejos, y la actual teñida de
+   ámbar como una opción elegida. Con enlaces y aria-current cuando cada una tiene su dirección
+   (Notificaciones: Avisos y Solicitudes, cada una con su contador); con botones y aria-pressed
+   cuando solo cambian lo que se ve (Agregar regalo: Del catálogo y Escribirlo yo). */
 .segmented {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
 }
 
-a.control.segmented-item {
+a.control.segmented-item,
+button.control.segmented-item {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1105,14 +1156,16 @@ a.control.segmented-item {
   white-space: nowrap;
 }
 
-a.control.segmented-item[aria-current='page'] {
+a.control.segmented-item[aria-current='page'],
+button.control.segmented-item[aria-pressed='true'] {
   border-color: var(--ion-color-primary);
   background-color: color-mix(in srgb, var(--ion-color-primary) 10%, var(--color-white));
   color: var(--accent-text);
   font-weight: 600;
 }
 
-:where(.ion-palette-dark) a.control.segmented-item[aria-current='page'] {
+:where(.ion-palette-dark) a.control.segmented-item[aria-current='page'],
+:where(.ion-palette-dark) button.control.segmented-item[aria-pressed='true'] {
   background-color: color-mix(in srgb, var(--ion-color-primary) 18%, var(--color-neutral-900));
 }
 

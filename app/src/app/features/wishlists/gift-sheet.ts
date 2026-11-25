@@ -1,4 +1,3 @@
-import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonButton, IonIcon, IonSpinner } from '@ionic/angular';
@@ -11,6 +10,7 @@ import { formatPrice } from '../../shared/format';
 import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
 import { Notify } from '../../shared/notify';
 import { priorityOf } from '../../shared/priority';
+import { ReserveGift } from './reserve-gift';
 
 /** Un regalo de una lista ajena: su ficha, reservarlo o soltar la reserva. */
 @Component({
@@ -21,6 +21,7 @@ import { priorityOf } from '../../shared/priority';
 export class GiftSheet {
   private readonly api = inject(ReservationsService);
   private readonly notify = inject(Notify);
+  private readonly reserveGift = inject(ReserveGift);
 
   readonly item = input.required<WishlistItem>();
   /** Nombre público del dueño de la lista. */
@@ -46,30 +47,15 @@ export class GiftSheet {
   protected async reserve(): Promise<void> {
     this.busy.set(true);
     this.error.set(null);
-    try {
-      const reservation = await this.api.reserve(this.item().id);
-      this.changed.emit({
-        ...this.item(),
-        is_reserved: true,
-        reserved_by_me: true,
-        my_reservation_id: reservation.id,
-      });
-      await this.notify.toast(`Reservado. ${this.ownerName()} no se va a enterar.`);
-    } catch (error) {
-      // 409: otra persona reservó en el mismo instante. 403: ya estaba tomado, recibido o la
-      // lista dejó de estar a tu alcance. En los dos casos lo que se ve quedó viejo.
-      if (error instanceof HttpErrorResponse && (error.status === 409 || error.status === 403)) {
-        this.error.set(
-          error.status === 409
-            ? 'Alguien se te adelantó y ya lo reservó.'
-            : 'Ya no se puede reservar. La lista se actualizó con lo que está libre.',
-        );
-        this.stale.emit();
-      } else {
-        this.error.set(errorMessage(error, 'No se pudo reservar. Intenta de nuevo.'));
-      }
-    } finally {
-      this.busy.set(false);
+    const result = await this.reserveGift.reserve(this.item(), this.ownerName());
+    this.busy.set(false);
+    if (result.ok) {
+      this.changed.emit(result.item);
+      return;
+    }
+    this.error.set(result.message);
+    if (result.stale) {
+      this.stale.emit();
     }
   }
 

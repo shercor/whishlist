@@ -12,6 +12,7 @@ import {
   IonRefresher,
   IonRefresherContent,
   IonSkeletonText,
+  IonSpinner,
   IonTitle,
   IonToolbar,
   RefresherCustomEvent,
@@ -21,6 +22,7 @@ import {
 import { addIcons } from 'ionicons';
 import {
   addOutline,
+  calendarOutline,
   checkmarkCircleOutline,
   createOutline,
   eyeOffOutline,
@@ -36,7 +38,7 @@ import { LockedWishlist, Page, Wishlist, WishlistItem } from '../../core/api/mod
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { errorMessage } from '../../core/http/api-error';
 import { environment } from '../../../environments/environment';
-import { formatEventDate, formatPrice } from '../../shared/format';
+import { eventCountdown, formatEventDate, formatPrice } from '../../shared/format';
 import { GIFT_STATES, giftStateOf } from '../../shared/gift-state';
 import { Notify } from '../../shared/notify';
 import { priorityOf } from '../../shared/priority';
@@ -46,6 +48,8 @@ import { GiftSheet } from './gift-sheet';
 import { ItemSheet } from './item-sheet';
 import { ShareSheet } from './share-sheet';
 import { UserMenu } from '../../shared/user-menu';
+import { Avatar } from '../../shared/avatar';
+import { ReserveGift } from './reserve-gift';
 
 /** Regalos por página. */
 const PER_PAGE = 10;
@@ -58,6 +62,7 @@ const PER_PAGE = 10;
   selector: 'app-wishlist',
   imports: [
     UserMenu,
+    Avatar,
     RouterLink,
     GiftSheet,
     LockedWishlistView,
@@ -73,6 +78,7 @@ const PER_PAGE = 10;
     IonRefresher,
     IonRefresherContent,
     IonSkeletonText,
+    IonSpinner,
     IonTitle,
     IonToolbar,
   ],
@@ -81,6 +87,7 @@ const PER_PAGE = 10;
 export class WishlistPage implements ViewWillEnter, ViewWillLeave {
   private readonly api = inject(WishlistsService);
   private readonly notify = inject(Notify);
+  private readonly reserveGift = inject(ReserveGift);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   /** Si esta pantalla es la que se ve: una página que llega tarde no debe tocar la dirección de otra. */
@@ -129,6 +136,8 @@ export class WishlistPage implements ViewWillEnter, ViewWillLeave {
   /** El regalo del modal. Se conserva al cerrarlo, para que no se vacíe mientras se anima. */
   protected readonly editing = signal<WishlistItem | null>(null);
   protected readonly modalOpen = signal(false);
+  /** El regalo que se está reservando desde su tarjeta, para mostrar la espera en su botón. */
+  protected readonly reservingId = signal<number | null>(null);
   /** La hoja con el enlace para compartir y «Quién la ve». */
   protected readonly shareOpen = signal(false);
   /** En el teléfono el modal es una hoja que sube desde abajo. 48rem = md de Tailwind. */
@@ -137,6 +146,7 @@ export class WishlistPage implements ViewWillEnter, ViewWillLeave {
 
   protected readonly skeletonRows = ['70%', '55%', '80%'];
   protected readonly formatEventDate = formatEventDate;
+  protected readonly eventCountdown = eventCountdown;
   protected readonly formatPrice = formatPrice;
   protected readonly priorityOf = priorityOf;
   protected readonly visibilityOf = visibilityOf;
@@ -146,6 +156,7 @@ export class WishlistPage implements ViewWillEnter, ViewWillLeave {
   constructor() {
     addIcons({
       addOutline,
+      calendarOutline,
       checkmarkCircleOutline,
       createOutline,
       eyeOffOutline,
@@ -183,6 +194,25 @@ export class WishlistPage implements ViewWillEnter, ViewWillLeave {
   protected onChanged(item: WishlistItem): void {
     this.items.update((list) => list.map((current) => (current.id === item.id ? item : current)));
     this.editing.set(item);
+  }
+
+  /** «Lo regalo yo» en la tarjeta: reserva sin abrir la hoja (que se abre con el resto de la tarjeta). */
+  protected async reserve(event: Event, item: WishlistItem): Promise<void> {
+    event.stopPropagation();
+    if (this.reservingId() !== null) {
+      return;
+    }
+    this.reservingId.set(item.id);
+    const result = await this.reserveGift.reserve(item, this.ownerName());
+    this.reservingId.set(null);
+    if (result.ok) {
+      this.items.update((list) => list.map((current) => (current.id === item.id ? result.item : current)));
+      return;
+    }
+    await this.notify.toast(result.message);
+    if (result.stale) {
+      void this.load();
+    }
   }
 
   protected onStale(): void {

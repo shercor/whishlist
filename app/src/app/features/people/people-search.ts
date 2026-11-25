@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, output, signal, viewChild } from '@angular/core';
+import { Component, computed, inject, output, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IonIcon, IonSkeletonText } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -23,7 +23,6 @@ const MIN_LETTERS = 3;
     <!-- El margen va en un contenedor: .control lo pone en 0 y le gana a mb-4. -->
     <div class="mb-4">
       <input
-        #field
         type="search"
         class="control w-full"
         placeholder="Buscar por usuario: @ana_perez"
@@ -121,19 +120,12 @@ export class PeopleSearch {
   protected readonly tooShort = computed(() => this.letters(this.query()) < MIN_LETTERS);
   protected readonly skeletonRows = ['35%', '50%', '28%'];
 
-  private readonly field = viewChild.required<ElementRef<HTMLInputElement>>('field');
   private searchTimer?: ReturnType<typeof setTimeout>;
   /** Solo cuenta la respuesta de la última búsqueda: una lenta no pisa a una más nueva. */
   private request = 0;
 
   constructor() {
     addIcons({ searchOutline });
-  }
-
-  /** Para el «Buscar personas» de la pantalla: lleva el cursor al campo. */
-  focus(): void {
-    this.field().nativeElement.focus();
-    this.field().nativeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
   protected typed(value: string): void {

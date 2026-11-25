@@ -5,6 +5,7 @@ import {
   IonButton,
   IonButtons,
   IonContent,
+  IonIcon,
   IonHeader,
   IonRefresher,
   IonRefresherContent,
@@ -14,13 +15,15 @@ import {
   RefresherCustomEvent,
   ViewWillEnter,
 } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { personRemoveOutline } from 'ionicons/icons';
 import { User, Wishlist, WishlistAccess } from '../../core/api/models';
 import { AccessService } from '../../core/api/access.service';
 import { FollowsService } from '../../core/api/follows.service';
 import { WishlistsService } from '../../core/api/wishlists.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { errorMessage } from '../../core/http/api-error';
-import { ACCESS_SOURCES, ACCESS_STATUSES } from '../../shared/access-status';
+import { ACCESS_SOURCES } from '../../shared/access-status';
 import { Notify } from '../../shared/notify';
 import { PersonRow } from '../../shared/person-row';
 import { UserMenu } from '../../shared/user-menu';
@@ -36,6 +39,7 @@ import { UserMenu } from '../../shared/user-menu';
     IonButton,
     IonButtons,
     IonContent,
+    IonIcon,
     IonHeader,
     IonRefresher,
     IonRefresherContent,
@@ -64,11 +68,24 @@ export class WishlistAccessPage implements ViewWillEnter {
     return this.followers().filter((follower) => !taken.has(follower.username));
   });
 
+  protected readonly pending = computed(() =>
+    this.accesses().filter((access) => access.status === 'pendiente'),
+  );
+  protected readonly approved = computed(() =>
+    this.accesses().filter((access) => access.status === 'aprobado'),
+  );
+  protected readonly rejected = computed(() =>
+    this.accesses().filter((access) => access.status === 'rechazado'),
+  );
+
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
-  protected readonly statuses = ACCESS_STATUSES;
   protected readonly sources = ACCESS_SOURCES;
+
+  constructor() {
+    addIcons({ personRemoveOutline });
+  }
 
   ionViewWillEnter(): void {
     void this.load();
@@ -81,6 +98,16 @@ export class WishlistAccessPage implements ViewWillEnter {
 
   protected approve(access: WishlistAccess): Promise<void> {
     return this.run(() => this.access.answer(access.id, 'aprobado'));
+  }
+
+  protected reject(access: WishlistAccess): Promise<void> {
+    return this.run(() => this.access.answer(access.id, 'rechazado'));
+  }
+
+  /** Cómo llegó, y su mensaje si pidió la lista: «Te lo pidió · «¿Me dejas ver?»». */
+  protected subtitleOf(access: WishlistAccess): string {
+    const source = this.sources[access.source];
+    return access.message ? `${source} · «${access.message}»` : source;
   }
 
   protected async revoke(access: WishlistAccess): Promise<void> {

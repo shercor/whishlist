@@ -19,7 +19,7 @@
         Quién ve «{{ wishlist()?.name ?? '…' }}»
       </h1>
       <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-        Los que entraron, por dónde entraron, y a quién más puedes dársela.
+        Quién la ve, cómo llegó y a quién más dársela.
       </p>
     </div>
 
@@ -51,52 +51,82 @@
     } @else if (wishlist(); as wishlist) {
       @if (wishlist.visibility === 'publica') {
         <div role="status" class="notice notice-info enter-up">
-          <span>
-            Esta lista es pública: la ve cualquiera que pueda ver tu perfil, sin pedirla. Lo de
-            abajo solo cuenta si la vuelves privada.
-          </span>
+          <span>Es pública: la ve cualquiera, sin pedirla. Lo de abajo cuenta si la vuelves privada.</span>
         </div>
       }
 
-      <h2 class="section-title enter-up">Con acceso · {{ accesses().length }}</h2>
-      @if (accesses().length > 0) {
-        <div role="list" aria-label="Con acceso" class="card enter-up mb-6 overflow-hidden">
-          @for (access of accesses(); track access.id) {
+      <!--
+        Por estado, cada grupo con lo que se puede hacer: lo que espera respuesta arriba, con sus dos
+        botones; quien ya la ve, con un ícono discreto para quitarlo; y lo rechazado al final, por si
+        cambias de idea.
+      -->
+      @if (pending().length > 0) {
+        <h2 class="section-title enter-up">Te la pidieron · {{ pending().length }}</h2>
+        <div role="list" aria-label="Te la pidieron" class="card enter-up mb-6 overflow-hidden">
+          @for (access of pending(); track access.id) {
             @if (access.user; as person) {
-              <app-person-row
-                [user]="person"
-                [subtitle]="
-                  sources[access.source] + (access.message ? ' · «' + access.message + '»' : '')
-                "
-              >
-                <span
-                  class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap"
-                  [class]="statuses[access.status].chip"
-                >
-                  {{ statuses[access.status].title }}
-                </span>
+              <app-person-row [user]="person" [subtitle]="subtitleOf(access)">
                 <button
                   type="button"
-                  class="link-button link-danger text-sm"
+                  class="link-button text-sm"
                   [disabled]="busy()"
+                  (click)="reject(access)"
+                >
+                  Rechazar
+                </button>
+                <ion-button class="pressable m-0" [disabled]="busy()" (click)="approve(access)">
+                  Darle acceso
+                </ion-button>
+              </app-person-row>
+            }
+          }
+        </div>
+      }
+
+      <h2 class="section-title enter-up">Con acceso · {{ approved().length }}</h2>
+      @if (approved().length > 0) {
+        <div role="list" aria-label="Con acceso" class="card enter-up mb-6 overflow-hidden">
+          @for (access of approved(); track access.id) {
+            @if (access.user; as person) {
+              <app-person-row [user]="person" [subtitle]="subtitleOf(access)">
+                <ion-button
+                  fill="clear"
+                  color="medium"
+                  class="m-0"
+                  [disabled]="busy()"
+                  [attr.aria-label]="'Quitarle el acceso a ' + person.handle"
+                  [title]="'Quitarle el acceso a ' + person.handle"
                   (click)="revoke(access)"
                 >
-                  Quitar
-                </button>
-                @if (access.status === 'pendiente') {
-                  <ion-button class="pressable m-0" [disabled]="busy()" (click)="approve(access)">
-                    Darle acceso
-                  </ion-button>
-                }
+                  <ion-icon slot="icon-only" name="person-remove-outline" aria-hidden="true" />
+                </ion-button>
               </app-person-row>
             }
           }
         </div>
       } @else {
         <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
-          <p class="m-0 text-neutral-500 dark:text-neutral-400">
-            Nadie ha entrado a esta lista todavía.
-          </p>
+          <p class="m-0 text-neutral-500 dark:text-neutral-400">Nadie la ve todavía.</p>
+        </div>
+      }
+
+      @if (rejected().length > 0) {
+        <h2 class="section-title enter-up">Rechazadas · {{ rejected().length }}</h2>
+        <div role="list" aria-label="Rechazadas" class="card enter-up mb-6 overflow-hidden">
+          @for (access of rejected(); track access.id) {
+            @if (access.user; as person) {
+              <app-person-row [user]="person" [subtitle]="subtitleOf(access)">
+                <ion-button
+                  fill="outline"
+                  class="pressable m-0"
+                  [disabled]="busy()"
+                  (click)="approve(access)"
+                >
+                  Darle acceso
+                </ion-button>
+              </app-person-row>
+            }
+          }
         </div>
       }
 
@@ -116,16 +146,13 @@
             </app-person-row>
           }
         </div>
-        <p class="hint mt-0">
-          Solo aparecen tus seguidores: una lista privada no se reparte entre desconocidos.
-        </p>
+        <p class="hint mt-0">Solo aparecen tus seguidores.</p>
       } @else {
         <div
           class="card enter-up flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
         >
           <p class="m-0 text-neutral-500 dark:text-neutral-400">
-            No te queda ningún seguidor a quien dársela. Solo tus seguidores pueden recibir una
-            lista privada.
+            No te queda ningún seguidor a quien dársela.
           </p>
           <ion-button fill="outline" class="pressable m-0" routerLink="/mi-gente">
             Ver mi gente

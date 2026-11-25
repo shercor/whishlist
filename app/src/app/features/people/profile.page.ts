@@ -24,7 +24,7 @@ import { PeopleService } from '../../core/api/people.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
-import { formatEventDate, formatShortEventDate, giftCount } from '../../shared/format';
+import { eventCountdown, formatEventDate, giftCount } from '../../shared/format';
 import { Notify } from '../../shared/notify';
 import { UserMenu } from '../../shared/user-menu';
 
@@ -66,7 +66,7 @@ export class ProfilePage implements ViewWillEnter {
 
   protected readonly skeletonRows = ['45%', '60%'];
   protected readonly formatEventDate = formatEventDate;
-  protected readonly formatShortEventDate = formatShortEventDate;
+  protected readonly eventCountdown = eventCountdown;
   protected readonly giftCount = giftCount;
 
   constructor() {

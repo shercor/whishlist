@@ -1,9 +1,10 @@
-import { Component, inject, signal, viewChild } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
   IonButton,
   IonButtons,
   IonContent,
   IonHeader,
+  IonIcon,
   IonMenuButton,
   IonRefresher,
   IonRefresherContent,
@@ -13,6 +14,8 @@ import {
   RefresherCustomEvent,
   ViewWillEnter,
 } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { personRemoveOutline } from 'ionicons/icons';
 import { Follow, FollowLists, User } from '../../core/api/models';
 import { FollowsService } from '../../core/api/follows.service';
 import { PeopleService } from '../../core/api/people.service';
@@ -38,6 +41,7 @@ import { PeopleSearch } from '../people/people-search';
     IonButtons,
     IonContent,
     IonHeader,
+    IonIcon,
     IonMenuButton,
     IonRefresher,
     IonRefresherContent,
@@ -59,7 +63,10 @@ export class FollowsPage implements ViewWillEnter {
   protected readonly error = signal<string | null>(null);
   /** Hay una búsqueda en curso: se esconden tus listas de gente. */
   protected readonly searching = signal(false);
-  protected readonly search = viewChild.required(PeopleSearch);
+
+  constructor() {
+    addIcons({ personRemoveOutline });
+  }
 
   ionViewWillEnter(): void {
     void this.load();

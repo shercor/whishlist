@@ -17,8 +17,7 @@
     <div class="enter-up mb-4 md:mb-6">
       <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Gente</h1>
       <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
-        Busca a alguien por su usuario, y mira quién te sigue y a quién sigues. Solo tus seguidores
-        pueden recibir una lista privada tuya.
+        Quién te sigue y a quién sigues. Para seguir a alguien, búscalo por su usuario.
       </p>
     </div>
 
@@ -80,20 +79,28 @@
         </div>
       }
 
-      <h2 class="section-title enter-up">Te siguen · {{ lists.followers.length }}</h2>
+      <h2 class="section-title enter-up" style="margin-bottom: 0.25rem">
+        Te siguen · {{ lists.followers.length }}
+      </h2>
+      <!-- Lo que significa seguirte, una vez para la sección y no en cada fila. -->
+      <p class="hint enter-up mt-0 mb-2">Pueden recibir tus listas privadas.</p>
       @if (lists.followers.length > 0) {
         <div role="list" aria-label="Te siguen" class="card enter-up mb-6 overflow-hidden">
           @for (follow of lists.followers; track follow.id) {
             @if (follow.follower; as person) {
-              <app-person-row [user]="person" subtitle="Puede recibir tus listas privadas.">
-                <button
-                  type="button"
-                  class="link-button link-danger text-sm"
+              <app-person-row [user]="person">
+                <!-- Quitar es lo menos frecuente de la fila: un ícono discreto, con confirmación. -->
+                <ion-button
+                  fill="clear"
+                  color="medium"
+                  class="m-0"
                   [disabled]="busy()"
+                  [attr.aria-label]="'Quitar a ' + person.handle + ' de tus seguidores'"
+                  [title]="'Quitar a ' + person.handle"
                   (click)="remove(person)"
                 >
-                  Quitar
-                </button>
+                  <ion-icon slot="icon-only" name="person-remove-outline" aria-hidden="true" />
+                </ion-button>
               </app-person-row>
             }
           }
@@ -117,11 +124,11 @@
           }
         </div>
       } @else {
-        <div
-          class="card enter-up mb-6 flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
-        >
+        <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
           <p class="m-0 font-medium">No sigues a nadie.</p>
-          <ion-button class="pressable m-0" (click)="search().focus()">Buscar personas</ion-button>
+          <p class="mt-1 mb-0 text-neutral-500 dark:text-neutral-400">
+            Búscalos arriba por su usuario.
+          </p>
         </div>
       }
 
