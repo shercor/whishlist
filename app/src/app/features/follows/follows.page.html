@@ -93,7 +93,7 @@
                 <ion-button
                   fill="clear"
                   color="medium"
-                  class="m-0"
+                  class="row-icon-action"
                   [disabled]="busy()"
                   [attr.aria-label]="'Quitar a ' + person.handle + ' de tus seguidores'"
                   [title]="'Quitar a ' + person.handle"
@@ -106,11 +106,19 @@
           }
         </div>
       } @else {
-        <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
-          <p class="m-0 font-medium">Todavía no te sigue nadie.</p>
-          <p class="mt-1 mb-0 text-neutral-500 dark:text-neutral-400">
-            Pásale tu {{ auth.user()?.handle }} a quien quieras que vea tus listas.
-          </p>
+        <div
+          class="card enter-up mb-6 flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
+        >
+          <div>
+            <p class="m-0 font-medium">Todavía no te sigue nadie.</p>
+            <p class="mt-1 mb-0 text-neutral-500 dark:text-neutral-400">
+              Pásale el enlace a tu perfil a quien quieras que vea tus listas.
+            </p>
+          </div>
+          <ion-button fill="outline" class="pressable m-0" (click)="copyProfileLink()">
+            <ion-icon slot="start" name="copy-outline" aria-hidden="true" />
+            Copiar enlace a mi perfil
+          </ion-button>
         </div>
       }
 
@@ -124,11 +132,20 @@
           }
         </div>
       } @else {
-        <div class="card enter-up mb-6 px-4 py-6 text-center text-sm md:px-5">
-          <p class="m-0 font-medium">No sigues a nadie.</p>
-          <p class="mt-1 mb-0 text-neutral-500 dark:text-neutral-400">
-            Búscalos arriba por su usuario.
-          </p>
+        <!-- Una acción distinta del buscador de arriba: encontrar gente por lo que pide. -->
+        <div
+          class="card enter-up mb-6 flex flex-col items-center gap-3 px-4 py-6 text-center text-sm md:px-5"
+        >
+          <div>
+            <p class="m-0 font-medium">No sigues a nadie.</p>
+            <p class="mt-1 mb-0 text-neutral-500 dark:text-neutral-400">
+              Búscalos arriba por su usuario, o encuéntralos por sus listas.
+            </p>
+          </div>
+          <ion-button fill="outline" class="pressable m-0" routerLink="/descubrir">
+            <ion-icon slot="start" name="compass-outline" aria-hidden="true" />
+            Ir a Descubrir
+          </ion-button>
         </div>
       }
 

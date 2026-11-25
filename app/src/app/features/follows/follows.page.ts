@@ -1,4 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   IonButton,
   IonButtons,
@@ -15,7 +16,7 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { personRemoveOutline } from 'ionicons/icons';
+import { compassOutline, copyOutline, personRemoveOutline } from 'ionicons/icons';
 import { Follow, FollowLists, User } from '../../core/api/models';
 import { FollowsService } from '../../core/api/follows.service';
 import { PeopleService } from '../../core/api/people.service';
@@ -35,6 +36,7 @@ import { PeopleSearch } from '../people/people-search';
   selector: 'app-follows',
   imports: [
     UserMenu,
+    RouterLink,
     PeopleSearch,
     PersonRow,
     IonButton,
@@ -65,7 +67,7 @@ export class FollowsPage implements ViewWillEnter {
   protected readonly searching = signal(false);
 
   constructor() {
-    addIcons({ personRemoveOutline });
+    addIcons({ compassOutline, copyOutline, personRemoveOutline });
   }
 
   ionViewWillEnter(): void {
@@ -75,6 +77,20 @@ export class FollowsPage implements ViewWillEnter {
   protected async refresh(event: RefresherCustomEvent): Promise<void> {
     await this.load();
     await event.target.complete();
+  }
+
+  /** El estado vacío de «Te siguen»: el enlace a mi perfil, para pasárselo a alguien. */
+  protected async copyProfileLink(): Promise<void> {
+    const username = this.auth.user()?.username;
+    if (!username) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(new URL(`/u/${username}`, location.origin).href);
+      await this.notify.toast('Enlace copiado.');
+    } catch {
+      await this.notify.toast('No se pudo copiar.');
+    }
   }
 
   protected answer(follow: Follow, decision: 'aceptar' | 'rechazar'): Promise<void> {

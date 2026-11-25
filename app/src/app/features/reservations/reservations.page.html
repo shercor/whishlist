@@ -13,8 +13,8 @@
     <ion-refresher-content />
   </ion-refresher>
 
-  <main class="mx-auto w-full max-w-5xl px-4 py-5 md:px-6 md:py-8">
-    <div class="enter-up mb-4 md:mb-6">
+  <main class="@container mx-auto w-full max-w-5xl px-4 py-5 md:px-6 md:py-8">
+    <div class="enter-up mb-5 md:mb-6">
       <h1 class="mt-0 mb-1 text-2xl font-semibold tracking-tight md:text-3xl">Voy a regalar</h1>
       <p class="m-0 text-sm text-neutral-500 dark:text-neutral-400">
         Lo que tienes reservado, por persona. Solo tú ves esta pantalla.
@@ -32,19 +32,27 @@
     }
 
     @if (loading()) {
-      <div role="status" aria-label="Cargando tus reservas" class="card overflow-hidden">
-        @for (width of skeletonRows; track $index) {
-          <div
-            aria-hidden="true"
-            class="flex items-center gap-3 border-b border-neutral-100 px-4 py-3 last:border-b-0 md:px-5 dark:border-white/5"
-          >
-            <ion-skeleton-text animated class="m-0 size-12 shrink-0 rounded-lg" />
-            <div class="flex min-w-0 flex-1 flex-col gap-2">
-              <ion-skeleton-text animated class="m-0 h-4" [style.width]="width" />
-              <ion-skeleton-text animated class="m-0 h-3 w-1/3" />
-            </div>
+      <!-- La forma de lo que viene: el resumen, una persona y sus regalos. -->
+      <div role="status" aria-label="Cargando tus reservas">
+        <ion-skeleton-text animated aria-hidden="true" class="m-0 mb-9 h-20 w-full rounded-xl md:max-w-lg" />
+        <div aria-hidden="true" class="mb-3 flex items-center gap-3 px-1">
+          <ion-skeleton-text animated class="skeleton-round m-0 size-12 shrink-0" />
+          <div class="flex flex-1 flex-col gap-2">
+            <ion-skeleton-text animated class="m-0 h-5 w-1/2" />
+            <ion-skeleton-text animated class="m-0 h-3 w-1/3" />
           </div>
-        }
+        </div>
+        <div aria-hidden="true" class="gift-grid">
+          @for (width of skeletonRows; track $index) {
+            <div class="card flex flex-col overflow-hidden">
+              <ion-skeleton-text animated class="m-0 aspect-square h-auto w-full rounded-none" />
+              <div class="flex flex-col gap-2 p-3">
+                <ion-skeleton-text animated class="m-0 h-4" [style.width]="width" />
+                <ion-skeleton-text animated class="m-0 h-3 w-1/2" />
+              </div>
+            </div>
+          }
+        </div>
       </div>
     } @else if (reservations().length === 0 && !error()) {
       <div class="card enter-up flex flex-col items-center gap-2 px-6 py-12 text-center">
@@ -63,19 +71,66 @@
       </div>
     } @else if (reservations().length > 0) {
       <!--
-        Lista agrupada: cada persona es un encabezado de sección, fuera de la tarjeta y con letra más
-        grande; dentro de la tarjeta van solo los regalos que le llevas. Así la persona se lee como
-        el título del grupo y no como una fila más. El nombre de la lista lleva a ella; tocar un
-        regalo abre su hoja (para soltarlo).
+        Resumen: cuánto llevas comprometido, de un vistazo. El total sale de los precios de
+        referencia, por eso «aprox.»; si falta cargar reservas o hay monedas distintas, no se muestra
+        (sería un número equivocado). Número arriba y nombre abajo, pero en el HTML va primero el
+        nombre (dt), que es como lo lee un lector de pantalla.
 
-          [foto] Para Teresa                       [Faltan 12 días]
-                 Regalos de casa nueva ›
-          ┌──────────────────────────────────────────┐
-          │ [regalo] Figura Iron Man                 │
-          │          Se suelta sola el 8 de diciembre│
-          └──────────────────────────────────────────┘
+          ┌──────────┬──────────┬──────────────┐
+          │    3     │    2     │   $289.970   │
+          │ regalos  │ personas │ total aprox. │
+          └──────────┴──────────┴──────────────┘
       -->
-      <div class="flex flex-col gap-7">
+      <dl
+        class="card enter-up mt-0 mb-9 grid divide-x divide-neutral-100 md:max-w-lg dark:divide-white/7"
+        [class]="spend() ? 'grid-cols-3' : 'grid-cols-2'"
+      >
+        <div class="flex flex-col-reverse items-center gap-0.5 px-2 py-3.5">
+          <dt class="text-xs text-neutral-500 dark:text-neutral-400">
+            {{ total() === 1 ? 'regalo' : 'regalos' }}
+          </dt>
+          <dd class="font-display m-0 text-2xl leading-none font-semibold tabular-nums">
+            {{ total() }}
+          </dd>
+        </div>
+        <div class="flex flex-col-reverse items-center gap-0.5 px-2 py-3.5">
+          <dt class="text-xs text-neutral-500 dark:text-neutral-400">
+            {{ people() === 1 ? 'persona' : 'personas' }}
+          </dt>
+          <dd class="font-display m-0 text-2xl leading-none font-semibold tabular-nums">
+            {{ people() }}{{ hasMore() ? '+' : '' }}
+          </dd>
+        </div>
+        @if (spend(); as spend) {
+          <div class="flex min-w-0 flex-col-reverse items-center gap-0.5 px-2 py-3.5">
+            <dt class="text-xs text-neutral-500 dark:text-neutral-400">total aprox.</dt>
+            <dd
+              class="font-display m-0 max-w-full truncate text-xl leading-none font-semibold tabular-nums md:text-2xl"
+            >
+              {{ spend }}
+            </dd>
+          </div>
+        }
+      </dl>
+
+      <!--
+        Una sección por persona: la persona es el título, fuera de las tarjetas y más grande, y sus
+        regalos van en tarjetas como las de una lista (.gift-grid), con foto, prioridad, precio y
+        cuándo se suelta la reserva. Tocar un regalo abre su hoja (para soltarlo).
+
+          (foto) Para Teresa
+                 Regalos de casa nueva ›
+                 [📅 Faltan 12 días]
+          ┌─────────┐ ┌─────────┐
+          │ ★ Alta  │ │ Media   │
+          │  [foto] │ │  [foto] │
+          ├─────────┤ ├─────────┤
+          │ Nombre  │ │ Nombre  │
+          │ $89.990 │ │ $179.990│
+          │ ⏱ 13 d. │ │ ⏱ 13 d. │
+          └─────────┘ └─────────┘
+      -->
+      <div class="flex flex-col gap-9">
         @for (group of groups(); track group.wishlist?.id ?? group.reservations[0].id) {
           <section
             class="enter-up"
@@ -83,12 +138,15 @@
             [attr.aria-labelledby]="'para-' + $index"
           >
             @if (group.wishlist; as wishlist) {
-              <header class="mb-2.5 flex items-center gap-3 px-1">
+              <header class="mb-3 flex items-start gap-3 px-1">
                 @if (wishlist.owner; as owner) {
-                  <app-avatar [user]="owner" class="size-11 text-sm" />
+                  <app-avatar [user]="owner" class="size-12 shrink-0 text-base" />
                 }
-                <div class="min-w-0 flex-1">
-                  <h2 class="m-0 truncate text-base font-semibold" [id]="'para-' + $index">
+                <div class="flex min-w-0 flex-1 flex-col items-start">
+                  <h2
+                    class="m-0 max-w-full truncate text-xl leading-tight font-semibold"
+                    [id]="'para-' + $index"
+                  >
                     Para {{ wishlist.owner?.display_name }}
                   </h2>
                   <a
@@ -98,74 +156,96 @@
                     <span class="truncate">{{ wishlist.name }}</span>
                     <ion-icon name="chevron-forward" aria-hidden="true" class="shrink-0" />
                   </a>
+                  @if (wishlist.event_date; as date) {
+                    @let countdown = eventCountdown(date);
+                    <span
+                      class="mt-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                      [class]="
+                        countdown.upcoming
+                          ? 'bg-amber-50 text-[var(--accent-text)] dark:bg-amber-500/15'
+                          : 'bg-neutral-200/70 text-neutral-700 dark:bg-white/10 dark:text-neutral-300'
+                      "
+                      [title]="formatEventDate(date)"
+                    >
+                      <ion-icon name="calendar-outline" aria-hidden="true" />
+                      {{ countdown.text }}
+                    </span>
+                  }
                 </div>
-                @if (wishlist.event_date; as date) {
-                  @let countdown = eventCountdown(date);
-                  <span
-                    class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                    [class]="
-                      countdown.upcoming
-                        ? 'bg-amber-50 text-[var(--accent-text)] dark:bg-amber-500/15'
-                        : 'bg-neutral-200/70 text-neutral-700 dark:bg-white/10 dark:text-neutral-300'
-                    "
-                    [title]="formatEventDate(date)"
-                  >
-                    <ion-icon name="calendar-outline" aria-hidden="true" />
-                    {{ countdown.text }}
-                  </span>
-                }
               </header>
             }
 
-            <div role="list" aria-label="Lo que le llevas" class="card overflow-hidden">
+            <div role="list" aria-label="Lo que le llevas" class="gift-grid">
               @for (reservation of group.reservations; track reservation.id) {
-                <!--
-                  [foto] regalo
-                  [    ] se suelta sola el … (ámbar si ya pasó)
-                -->
+                @let item = reservation.item;
                 <div
                   role="listitem"
                   tabindex="0"
                   aria-haspopup="dialog"
-                  class="tappable-row grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-0.5 border-b border-neutral-100 px-4 py-3 transition-colors last:border-b-0 md:gap-x-4 md:px-5 md:hover:bg-neutral-50 dark:border-white/5 md:dark:hover:bg-white/5"
+                  class="card gift-card tappable-row flex flex-col overflow-hidden"
                   (click)="open(reservation)"
                   (keydown.enter)="open(reservation)"
                 >
-                  <!-- La foto completa (.photo-frame) o, sin foto, el regalo sobre crema. -->
-                  @if (reservation.item.product?.image; as image) {
-                    <div
-                      class="photo-frame row-span-2 size-12 rounded-lg ring-1 ring-black/5 dark:ring-white/10"
-                    >
-                      <img [src]="image" alt="" loading="lazy" aria-hidden="true" />
-                      <img [src]="image" alt="" loading="lazy" />
-                    </div>
-                  } @else {
+                  <div class="gift-card-media">
+                    @if (item.product?.image; as image) {
+                      <!-- La foto completa (.photo-frame). -->
+                      <div class="photo-frame">
+                        <img [src]="image" alt="" loading="lazy" aria-hidden="true" />
+                        <img [src]="image" alt="" loading="lazy" />
+                      </div>
+                    } @else {
+                      <!-- Sin foto, el regalo de la marca. -->
+                      <div
+                        aria-hidden="true"
+                        class="flex size-full items-center justify-center bg-amber-50 dark:bg-amber-500/10"
+                      >
+                        <span class="gift-mark size-14 opacity-80"></span>
+                      </div>
+                    }
                     <span
-                      aria-hidden="true"
-                      class="row-span-2 flex size-12 items-center justify-center rounded-lg bg-amber-50 dark:bg-amber-500/15"
+                      class="gift-card-priority"
+                      [class.gift-card-priority-high]="item.priority === 'alta'"
+                      [title]="priorityOf(item.priority).hint"
                     >
-                      <span class="gift-mark size-6 opacity-80"></span>
+                      @if (item.priority === 'alta') {
+                        <ion-icon name="star" aria-hidden="true" />
+                      }
+                      {{ priorityOf(item.priority).title }}
                     </span>
-                  }
-                  <div class="truncate font-medium" [title]="reservation.item.name">
-                    {{ reservation.item.name }}
                   </div>
-                  @if (reservation.expires_at; as expires) {
-                    <div
-                      class="col-start-2 truncate text-sm"
-                      [class]="
-                        isPast(expires)
-                          ? 'font-medium text-amber-700 dark:text-amber-300'
-                          : 'text-neutral-500 dark:text-neutral-400'
-                      "
-                    >
-                      @if (isPast(expires)) {
-                        Se venció el plazo: se suelta en cualquier momento
-                      } @else {
-                        Se suelta sola el {{ formatDay(expires) }}
+
+                  <div class="flex flex-1 flex-col gap-1 p-3">
+                    <h3 class="m-0 line-clamp-2 text-base leading-snug font-medium" [title]="item.name">
+                      {{ item.name }}
+                    </h3>
+                    <div class="mt-auto flex flex-col gap-1 pt-1">
+                      @if (item.product?.reference_price; as price) {
+                        <span class="text-lg leading-tight font-semibold tracking-tight">
+                          {{ formatPrice(price, item.product?.currency ?? null) }}
+                        </span>
+                      }
+                      <!-- Cuándo se suelta sola: en ámbar con 3 días o menos, para no perderla. -->
+                      @if (reservation.expires_at; as expires) {
+                        @let release = releaseCountdown(expires);
+                        <span
+                          class="flex items-center gap-1 text-xs"
+                          [class]="
+                            release.soon
+                              ? 'font-medium text-[var(--accent-text)]'
+                              : 'text-neutral-500 dark:text-neutral-400'
+                          "
+                          [title]="'El ' + formatDay(expires)"
+                        >
+                          <ion-icon
+                            class="shrink-0"
+                            [name]="release.soon ? 'alert-circle-outline' : 'time-outline'"
+                            aria-hidden="true"
+                          />
+                          {{ release.text }}
+                        </span>
                       }
                     </div>
-                  }
+                  </div>
                 </div>
               }
             </div>

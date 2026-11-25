@@ -73,6 +73,29 @@ export function formatDay(iso: string): string {
   return day.format(new Date(iso));
 }
 
+/**
+ * Cuándo se suelta sola una reserva, en días del calendario de quien mira: «Se suelta hoy»,
+ * «Se suelta mañana», «Se suelta en 5 días». `soon` dice si quedan 3 días o menos, o si ya venció:
+ * es cuando conviene avisar.
+ */
+export function releaseCountdown(iso: string, now = new Date()): { text: string; soon: boolean } {
+  const expires = new Date(iso);
+  if (expires.getTime() <= now.getTime()) {
+    return { text: 'Se suelta en cualquier momento', soon: true };
+  }
+  const startOf = (date: Date) =>
+    new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  // Redondeado: con cambio de horario un día dura 23 o 25 horas.
+  const days = Math.round((startOf(expires) - startOf(now)) / 86_400_000);
+  if (days === 0) {
+    return { text: 'Se suelta hoy', soon: true };
+  }
+  if (days === 1) {
+    return { text: 'Se suelta mañana', soon: true };
+  }
+  return { text: `Se suelta en ${days} días`, soon: days <= 3 };
+}
+
 const relative = new Intl.RelativeTimeFormat('es-CL', { numeric: 'auto' });
 const STEPS: [Intl.RelativeTimeFormatUnit, number][] = [
   ['year', 365 * 24 * 3600],

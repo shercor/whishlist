@@ -51,6 +51,8 @@ const chrome = spawn(
     '--headless=new',
     `--remote-debugging-port=${port}`,
     '--no-first-run',
+    // Sin GPU: con ella, Chrome sin ventana a veces se cae al capturar y el script queda esperando.
+    '--disable-gpu',
     `--blink-settings=${mouse}`,
     `--user-data-dir=${profile}`,
     'about:blank',

@@ -11,8 +11,9 @@ import { Avatar } from './avatar';
   selector: 'app-person-row',
   imports: [RouterLink, Avatar],
   template: `
+    <!-- Con márgenes negativos, el enlace cubre todo el alto de la fila y su borde izquierdo. -->
     <a
-      class="flex min-w-0 flex-1 basis-48 items-center gap-3 text-inherit no-underline"
+      class="person-row-link -my-3 -ms-4 flex min-w-0 flex-1 basis-48 items-center gap-3 py-3 ps-4 text-inherit no-underline md:-ms-5 md:ps-5"
       [routerLink]="['/u', user().username]"
     >
       <app-avatar [user]="user()" class="size-10 text-sm md:size-9" />

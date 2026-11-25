@@ -65,6 +65,12 @@
                 "input": "node_modules/@ionic/angular/css/flex-utils.css"
               },
               {
+                "input": "node_modules/@fontsource-variable/nunito/index.css"
+              },
+              {
+                "input": "node_modules/@fontsource-variable/fredoka/index.css"
+              },
+              {
                 "input": "src/theme/variables.css"
               },
               {

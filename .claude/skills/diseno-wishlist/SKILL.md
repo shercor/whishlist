@@ -34,17 +34,25 @@ copiar cómo lo resuelve esa vista.
 
 `ui-ux-pro-max` es una guía genérica de UI/UX instalada en el proyecto. Se
 activa con las mismas tareas que esta, así que muchas veces se cargan las dos.
+El usuario confía en ella para **la estructura y las ideas**, no para el
+**estilo**:
 
-- **Por defecto manda este archivo.** Si las dos chocan (alto de los
-  controles, colores, tipografía, estilo, animaciones), se sigue lo de aquí.
-  Al informar el cambio, se dice en una línea qué recomendación de
-  ui-ux-pro-max no se siguió y por qué.
-- **ui-ux-pro-max sirve de consulta** para lo que este archivo no cubre (por
-  ejemplo formularios, accesibilidad o gráficos), sin tocar marca, colores ni
-  tipografía.
-- **El usuario puede elegir.** Si pide usar ui-ux-pro-max para una tarea, se
-  usa esa aunque choque con este archivo. Antes de aplicar algo que contradiga
-  este archivo, se le dice qué regla de aquí se rompe, para que confirme.
+- **De ui-ux-pro-max se toma:** cómo ordenar la pantalla y su HTML (bloques,
+  resúmenes, grillas, jerarquía, qué va primero), los estados (vacío, carga,
+  error), la accesibilidad, los tamaños de toque y las ideas de producto
+  (por ejemplo, avisar cuándo se suelta una reserva). En eso puede cambiar lo
+  que hay.
+- **De este archivo se toma, siempre:** el estilo, es decir los colores (el
+  ámbar y los neutros, sin la paleta que proponga la skill), los efectos
+  visuales (vidrio, línea ámbar tenue, resplandor, barrita), las fuentes de §7
+  y las clases de componente de `tailwind.css`. Una propuesta de
+  ui-ux-pro-max se arma con las piezas de aquí (`.card`, `.gift-grid`,
+  `.gift-card`, chips, `.section-title`...), no con CSS propio de la pantalla.
+- **Al informar el cambio**, se dice en una línea qué recomendación de estilo
+  de ui-ux-pro-max no se siguió y por qué.
+- **El usuario puede elegir.** Si pide usar ui-ux-pro-max entera (estilo
+  incluido) para una tarea, se usa esa, avisándole antes qué regla de aquí se
+  rompe.
 - **No crear un segundo sistema de diseño.** Nada de
   `search.py --design-system --persist` (que crea `design-system/`) en este
   repo, salvo que el usuario lo pida.
@@ -74,7 +82,8 @@ forma y es lo que permite tocarlo después sin romper nada.
 - El modo oscuro es **por clase**: en el HTML se escribe `dark:` (la variante
   está definida sobre `.ion-palette-dark`) y en `tailwind.css` las reglas
   oscuras van con `:where(.ion-palette-dark) ...`, que no suma especificidad.
-- Sin librerías de UI ni fuentes extra.
+- Sin librerías de UI. Las fuentes van dentro de la app (§7), nunca desde
+  Google Fonts ni otro CDN.
 
 ## 1. El ámbar: marca y "lo encendido"
 
@@ -210,11 +219,18 @@ Son tres recursos que se repiten y amarran la identidad:
     contenido (la de "No verás si alguien reservó tus regalos..."), no en una
     franja.
 - **Listas agrupadas** (Voy a regalar: reservas por persona): lo que agrupa
-  es un **encabezado de sección fuera de la tarjeta**, sobre el fondo, con
-  foto, `h2` en negrita y un enlace secundario gris (`a.list-link` con
-  `chevron-forward`). Dentro de la tarjeta va solo el contenido del grupo.
+  es un **encabezado de sección fuera de las tarjetas**, sobre el fondo, con
+  foto, `h2` grande y, debajo, un enlace secundario gris (`a.list-link` con
+  `chevron-forward`) y el chip de la fecha. Debajo, el contenido del grupo: en
+  una tarjeta con filas o, si son regalos, en `.gift-grid` como en una lista.
   Nunca el encabezado como una fila más de la tarjeta: se lee al mismo nivel
-  que lo que agrupa. Entre grupos, más espacio que entre filas (`gap-7`).
+  que lo que agrupa. Entre grupos, bastante más espacio que dentro de uno
+  (`gap-9`).
+- **Resumen arriba, si ayuda a decidir.** Voy a regalar abre con una tarjeta
+  de tres cifras (regalos, personas, total aprox.): número en `font-display`
+  y su nombre chico debajo, en un `<dl>`. Una cifra que no se puede dar
+  completa (faltan páginas, monedas distintas) no se muestra: mejor nada que
+  un número equivocado.
 - **Poco texto explicativo.** Bajo el título de una pantalla, una frase corta
   como mucho. Lo que vale para toda una sección se dice una vez bajo su título
   (como "Pueden recibir tus listas privadas." en Te siguen), no en cada fila.
@@ -271,6 +287,16 @@ Son tres recursos que se repiten y amarran la identidad:
 - **Regalito en cada barra, sin el nombre de la pantalla a la vista** (ya está
   en el `h1` del contenido). El nombre queda solo para lectores de pantalla:
   `<ion-title><span class="title-gift" aria-hidden="true"></span><span class="sr-only">Título</span></ion-title>`.
+- **Fuentes, redondeadas como el logo** (definidas en `tailwind.css`, junto
+  al color de marca):
+  - **Nunito** para todo el texto: es la `--ion-font-family` y `font-sans`.
+  - **Fredoka** (`font-display`) para los títulos: el `h1` de cada pantalla
+    y los `h2` de hojas, estados vacíos y encabezados de grupo ya la toman
+    solos. También para un número que hace de título, como los del resumen de
+    Voy a regalar. No para `.section-title` ni para el texto de las tarjetas.
+  - Vienen de `@fontsource-variable/*`, cargadas en `angular.json`: funcionan
+    sin conexión y no avisan a Google de quién abre la app. Para cambiar una,
+    se cambia el paquete y el nombre en `@theme`.
 - **Avatares** (`app-avatar`): foto o iniciales. Cuando el avatar es un botón,
   o es "tú", lleva un **aro con separación**: 2 px de espacio entre la foto y el
   aro, que se enciende de ámbar al pasar el mouse o con lo que abre activo. Ver

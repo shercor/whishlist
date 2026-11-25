@@ -20,12 +20,26 @@ import {
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { bagHandleOutline, calendarOutline, chevronForward } from 'ionicons/icons';
+import {
+  alertCircleOutline,
+  bagHandleOutline,
+  calendarOutline,
+  chevronForward,
+  star,
+  timeOutline,
+} from 'ionicons/icons';
 import { Reservation, Wishlist, WishlistItem } from '../../core/api/models';
 import { ReservationsService } from '../../core/api/reservations.service';
 import { errorMessage } from '../../core/http/api-error';
 import { Avatar } from '../../shared/avatar';
-import { eventCountdown, formatDay, formatEventDate } from '../../shared/format';
+import {
+  eventCountdown,
+  formatDay,
+  formatEventDate,
+  formatPrice,
+  releaseCountdown,
+} from '../../shared/format';
+import { priorityOf } from '../../shared/priority';
 import { GiftSheet } from '../wishlists/gift-sheet';
 import { UserMenu } from '../../shared/user-menu';
 
@@ -59,6 +73,8 @@ export class ReservationsPage implements ViewWillEnter {
 
   protected readonly reservations = signal<Reservation[]>([]);
   protected readonly loading = signal(true);
+  /** Cuántas reservas tengo en total, también las de páginas que aún no se cargan. */
+  protected readonly total = signal(0);
   protected readonly error = signal<string | null>(null);
 
   private readonly page = signal(0);
@@ -71,10 +87,13 @@ export class ReservationsPage implements ViewWillEnter {
   protected readonly sheet =
     typeof matchMedia === 'function' && matchMedia('(max-width: 47.99rem)').matches;
 
-  protected readonly skeletonRows = ['45%', '60%', '35%'];
+  protected readonly skeletonRows = ['70%', '55%'];
   protected readonly formatDay = formatDay;
   protected readonly formatEventDate = formatEventDate;
   protected readonly eventCountdown = eventCountdown;
+  protected readonly releaseCountdown = releaseCountdown;
+  protected readonly formatPrice = formatPrice;
+  protected readonly priorityOf = priorityOf;
 
   /**
    * Las reservas juntas por lista: así se ve de un vistazo qué le llevas a cada persona. Las
@@ -92,8 +111,39 @@ export class ReservationsPage implements ViewWillEnter {
     return [...groups.values()];
   });
 
+  /** A cuántas personas les regalo, contando las reservas ya cargadas. */
+  protected readonly people = computed(
+    () => new Set(this.reservations().map((r) => r.wishlist?.owner?.username ?? `#${r.id}`)).size,
+  );
+
+  /**
+   * La suma de los precios de referencia, si se puede dar entera: con todas las reservas cargadas
+   * y una sola moneda. Si no, null y el resumen no la muestra.
+   */
+  protected readonly spend = computed(() => {
+    if (this.hasMore()) {
+      return null;
+    }
+    const products = this.reservations()
+      .map((r) => r.item.product)
+      .filter((product) => product?.reference_price);
+    const currencies = new Set(products.map((product) => product?.currency ?? 'CLP'));
+    if (products.length === 0 || currencies.size > 1) {
+      return null;
+    }
+    const sum = products.reduce((acc, product) => acc + Number(product?.reference_price), 0);
+    return formatPrice(sum, [...currencies][0]);
+  });
+
   constructor() {
-    addIcons({ bagHandleOutline, calendarOutline, chevronForward });
+    addIcons({
+      alertCircleOutline,
+      bagHandleOutline,
+      calendarOutline,
+      chevronForward,
+      star,
+      timeOutline,
+    });
   }
 
   ionViewWillEnter(): void {
@@ -124,6 +174,7 @@ export class ReservationsPage implements ViewWillEnter {
     if (!item.reserved_by_me) {
       this.modalOpen.set(false);
       this.reservations.update((list) => list.filter((current) => current.id !== opened.id));
+      this.total.update((count) => Math.max(0, count - 1));
       return;
     }
     this.opened.set({ ...opened, item });
@@ -144,6 +195,7 @@ export class ReservationsPage implements ViewWillEnter {
       this.reservations.update((list) => (page === 1 ? result.data : [...list, ...result.data]));
       this.page.set(result.meta.current_page);
       this.lastPage.set(result.meta.last_page);
+      this.total.set(result.meta.total);
     } catch (error) {
       this.error.set(errorMessage(error, 'No se pudieron cargar tus reservas.'));
     } finally {

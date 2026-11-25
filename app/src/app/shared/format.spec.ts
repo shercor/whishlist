@@ -4,6 +4,7 @@ import {
   formatEventDate,
   formatShortEventDate,
   giftCount,
+  releaseCountdown,
 } from './format';
 
 describe('formatEventDate', () => {
@@ -45,5 +46,25 @@ describe('eventCountdown', () => {
   it('dice hace cuánto fue si ya pasó', () => {
     expect(eventCountdown('2026-11-24', today)).toEqual({ text: 'Fue ayer', upcoming: false });
     expect(eventCountdown('2026-11-20', today)).toEqual({ text: 'Fue hace 5 días', upcoming: false });
+  });
+});
+
+describe('releaseCountdown', () => {
+  const now = new Date(2026, 10, 25, 22, 0);
+  const at = (day: number, hour = 10) => new Date(2026, 10, day, hour).toISOString();
+
+  it('cuenta los días del calendario, con hoy y mañana por su nombre', () => {
+    expect(releaseCountdown(at(25, 23), now)).toEqual({ text: 'Se suelta hoy', soon: true });
+    // Menos de 24 horas, pero ya es otro día.
+    expect(releaseCountdown(at(26, 8), now)).toEqual({ text: 'Se suelta mañana', soon: true });
+    expect(releaseCountdown(at(28), now)).toEqual({ text: 'Se suelta en 3 días', soon: true });
+    expect(releaseCountdown(at(29), now)).toEqual({ text: 'Se suelta en 4 días', soon: false });
+  });
+
+  it('avisa si el plazo ya venció', () => {
+    expect(releaseCountdown(at(25, 21), now)).toEqual({
+      text: 'Se suelta en cualquier momento',
+      soon: true,
+    });
   });
 });
